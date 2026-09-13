@@ -1,0 +1,342 @@
+/* Nakshaktram Design System — Apple-grade Light Mode Only */
+:root {
+  /* Color Palette (Section 2.1) */
+  --bg-primary: #FBFBFD;
+  --bg-secondary: #F5F5F7;
+  --bg-card: #FFFFFF;
+  --bg-card-elevated: #FFFFFF;
+  --border-subtle: #E5E5EA;
+  --border-strong: #D1D1D6;
+  
+  --text-primary: #1D1D1F;
+  --text-secondary: #6E6E73;
+  --text-tertiary: #A1A1A6;
+  
+  /* Brand Accents */
+  --accent-primary: #3A3A6E; /* Deep Indigo / Night Sky */
+  --accent-primary-hover: #2B2B52;
+  --accent-primary-subtle: rgba(58, 58, 110, 0.08);
+  --accent-primary-glow: rgba(58, 58, 110, 0.15);
+  
+  --accent-warm: #C9A24B; /* Muted Gold for Premium / Social Proof */
+  --accent-warm-hover: #B58F3B;
+  --accent-warm-subtle: rgba(201, 162, 75, 0.12);
+  
+  /* Semantic Colors */
+  --success: #2FA84F;
+  --success-subtle: rgba(47, 168, 79, 0.1);
+  --warning: #D98E04;
+  --warning-subtle: rgba(217, 142, 4, 0.1);
+  --error: #D64545;
+  --error-subtle: rgba(214, 69, 69, 0.1);
+
+  /* Shadows — Soft, Apple-style Ambient */
+  --shadow-subtle: 0 2px 12px rgba(0, 0, 0, 0.04);
+  --shadow-medium: 0 6px 24px rgba(0, 0, 0, 0.06);
+  --shadow-elevated: 0 12px 36px rgba(0, 0, 0, 0.08);
+  --shadow-modal: 0 24px 60px rgba(0, 0, 0, 0.12);
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-pill: 9999px;
+
+  /* Typography */
+  --font-apple: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Segoe UI", sans-serif;
+  
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-normal: 250ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-slow: 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Light mode is strictly enforced — no dark mode */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: light;
+  }
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-family: var(--font-apple);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.5;
+  font-size: 17px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Constellation Texture Overlay */
+.constellation-bg {
+  background-image: radial-gradient(rgba(58, 58, 110, 0.06) 1px, transparent 1px), radial-gradient(rgba(201, 162, 75, 0.05) 1px, transparent 1px);
+  background-size: 40px 40px, 80px 80px;
+  background-position: 0 0, 20px 20px;
+}
+
+/* Apple Frosted Glass */
+.frosted-glass {
+  background: rgba(251, 251, 253, 0.82);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+/* Apple Cards */
+.apple-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-subtle);
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal), border-color var(--transition-normal);
+}
+
+.apple-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-medium);
+  border-color: #D6D6DF;
+}
+
+/* Spring Interactive Buttons */
+.apple-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: var(--accent-primary);
+  color: #FFFFFF;
+  font-weight: 500;
+  font-size: 15px;
+  padding: 10px 20px;
+  border-radius: var(--radius-pill);
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.apple-btn-primary:hover {
+  background-color: var(--accent-primary-hover);
+  box-shadow: 0 4px 16px rgba(58, 58, 110, 0.25);
+}
+
+.apple-btn-primary:active {
+  transform: scale(0.97);
+}
+
+.apple-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  font-weight: 500;
+  font-size: 15px;
+  padding: 10px 20px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.apple-btn-secondary:hover {
+  background-color: #ECECED;
+  border-color: var(--border-strong);
+}
+
+.apple-btn-secondary:active {
+  transform: scale(0.97);
+}
+
+.apple-btn-gold {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #C9A24B, #B8860B);
+  color: #FFFFFF;
+  font-weight: 600;
+  font-size: 15px;
+  padding: 10px 22px;
+  border-radius: var(--radius-pill);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(201, 162, 75, 0.25);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.apple-btn-gold:hover {
+  box-shadow: 0 6px 20px rgba(201, 162, 75, 0.35);
+}
+
+.apple-btn-gold:active {
+  transform: scale(0.97);
+}
+
+/* Badges */
+.apple-badge-gold {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background-color: var(--accent-warm-subtle);
+  color: #8E6A1C;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(201, 162, 75, 0.3);
+}
+
+.apple-badge-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background-color: var(--accent-primary-subtle);
+  color: var(--accent-primary);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+}
+
+.apple-badge-success {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background-color: var(--success-subtle);
+  color: var(--success);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+}
+
+/* Inputs & Form Elements */
+.apple-input {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 16px;
+  font-family: var(--font-apple);
+  color: var(--text-primary);
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.apple-input:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-primary-glow);
+}
+
+.apple-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* Typography Utility Classes */
+.text-display {
+  font-size: clamp(36px, 5vw, 56px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--text-primary);
+}
+
+.text-h1 {
+  font-size: clamp(28px, 3.8vw, 40px);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  color: var(--text-primary);
+}
+
+.text-h2 {
+  font-size: clamp(22px, 2.8vw, 32px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: var(--text-primary);
+}
+
+.text-h3 {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.35;
+  color: var(--text-primary);
+}
+
+.text-body-large {
+  font-size: clamp(17px, 1.8vw, 19px);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.text-body {
+  font-size: 15px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.text-caption {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  line-height: 1.4;
+}
+
+/* Container */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Section vertical breathing room */
+.section-padding {
+  padding: 96px 0;
+}
+
+@media (max-width: 768px) {
+  .section-padding {
+    padding: 64px 0;
+  }
+  .container {
+    padding: 0 18px;
+  }
+}
+
+/* Skeleton shimmer */
+.skeleton {
+  background: linear-gradient(90deg, #F0F0F3 25%, #E6E6E9 50%, #F0F0F3 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite ease-in-out;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

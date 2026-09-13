@@ -1,0 +1,435 @@
+import React, { useState, useEffect } from 'react';
+import { Sparkles, Calendar, User as UserIcon, Menu, X, ChevronDown, Compass, ShieldCheck, Download } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+
+interface AppleHeaderProps {
+  onOpenAuth: (mode?: 'login' | 'signup') => void;
+  onOpenBooking: () => void;
+  currentPage?: string;
+  onNavigate: (path: string) => void;
+}
+
+export const AppleHeader: React.FC<AppleHeaderProps> = ({
+  onOpenAuth,
+  onOpenBooking,
+  currentPage = 'home',
+  onNavigate
+}) => {
+  const { user, isAuthenticated, isAdmin, logout } = useAuth();
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [blogDropdownOpen, setBlogDropdownOpen] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+
+    // PWA install prompt listener
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setDeferredPrompt(null);
+      }
+    }
+  };
+
+  const blogCategories = [
+    { name: 'All Topics', path: '/blog' },
+    { name: 'Kundli & Horoscope', path: '/blog/kundli' },
+    { name: 'Vastu Shastra (Home & Business)', path: '/blog/vastu' },
+    { name: 'Planetary Transits & Sade Sati', path: '/blog/transits' },
+    { name: 'Vedic Philosophy', path: '/blog/vedic' },
+    { name: 'Gemstones & Ratna', path: '/blog/gemstones' },
+    { name: 'Numerology', path: '/blog/numerology' }
+  ];
+
+  return (
+    <header
+      className="frosted-glass"
+      style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 1000,
+        height: isScrolled ? 58 : 68,
+        transition: 'height 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+        display: 'flex',
+        alignItems: 'center'
+      }}
+    >
+      <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+        {/* Brand Logo */}
+        <div
+          onClick={() => onNavigate('/')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            cursor: 'pointer',
+            textDecoration: 'none'
+          }}
+        >
+          <div
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 10,
+              background: 'linear-gradient(135deg, #3A3A6E, #232347)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#FFFFFF',
+              boxShadow: '0 2px 8px rgba(58, 58, 110, 0.2)'
+            }}
+          >
+            <Sparkles size={18} color="#C9A24B" />
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 18, color: '#1D1D1F', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+              Nakshaktram
+            </div>
+            <div style={{ fontSize: 10.5, color: '#6E6E73', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+              Amit Soni · Vedic Astrologer
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop Navigation Links */}
+        <nav style={{ display: 'none', alignItems: 'center', gap: 28 }} className="desktop-nav">
+          <button
+            onClick={() => onNavigate('/')}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: 14.5,
+              fontWeight: currentPage === 'home' ? 600 : 400,
+              color: currentPage === 'home' ? '#1D1D1F' : '#6E6E73',
+              transition: 'color 0.15s ease'
+            }}
+          >
+            Home
+          </button>
+
+          {/* Blog Dropdown */}
+          <div
+            style={{ position: 'relative' }}
+            onMouseEnter={() => setBlogDropdownOpen(true)}
+            onMouseLeave={() => setBlogDropdownOpen(false)}
+          >
+            <button
+              onClick={() => onNavigate('/blog')}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: 14.5,
+                fontWeight: currentPage.startsWith('blog') ? 600 : 400,
+                color: currentPage.startsWith('blog') ? '#1D1D1F' : '#6E6E73',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                transition: 'color 0.15s ease'
+              }}
+            >
+              Blog <ChevronDown size={14} />
+            </button>
+
+            {blogDropdownOpen && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: -20,
+                  width: 270,
+                  backgroundColor: '#FFFFFF',
+                  borderRadius: 16,
+                  padding: '10px 8px',
+                  boxShadow: '0 12px 36px rgba(0, 0, 0, 0.08)',
+                  border: '1px solid #E5E5EA',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 2,
+                  animation: 'dropdownFade 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                }}
+              >
+                {blogCategories.map((cat) => (
+                  <button
+                    key={cat.name}
+                    onClick={() => {
+                      onNavigate(cat.path);
+                      setBlogDropdownOpen(false);
+                    }}
+                    style={{
+                      textAlign: 'left',
+                      background: 'none',
+                      border: 'none',
+                      padding: '8px 12px',
+                      borderRadius: 10,
+                      fontSize: 13.5,
+                      color: '#1D1D1F',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.15s ease'
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F5F5F7')}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                  >
+                    {cat.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={() => onNavigate('/about')}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: 14.5,
+              fontWeight: currentPage === 'about' ? 600 : 400,
+              color: currentPage === 'about' ? '#1D1D1F' : '#6E6E73',
+              transition: 'color 0.15s ease'
+            }}
+          >
+            About Amit Soni
+          </button>
+
+          <button
+            onClick={() => onNavigate('/pricing')}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: 14.5,
+              fontWeight: currentPage === 'pricing' ? 600 : 400,
+              color: currentPage === 'pricing' ? '#1D1D1F' : '#6E6E73',
+              transition: 'color 0.15s ease'
+            }}
+          >
+            Pricing & Packages
+          </button>
+
+          <button
+            onClick={() => onNavigate('/contact')}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: 14.5,
+              fontWeight: currentPage === 'contact' ? 600 : 400,
+              color: currentPage === 'contact' ? '#1D1D1F' : '#6E6E73',
+              transition: 'color 0.15s ease'
+            }}
+          >
+            Contact
+          </button>
+        </nav>
+
+        {/* Right CTA / Auth Controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {/* PWA Install Button if available */}
+          {deferredPrompt && (
+            <button
+              onClick={handleInstallClick}
+              className="apple-btn-secondary"
+              style={{ padding: '8px 14px', fontSize: 13 }}
+              title="Install Nakshaktram App"
+            >
+              <Download size={15} /> Install PWA
+            </button>
+          )}
+
+          {isAuthenticated ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {isAdmin ? (
+                <button
+                  onClick={() => onNavigate('/admin')}
+                  className="apple-badge-primary"
+                  style={{ cursor: 'pointer', padding: '6px 12px', textDecoration: 'none', border: 'none' }}
+                >
+                  <ShieldCheck size={14} /> Admin Portal
+                </button>
+              ) : (
+                <button
+                  onClick={() => onNavigate('/app')}
+                  className="apple-badge-gold"
+                  style={{ cursor: 'pointer', padding: '6px 12px', border: 'none' }}
+                >
+                  <UserIcon size={14} /> My Dashboard
+                </button>
+              )}
+
+              <button
+                onClick={logout}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: 13.5,
+                  color: '#6E6E73',
+                  cursor: 'pointer',
+                  padding: '6px 8px'
+                }}
+              >
+                Sign Out
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => onOpenAuth('login')}
+              style={{
+                background: 'none',
+                border: 'none',
+                fontSize: 14.5,
+                fontWeight: 500,
+                color: '#1D1D1F',
+                cursor: 'pointer',
+                padding: '8px 14px'
+              }}
+            >
+              Sign In
+            </button>
+          )}
+
+          {/* Primary Book CTA */}
+          <button
+            onClick={onOpenBooking}
+            className="apple-btn-primary"
+            style={{
+              padding: isScrolled ? '8px 18px' : '10px 22px',
+              fontSize: 14.5,
+              boxShadow: '0 4px 14px rgba(58, 58, 110, 0.2)'
+            }}
+          >
+            <Calendar size={15} /> Book a Consultation
+          </button>
+
+          {/* Mobile Menu Toggle */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="mobile-toggle"
+            style={{
+              display: 'none',
+              background: 'none',
+              border: 'none',
+              padding: 6,
+              cursor: 'pointer',
+              color: '#1D1D1F'
+            }}
+          >
+            {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Drawer */}
+      {mobileMenuOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 58,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(251, 251, 253, 0.98)',
+            backdropFilter: 'blur(20px)',
+            padding: '28px 24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 20,
+            zIndex: 999
+          }}
+        >
+          <button
+            onClick={() => { onNavigate('/'); setMobileMenuOpen(false); }}
+            style={{ textAlign: 'left', background: 'none', border: 'none', fontSize: 20, fontWeight: 600, color: '#1D1D1F' }}
+          >
+            Home
+          </button>
+          <button
+            onClick={() => { onNavigate('/blog'); setMobileMenuOpen(false); }}
+            style={{ textAlign: 'left', background: 'none', border: 'none', fontSize: 20, fontWeight: 600, color: '#1D1D1F' }}
+          >
+            Astrology & Vastu Blog
+          </button>
+          <button
+            onClick={() => { onNavigate('/about'); setMobileMenuOpen(false); }}
+            style={{ textAlign: 'left', background: 'none', border: 'none', fontSize: 20, fontWeight: 600, color: '#1D1D1F' }}
+          >
+            About Amit Soni
+          </button>
+          <button
+            onClick={() => { onNavigate('/pricing'); setMobileMenuOpen(false); }}
+            style={{ textAlign: 'left', background: 'none', border: 'none', fontSize: 20, fontWeight: 600, color: '#1D1D1F' }}
+          >
+            Pricing & Packages
+          </button>
+          <button
+            onClick={() => { onNavigate('/contact'); setMobileMenuOpen(false); }}
+            style={{ textAlign: 'left', background: 'none', border: 'none', fontSize: 20, fontWeight: 600, color: '#1D1D1F' }}
+          >
+            Contact
+          </button>
+
+          {isAuthenticated ? (
+            <button
+              onClick={() => { onNavigate(isAdmin ? '/admin' : '/app'); setMobileMenuOpen(false); }}
+              className="apple-btn-secondary"
+              style={{ marginTop: 20, width: '100%' }}
+            >
+              {isAdmin ? 'Open Admin Portal' : 'Open My Portal'}
+            </button>
+          ) : (
+            <button
+              onClick={() => { onOpenAuth('login'); setMobileMenuOpen(false); }}
+              className="apple-btn-secondary"
+              style={{ marginTop: 20, width: '100%' }}
+            >
+              Sign In to Account
+            </button>
+          )}
+
+          <button
+            onClick={() => { onOpenBooking(); setMobileMenuOpen(false); }}
+            className="apple-btn-primary"
+            style={{ width: '100%' }}
+          >
+            <Calendar size={16} /> Book a Consultation
+          </button>
+        </div>
+      )}
+
+      <style>{`
+        @media (min-width: 860px) {
+          .desktop-nav { display: flex !important; }
+          .mobile-toggle { display: none !important; }
+        }
+        @media (max-width: 859px) {
+          .desktop-nav { display: none !important; }
+          .mobile-toggle { display: block !important; }
+        }
+        @keyframes dropdownFade {
+          from { opacity: 0; transform: translateY(4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+    </header>
+  );
+};

@@ -1,0 +1,36 @@
+name: Nakshaktram CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'npm'
+
+    - name: Install root dependencies
+      run: npm install
+
+    - name: Install client dependencies & build
+      run: |
+        cd client
+        npm install
+        npm run build
+
+    - name: Install server dependencies & build
+      run: |
+        cd server
+        npm install
+        npm run build
