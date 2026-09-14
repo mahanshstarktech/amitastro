@@ -106,6 +106,7 @@ async function initPostgresSchema() {
       password_hash TEXT,
       role VARCHAR(32) DEFAULT 'customer',
       is_phone_verified INT DEFAULT 0,
+      is_email_verified INT DEFAULT 0,
       is_new_customer INT DEFAULT 1,
       trial_used INT DEFAULT 0,
       trial_seconds_remaining INT DEFAULT 300,
@@ -286,6 +287,7 @@ async function initPostgresSchema() {
   // Safe migrations for existing databases
   const migrations = [
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS is_new_customer INT DEFAULT 1`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS is_email_verified INT DEFAULT 0`,
     `ALTER TABLE appointments ADD COLUMN IF NOT EXISTS followup_days INT DEFAULT 0`,
     `ALTER TABLE appointments ADD COLUMN IF NOT EXISTS followup_chat_expires_at TIMESTAMP`,
   ];
@@ -309,6 +311,7 @@ async function initSqliteSchema() {
           password_hash TEXT,
           role TEXT DEFAULT 'customer',
           is_phone_verified INTEGER DEFAULT 0,
+          is_email_verified INTEGER DEFAULT 0,
           is_new_customer INTEGER DEFAULT 1,
           trial_used INTEGER DEFAULT 0,
           trial_seconds_remaining INTEGER DEFAULT 300,

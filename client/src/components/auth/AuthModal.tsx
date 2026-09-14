@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Phone, Mail, Lock, User as UserIcon, ShieldCheck, ArrowRight, CheckCircle2, Clock, Sparkles } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
+import { isFirebaseConfigured, sendFirebaseSms } from '../../services/firebase';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -16,16 +17,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   initialMode = 'login',
   onSuccess
 }) => {
-  const { login, loginWithGoogle, sendOtp, verifyOtp, addProfile, user } = useAuth();
+  const { login, loginWithGoogle, sendOtp, sendDualOtp, verifyOtp, verifyDualOtp, addProfile, user } = useAuth();
   const { showToast } = useNotification();
 
-  const [mode, setMode] = useState<'login' | 'signup' | 'otp' | 'profile'>(initialMode);
+  const [mode, setMode] = useState<'login' | 'signup' | 'otp' | 'dual_otp' | 'profile'>(initialMode);
   const [channel, setChannel] = useState<'phone' | 'email'>('phone');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [otpCode, setOtpCode] = useState('');
+  const [phoneOtp, setPhoneOtp] = useState('');
+  const [emailOtp, setEmailOtp] = useState('');
+  const [phoneSimulatedCode, setPhoneSimulatedCode] = useState<string | null>(null);
+  const [emailSimulatedCode, setEmailSimulatedCode] = useState<string | null>(null);
+  const [firebaseConfirmation, setFirebaseConfirmation] = useState<any>(null);
   const [simulatedCode, setSimulatedCode] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -120,6 +126,110 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       showToast(`${channel === 'phone' ? 'Phone' : 'Email'} verified successfully!`, 'success');
 
       // Check if user needs progressive birth profiling
+      setProfileName(name || 'Myself');
+      setMode('profile');
+    } catch (err: any) {
+      showToast(err.message, 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSendDualOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) {
+      showToast('Please enter your full name', 'error');
+      return;
+    }
+    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    if (!cleanPhone || cleanPhone.length < 10) {
+      showToast('Please enter a valid 10-digit mobile number', 'error');
+      return;
+    }
+    if (!email || !email.includes('@')) {
+      showToast('Please enter a valid email address', 'error');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const fullPhone = '+91' + cleanPhone.slice(-10);
+
+      if (isFirebaseConfigured()) {
+        try {
+          const confirmation = await sendFirebaseSms(fullPhone, 'recaptcha-container');
+          setFirebaseConfirmation(confirmation);
+          showToast('Real SMS verification sent via Firebase!', 'success');
+        } catch (firebaseErr: any) {
+          console.warn('[Firebase SMS fallback]:', firebaseErr.message);
+        }
+      }
+
+      const res = await sendDualOtp(fullPhone, email.trim().toLowerCase());
+      if (res.phoneSimulatedCode) {
+        setPhoneSimulatedCode(res.phoneSimulatedCode);
+        setPhoneOtp(res.phoneSimulatedCode);
+      }
+      if (res.emailSimulatedCode) {
+        setEmailSimulatedCode(res.emailSimulatedCode);
+        setEmailOtp(res.emailSimulatedCode);
+      }
+      setCooldown(res.cooldownSeconds || 60);
+      setMode('dual_otp');
+      showToast('Verification codes dispatched to Phone (SMS) and Email', 'success');
+
+      const timer = setInterval(() => {
+        setCooldown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } catch (err: any) {
+      showToast(err.message, 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyDualOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!phoneOtp || phoneOtp.length < 6) {
+      showToast('Please enter the 6-digit Mobile SMS verification code', 'error');
+      return;
+    }
+    if (!emailOtp || emailOtp.length < 6) {
+      showToast('Please enter the 6-digit Email verification code', 'error');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const fullPhone = '+91' + phone.replace(/[^0-9]/g, '').slice(-10);
+      let firebaseVerified = false;
+
+      if (firebaseConfirmation) {
+        try {
+          await firebaseConfirmation.confirm(phoneOtp);
+          firebaseVerified = true;
+        } catch (fbErr: any) {
+          console.warn('Firebase confirmation warning:', fbErr.message);
+        }
+      }
+
+      await verifyDualOtp({
+        phone: fullPhone,
+        email: email.trim().toLowerCase(),
+        phoneCode: phoneOtp,
+        emailCode: emailOtp,
+        firebaseVerified,
+        name: name.trim(),
+        password: password || undefined
+      });
+
+      showToast('Both Phone & Email verified successfully!', 'success');
       setProfileName(name || 'Myself');
       setMode('profile');
     } catch (err: any) {
@@ -451,55 +561,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <div style={{ flex: 1, height: 1, backgroundColor: '#E5E5EA' }} />
             </div>
 
-            {/* Channel Tabs: Phone OTP vs Email OTP */}
-            <div style={{ display: 'flex', gap: 6, backgroundColor: '#F5F5F7', padding: 4, borderRadius: 10, marginBottom: 14 }}>
-              <button
-                type="button"
-                onClick={() => setChannel('phone')}
-                style={{
-                  flex: 1,
-                  padding: '7px 10px',
-                  border: 'none',
-                  borderRadius: 8,
-                  fontSize: 12.5,
-                  fontWeight: channel === 'phone' ? 600 : 500,
-                  backgroundColor: channel === 'phone' ? '#FFFFFF' : 'transparent',
-                  color: channel === 'phone' ? '#1D1D1F' : '#6E6E73',
-                  boxShadow: channel === 'phone' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6
-                }}
-              >
-                <Phone size={14} /> Phone OTP
-              </button>
-              <button
-                type="button"
-                onClick={() => setChannel('email')}
-                style={{
-                  flex: 1,
-                  padding: '7px 10px',
-                  border: 'none',
-                  borderRadius: 8,
-                  fontSize: 12.5,
-                  fontWeight: channel === 'email' ? 600 : 500,
-                  backgroundColor: channel === 'email' ? '#FFFFFF' : 'transparent',
-                  color: channel === 'email' ? '#1D1D1F' : '#6E6E73',
-                  boxShadow: channel === 'email' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6
-                }}
-              >
-                <Mail size={14} /> Email OTP
-              </button>
+            {/* Mandatory Dual Verification Notice */}
+            <div
+              style={{
+                backgroundColor: 'rgba(58, 58, 110, 0.06)',
+                border: '1px solid rgba(58, 58, 110, 0.14)',
+                borderRadius: 12,
+                padding: '12px 14px',
+                marginBottom: 16,
+                display: 'flex',
+                gap: 10,
+                alignItems: 'flex-start'
+              }}
+            >
+              <ShieldCheck size={18} color="#3A3A6E" style={{ flexShrink: 0, marginTop: 2 }} />
+              <div style={{ fontSize: 12, color: '#3A3A6E', lineHeight: 1.45 }}>
+                <strong>Mandatory Dual Verification:</strong> Both Phone (SMS) and Email OTP verification are required to confirm your client profile and unlock consultations.
+              </div>
             </div>
 
-            <form onSubmit={handleSendOtp} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <form onSubmit={handleSendDualOtp} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 12.5, fontWeight: 500, color: '#1D1D1F', marginBottom: 4 }}>
                   Full Name
@@ -514,46 +595,46 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 />
               </div>
 
-              {channel === 'phone' ? (
-                <div>
-                  <label style={{ display: 'block', fontSize: 12.5, fontWeight: 500, color: '#1D1D1F', marginBottom: 4 }}>
-                    Mobile Phone Number
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <span style={{ position: 'absolute', left: 14, top: 12, color: '#1D1D1F', fontWeight: 500, fontSize: 14 }}>
-                      +91
-                    </span>
-                    <input
-                      type="tel"
-                      required
-                      value={phone.replace('+91', '')}
-                      onChange={(e) => setPhone('+91' + e.target.value.replace(/[^0-9]/g, ''))}
-                      placeholder="98765 43210"
-                      maxLength={10}
-                      className="apple-input"
-                      style={{ paddingLeft: 50 }}
-                    />
-                  </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 500, color: '#1D1D1F', marginBottom: 4 }}>
+                  Mobile Phone Number (SMS OTP)
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <span style={{ position: 'absolute', left: 14, top: 12, color: '#1D1D1F', fontWeight: 500, fontSize: 14 }}>
+                    +91
+                  </span>
+                  <input
+                    type="tel"
+                    required
+                    value={phone.replace('+91', '')}
+                    onChange={(e) => setPhone('+91' + e.target.value.replace(/[^0-9]/g, ''))}
+                    placeholder="98765 43210"
+                    maxLength={10}
+                    className="apple-input"
+                    style={{ paddingLeft: 50 }}
+                  />
                 </div>
-              ) : (
-                <div>
-                  <label style={{ display: 'block', fontSize: 12.5, fontWeight: 500, color: '#1D1D1F', marginBottom: 4 }}>
-                    Email Address
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <Mail size={16} color="#A1A1A6" style={{ position: 'absolute', left: 14, top: 12 }} />
-                    <input
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="name@example.com"
-                      className="apple-input"
-                      style={{ paddingLeft: 38 }}
-                    />
-                  </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 500, color: '#1D1D1F', marginBottom: 4 }}>
+                  Email Address (Email OTP)
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <Mail size={16} color="#A1A1A6" style={{ position: 'absolute', left: 14, top: 12 }} />
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="name@example.com"
+                    className="apple-input"
+                    style={{ paddingLeft: 38 }}
+                  />
                 </div>
-              )}
+              </div>
+
+              <div id="recaptcha-container"></div>
 
               <button
                 type="submit"
@@ -561,7 +642,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 className="apple-btn-primary"
                 style={{ marginTop: 6, padding: 12, width: '100%', fontSize: 14.5 }}
               >
-                {isLoading ? 'Sending Verification Code...' : `Send 6-Digit ${channel === 'phone' ? 'SMS' : 'Email'} Code`}
+                {isLoading ? 'Dispatching Verification Codes...' : 'Send Codes to Phone & Email'}
               </button>
             </form>
 
@@ -577,7 +658,137 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
         )}
 
-        {/* 3. Mode: ENTER OTP */}
+        {/* 3. Mode: MANDATORY DUAL OTP VERIFICATION */}
+        {mode === 'dual_otp' && (
+          <div>
+            <div style={{ textAlign: 'center', marginBottom: 18 }}>
+              <div
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 14,
+                  background: 'rgba(47, 168, 79, 0.1)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 10
+                }}
+              >
+                <ShieldCheck size={24} color="#2FA84F" />
+              </div>
+              <h2 className="text-h2" style={{ fontSize: 21, marginBottom: 4 }}>
+                Verify Phone & Email
+              </h2>
+              <p className="text-body" style={{ fontSize: 12.5 }}>
+                Enter the verification codes sent to both destinations below.
+              </p>
+            </div>
+
+            {/* Simulated Code Indicator if in dev/simulated mode */}
+            {(phoneSimulatedCode || emailSimulatedCode) && (
+              <div
+                style={{
+                  backgroundColor: '#FFF8E6',
+                  border: '1px solid #C9A24B',
+                  borderRadius: 10,
+                  padding: '9px 12px',
+                  marginBottom: 14,
+                  fontSize: 12,
+                  color: '#6A531C',
+                  textAlign: 'center'
+                }}
+              >
+                {phoneSimulatedCode && <div>📱 Mobile Dev Code: <strong>{phoneSimulatedCode}</strong></div>}
+                {emailSimulatedCode && <div>✉️ Email Dev Code: <strong>{emailSimulatedCode}</strong></div>}
+              </div>
+            )}
+
+            <form onSubmit={handleVerifyDualOtp} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {/* Phone OTP Input */}
+              <div style={{ backgroundColor: '#F5F5F7', padding: '12px 14px', borderRadius: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 600, color: '#1D1D1F', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Phone size={14} color="#3A3A6E" /> 1. Mobile SMS Code
+                  </span>
+                  <span style={{ fontSize: 11.5, color: '#6E6E73' }}>
+                    +91 {phone.replace(/[^0-9]/g, '').slice(-10)}
+                  </span>
+                </div>
+                <input
+                  type="text"
+                  required
+                  value={phoneOtp}
+                  onChange={(e) => setPhoneOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+                  placeholder="• • • • • •"
+                  maxLength={6}
+                  className="apple-input"
+                  style={{ textAlign: 'center', fontSize: 20, letterSpacing: 6, fontWeight: 700, backgroundColor: '#FFFFFF' }}
+                  autoFocus
+                />
+              </div>
+
+              {/* Email OTP Input */}
+              <div style={{ backgroundColor: '#F5F5F7', padding: '12px 14px', borderRadius: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 600, color: '#1D1D1F', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Mail size={14} color="#3A3A6E" /> 2. Email OTP Code
+                  </span>
+                  <span style={{ fontSize: 11.5, color: '#6E6E73' }}>
+                    {email}
+                  </span>
+                </div>
+                <input
+                  type="text"
+                  required
+                  value={emailOtp}
+                  onChange={(e) => setEmailOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+                  placeholder="• • • • • •"
+                  maxLength={6}
+                  className="apple-input"
+                  style={{ textAlign: 'center', fontSize: 20, letterSpacing: 6, fontWeight: 700, backgroundColor: '#FFFFFF' }}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading || phoneOtp.length < 6 || emailOtp.length < 6}
+                className="apple-btn-primary"
+                style={{
+                  padding: 12,
+                  width: '100%',
+                  fontSize: 14.5,
+                  opacity: (phoneOtp.length < 6 || emailOtp.length < 6) ? 0.6 : 1
+                }}
+              >
+                {isLoading ? 'Verifying Credentials...' : 'Verify Both & Continue'}
+              </button>
+            </form>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 14, fontSize: 12, color: '#6E6E73' }}>
+              <button
+                type="button"
+                onClick={() => setMode('signup')}
+                style={{ background: 'none', border: 'none', color: '#3A3A6E', cursor: 'pointer', fontSize: 12 }}
+              >
+                ← Edit phone/email
+              </button>
+
+              {cooldown > 0 ? (
+                <span>Resend in {cooldown}s</span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSendDualOtp}
+                  style={{ background: 'none', border: 'none', color: '#3A3A6E', fontWeight: 600, cursor: 'pointer', fontSize: 12 }}
+                >
+                  Resend Both Codes
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* 3b. Mode: SINGLE OTP (Fallback / Login) */}
         {mode === 'otp' && (
           <div>
             <div style={{ textAlign: 'center', marginBottom: 20 }}>

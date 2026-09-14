@@ -38,7 +38,9 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   loginWithGoogle: (data: { email: string; name: string; googleId?: string }) => Promise<void>;
   sendOtp: (destination: string, channel?: 'phone' | 'email') => Promise<{ simulatedCode?: string; cooldownSeconds: number; channel?: string }>;
+  sendDualOtp: (phone: string, email: string) => Promise<{ phoneSimulatedCode?: string; emailSimulatedCode?: string; cooldownSeconds: number }>;
   verifyOtp: (data: { phone?: string; email?: string; code: string; name?: string; password?: string }) => Promise<void>;
+  verifyDualOtp: (data: { phone: string; email: string; phoneCode?: string; emailCode: string; firebaseVerified?: boolean; name?: string; password?: string }) => Promise<void>;
   logout: () => void;
   refreshMe: () => Promise<void>;
   addProfile: (data: any) => Promise<BirthProfile>;
@@ -114,8 +116,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
+  const sendDualOtp = async (phone: string, email: string) => {
+    return await apiRequest<{ phoneSimulatedCode?: string; emailSimulatedCode?: string; cooldownSeconds: number }>('/auth/send-dual-otp', {
+      method: 'POST',
+      body: JSON.stringify({ phone, email })
+    });
+  };
+
   const verifyOtp = async (data: { phone?: string; email?: string; code: string; name?: string; password?: string }) => {
     const res = await apiRequest<{ token: string; user: User; profiles: BirthProfile[] }>('/auth/verify-otp', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+    localStorage.setItem('nakshaktram_token', res.token);
+    setToken(res.token);
+    setUser(res.user);
+    setProfiles(res.profiles || []);
+  };
+
+  const verifyDualOtp = async (data: { phone: string; email: string; phoneCode?: string; emailCode: string; firebaseVerified?: boolean; name?: string; password?: string }) => {
+    const res = await apiRequest<{ token: string; user: User; profiles: BirthProfile[] }>('/auth/verify-dual-otp', {
       method: 'POST',
       body: JSON.stringify(data)
     });
@@ -167,7 +187,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         loginWithGoogle,
         sendOtp,
+        sendDualOtp,
         verifyOtp,
+        verifyDualOtp,
         logout,
         refreshMe,
         addProfile,
