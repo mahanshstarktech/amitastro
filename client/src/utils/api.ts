@@ -1,4 +1,6 @@
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const isProd = typeof window !== 'undefined' && !window.location.hostname.includes('localhost');
+const envApi = (import.meta.env.VITE_API_URL || '').replace('nakshaktram-api.onrender.com', 'nakshaktram.onrender.com');
+const API_BASE = envApi || (isProd ? 'https://nakshaktram.onrender.com/api' : 'http://localhost:5001/api');
 
 export async function apiRequest<T = any>(
   endpoint: string,
