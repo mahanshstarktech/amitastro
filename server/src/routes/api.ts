@@ -14,6 +14,7 @@ const router = Router();
 // 1. Auth Routes
 router.post('/auth/send-otp', authCtrl.sendOtp);
 router.post('/auth/verify-otp', authCtrl.verifyOtp);
+router.post('/auth/google', authCtrl.googleAuth);
 router.post('/auth/login', authCtrl.login);
 router.get('/auth/me', authenticateToken, authCtrl.getMe);
 

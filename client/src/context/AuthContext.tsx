@@ -36,8 +36,9 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isAdmin: boolean;
   login: (email: string, password: string) => Promise<void>;
-  sendOtp: (phone: string) => Promise<{ simulatedCode?: string; cooldownSeconds: number }>;
-  verifyOtp: (data: { phone: string; code: string; name?: string; email?: string; password?: string }) => Promise<void>;
+  loginWithGoogle: (data: { email: string; name: string; googleId?: string }) => Promise<void>;
+  sendOtp: (destination: string, channel?: 'phone' | 'email') => Promise<{ simulatedCode?: string; cooldownSeconds: number; channel?: string }>;
+  verifyOtp: (data: { phone?: string; email?: string; code: string; name?: string; password?: string }) => Promise<void>;
   logout: () => void;
   refreshMe: () => Promise<void>;
   addProfile: (data: any) => Promise<BirthProfile>;
@@ -53,19 +54,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('nakshaktram_token'));
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  // Load user profile if token exists
   const refreshMe = async () => {
+    if (!token) {
+      setUser(null);
+      setProfiles([]);
+      setIsLoading(false);
+      return;
+    }
     try {
-      if (!localStorage.getItem('nakshaktram_token')) {
-        setUser(null);
-        setProfiles([]);
-        setIsLoading(false);
-        return;
-      }
-      const data = await apiRequest<{ user: User; profiles: BirthProfile[] }>('/auth/me');
-      setUser(data.user);
-      setProfiles(data.profiles || []);
-    } catch (err) {
-      console.warn('Auth token invalid or expired:', err);
+      const res = await apiRequest<{ user: User; profiles: BirthProfile[] }>('/auth/me');
+      setUser(res.user);
+      setProfiles(res.profiles || []);
+    } catch {
       localStorage.removeItem('nakshaktram_token');
       setToken(null);
       setUser(null);
@@ -90,14 +91,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setProfiles(res.profiles || []);
   };
 
-  const sendOtp = async (phone: string) => {
-    return await apiRequest<{ simulatedCode?: string; cooldownSeconds: number }>('/auth/send-otp', {
+  const loginWithGoogle = async (googleData: { email: string; name: string; googleId?: string }) => {
+    const res = await apiRequest<{ token: string; user: User; profiles: BirthProfile[] }>('/auth/google', {
       method: 'POST',
-      body: JSON.stringify({ phone })
+      body: JSON.stringify(googleData)
+    });
+    localStorage.setItem('nakshaktram_token', res.token);
+    setToken(res.token);
+    setUser(res.user);
+    setProfiles(res.profiles || []);
+  };
+
+  const sendOtp = async (destination: string, channel?: 'phone' | 'email') => {
+    const isEmail = channel === 'email' || destination.includes('@');
+    return await apiRequest<{ simulatedCode?: string; cooldownSeconds: number; channel?: string }>('/auth/send-otp', {
+      method: 'POST',
+      body: JSON.stringify({
+        phone: !isEmail ? destination : undefined,
+        email: isEmail ? destination : undefined,
+        channel: isEmail ? 'email' : 'phone'
+      })
     });
   };
 
-  const verifyOtp = async (data: { phone: string; code: string; name?: string; email?: string; password?: string }) => {
+  const verifyOtp = async (data: { phone?: string; email?: string; code: string; name?: string; password?: string }) => {
     const res = await apiRequest<{ token: string; user: User; profiles: BirthProfile[] }>('/auth/verify-otp', {
       method: 'POST',
       body: JSON.stringify(data)

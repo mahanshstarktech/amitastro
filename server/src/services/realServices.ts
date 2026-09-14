@@ -64,6 +64,91 @@ export async function sendRealSmsOtp(phone: string, code: string): Promise<{ suc
 }
 
 /**
+ * Real Free Email OTP Service (Resend / Brevo / Native HTTPS)
+ * Resend free tier gives 3,000 emails/month; Brevo gives 300 emails/day.
+ */
+export async function sendRealEmailOtp(email: string, code: string): Promise<{ success: boolean; provider: string; error?: string }> {
+  // 1. Resend (resend.com - 100% Free, 3,000 emails/month)
+  const resendApiKey = process.env.RESEND_API_KEY;
+  if (resendApiKey) {
+    try {
+      const fromEmail = process.env.EMAIL_FROM || 'Nakshaktram <onboarding@resend.dev>';
+      const postData = JSON.stringify({
+        from: fromEmail,
+        to: [email],
+        subject: `${code} is your Nakshaktram verification code`,
+        html: `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; border: 1px solid #E5E5EA; borderRadius: 16px; backgroundColor: #FFFFFF;">
+            <div style="text-align: center; margin-bottom: 20px;">
+              <h2 style="color: #3A3A6E; margin: 0; font-size: 22px;">Nakshaktram</h2>
+              <p style="color: #6E6E73; font-size: 13px; margin-top: 4px;">Vedic Astrology & Vastu Consultation</p>
+            </div>
+            <p style="color: #1D1D1F; font-size: 15px; line-height: 1.5;">Namaste,</p>
+            <p style="color: #1D1D1F; font-size: 14px; line-height: 1.5;">Use the following 6-digit one-time code to verify your email and access your astrological portal:</p>
+            <div style="background-color: #F5F5F7; border-radius: 12px; padding: 18px; text-align: center; margin: 20px 0;">
+              <span style="font-size: 32px; font-weight: 700; letter-spacing: 6px; color: #1D1D1F;">${code}</span>
+            </div>
+            <p style="color: #86868B; font-size: 12px;">This code is valid for 90 seconds. If you did not request this verification, you can safely disregard this email.</p>
+          </div>
+        `
+      });
+
+      await makeHttpsRequest({
+        hostname: 'api.resend.com',
+        path: '/emails',
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${resendApiKey}`,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(postData)
+        }
+      }, postData);
+
+      console.log(`[Real Email OTP] Dispatched code ${code} to ${email} via Resend.`);
+      return { success: true, provider: 'resend' };
+    } catch (err: any) {
+      console.error('[Real Email Error - Resend]:', err.message);
+      return { success: false, provider: 'resend', error: err.message };
+    }
+  }
+
+  // 2. Brevo / Sendinblue (300 free emails/day)
+  const brevoApiKey = process.env.BREVO_API_KEY;
+  if (brevoApiKey) {
+    try {
+      const fromEmail = process.env.EMAIL_FROM || 'contact@nakshaktram.com';
+      const postData = JSON.stringify({
+        sender: { name: 'Nakshaktram', email: fromEmail },
+        to: [{ email }],
+        subject: `Your Nakshaktram verification code: ${code}`,
+        htmlContent: `<p>Your verification code is <strong>${code}</strong> (valid for 90 seconds).</p>`
+      });
+
+      await makeHttpsRequest({
+        hostname: 'api.brevo.com',
+        path: '/v3/smtp/email',
+        method: 'POST',
+        headers: {
+          'api-key': brevoApiKey,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(postData)
+        }
+      }, postData);
+
+      console.log(`[Real Email OTP] Dispatched code ${code} to ${email} via Brevo.`);
+      return { success: true, provider: 'brevo' };
+    } catch (err: any) {
+      console.error('[Real Email Error - Brevo]:', err.message);
+      return { success: false, provider: 'brevo', error: err.message };
+    }
+  }
+
+  // Fallback: Simulated Email in Console
+  console.log(`[Email Gateway Simulated Mode] OTP for ${email}: ${code}`);
+  return { success: true, provider: 'simulated' };
+}
+
+/**
  * Real Telegram Notification Service for Astrologer Amit Soni
  * Dispatches live booking requests and payment proofs straight to Amit's Telegram.
  */
