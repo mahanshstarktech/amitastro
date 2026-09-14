@@ -8,12 +8,12 @@ import {
 } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || '',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || ''
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyDQoCeJ0ZsoifIPaW8UmJNDw-b49OCl1eI',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'nakshaktram.firebaseapp.com',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'nakshaktram',
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'nakshaktram.firebasestorage.app',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '930288896681',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:930288896681:web:edc1a187735a786762b7b8'
 };
 
 export const isFirebaseConfigured = (): boolean => {
