@@ -534,6 +534,29 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               </div>
             </div>
 
+            {/* 1-Tap Mobile UPI Intent Launcher */}
+            {paymentConfig?.upi?.intentUrl && (
+              <a
+                href={paymentConfig.upi.intentUrl}
+                className="apple-btn-primary"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  padding: '12px 18px',
+                  marginBottom: 16,
+                  textDecoration: 'none',
+                  fontSize: 14.5,
+                  borderRadius: 14,
+                  backgroundColor: '#2FA84F',
+                  boxShadow: '0 4px 14px rgba(47, 168, 79, 0.25)'
+                }}
+              >
+                📱 Open Installed UPI App (GPay / PhonePe / Paytm)
+              </a>
+            )}
+
             {/* UTR Form */}
             <form onSubmit={handleSubmitPaymentProof} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>

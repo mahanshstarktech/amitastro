@@ -244,48 +244,49 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
         </nav>
 
         {/* Right CTA / Auth Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(8px, 1vw, 14px)', flexShrink: 0 }}>
           {/* PWA Install Button if available */}
           {deferredPrompt && (
             <button
               onClick={handleInstallClick}
-              className="apple-btn-secondary"
-              style={{ padding: '8px 14px', fontSize: 13 }}
+              className="apple-btn-secondary install-btn"
+              style={{ padding: '7px 12px', fontSize: 12.5 }}
               title="Install Nakshaktram App"
             >
-              <Download size={15} /> Install PWA
+              <Download size={14} /> Install
             </button>
           )}
 
           {isAuthenticated ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {isAdmin ? (
                 <button
                   onClick={() => onNavigate('/admin')}
-                  className="apple-badge-primary"
-                  style={{ cursor: 'pointer', padding: '6px 12px', textDecoration: 'none', border: 'none' }}
+                  className="apple-badge-primary portal-badge"
+                  style={{ cursor: 'pointer', padding: '6px 12px', border: 'none' }}
                 >
-                  <ShieldCheck size={14} /> Admin Portal
+                  <ShieldCheck size={14} /> Admin
                 </button>
               ) : (
                 <button
                   onClick={() => onNavigate('/app')}
-                  className="apple-badge-gold"
+                  className="apple-badge-gold portal-badge"
                   style={{ cursor: 'pointer', padding: '6px 12px', border: 'none' }}
                 >
-                  <UserIcon size={14} /> My Dashboard
+                  <UserIcon size={14} /> Portal
                 </button>
               )}
 
               <button
                 onClick={logout}
+                className="signout-desktop-btn"
                 style={{
                   background: 'none',
                   border: 'none',
-                  fontSize: 13.5,
+                  fontSize: 13,
                   color: '#6E6E73',
                   cursor: 'pointer',
-                  padding: '6px 8px'
+                  padding: '6px 6px'
                 }}
               >
                 Sign Out
@@ -297,11 +298,11 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
               style={{
                 background: 'none',
                 border: 'none',
-                fontSize: 14.5,
+                fontSize: 14,
                 fontWeight: 500,
                 color: '#1D1D1F',
                 cursor: 'pointer',
-                padding: '8px 14px'
+                padding: '6px 10px'
               }}
             >
               Sign In
@@ -311,119 +312,30 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
           {/* Primary Book CTA */}
           <button
             onClick={onOpenBooking}
-            className="apple-btn-primary"
+            className="apple-btn-primary top-book-btn"
             style={{
-              padding: isScrolled ? '8px 18px' : '10px 22px',
-              fontSize: 14.5,
-              boxShadow: '0 4px 14px rgba(58, 58, 110, 0.2)'
+              padding: isScrolled ? '7px 16px' : '9px 20px',
+              fontSize: 14,
+              boxShadow: '0 4px 14px rgba(58, 58, 110, 0.2)',
+              whiteSpace: 'nowrap'
             }}
           >
-            <Calendar size={15} /> Book a Consultation
-          </button>
-
-          {/* Mobile Menu Toggle */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="mobile-toggle"
-            style={{
-              display: 'none',
-              background: 'none',
-              border: 'none',
-              padding: 6,
-              cursor: 'pointer',
-              color: '#1D1D1F'
-            }}
-          >
-            {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+            <Calendar size={14} /> Book Consultation
           </button>
         </div>
       </div>
 
-      {/* Mobile Drawer */}
-      {mobileMenuOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 58,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(251, 251, 253, 0.98)',
-            backdropFilter: 'blur(20px)',
-            padding: '28px 24px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 20,
-            zIndex: 999
-          }}
-        >
-          <button
-            onClick={() => { onNavigate('/'); setMobileMenuOpen(false); }}
-            style={{ textAlign: 'left', background: 'none', border: 'none', fontSize: 20, fontWeight: 600, color: '#1D1D1F' }}
-          >
-            Home
-          </button>
-          <button
-            onClick={() => { onNavigate('/blog'); setMobileMenuOpen(false); }}
-            style={{ textAlign: 'left', background: 'none', border: 'none', fontSize: 20, fontWeight: 600, color: '#1D1D1F' }}
-          >
-            Astrology & Vastu Blog
-          </button>
-          <button
-            onClick={() => { onNavigate('/about'); setMobileMenuOpen(false); }}
-            style={{ textAlign: 'left', background: 'none', border: 'none', fontSize: 20, fontWeight: 600, color: '#1D1D1F' }}
-          >
-            About Amit Soni
-          </button>
-          <button
-            onClick={() => { onNavigate('/pricing'); setMobileMenuOpen(false); }}
-            style={{ textAlign: 'left', background: 'none', border: 'none', fontSize: 20, fontWeight: 600, color: '#1D1D1F' }}
-          >
-            Pricing & Packages
-          </button>
-          <button
-            onClick={() => { onNavigate('/contact'); setMobileMenuOpen(false); }}
-            style={{ textAlign: 'left', background: 'none', border: 'none', fontSize: 20, fontWeight: 600, color: '#1D1D1F' }}
-          >
-            Contact
-          </button>
-
-          {isAuthenticated ? (
-            <button
-              onClick={() => { onNavigate(isAdmin ? '/admin' : '/app'); setMobileMenuOpen(false); }}
-              className="apple-btn-secondary"
-              style={{ marginTop: 20, width: '100%' }}
-            >
-              {isAdmin ? 'Open Admin Portal' : 'Open My Portal'}
-            </button>
-          ) : (
-            <button
-              onClick={() => { onOpenAuth('login'); setMobileMenuOpen(false); }}
-              className="apple-btn-secondary"
-              style={{ marginTop: 20, width: '100%' }}
-            >
-              Sign In to Account
-            </button>
-          )}
-
-          <button
-            onClick={() => { onOpenBooking(); setMobileMenuOpen(false); }}
-            className="apple-btn-primary"
-            style={{ width: '100%' }}
-          >
-            <Calendar size={16} /> Book a Consultation
-          </button>
-        </div>
-      )}
-
       <style>{`
-        @media (min-width: 860px) {
-          .desktop-nav { display: flex !important; }
-          .mobile-toggle { display: none !important; }
+        @media (min-width: 1040px) {
+          .desktop-nav { display: flex !important; gap: clamp(14px, 1.8vw, 28px) !important; }
         }
-        @media (max-width: 859px) {
+        @media (max-width: 1039px) {
           .desktop-nav { display: none !important; }
-          .mobile-toggle { display: block !important; }
+        }
+        @media (max-width: 768px) {
+          .top-book-btn { display: none !important; }
+          .signout-desktop-btn { display: none !important; }
+          .install-btn { display: none !important; }
         }
         @keyframes dropdownFade {
           from { opacity: 0; transform: translateY(4px); }

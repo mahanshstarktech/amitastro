@@ -307,24 +307,65 @@ body {
   line-height: 1.4;
 }
 
-/* Container */
+/* Container — Fluid and Ultra-Wide Scaling (65" TV to iPhone Mini) */
 .container {
-  max-width: 1200px;
+  width: 100%;
+  max-width: min(1560px, 94vw);
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 clamp(16px, 3vw, 56px);
 }
 
 /* Section vertical breathing room */
 .section-padding {
-  padding: 96px 0;
+  padding: clamp(56px, 7vw, 110px) 0;
 }
 
+/* 4K & 65-inch Displays (no awkward dead white borders) */
+@media (min-width: 2000px) {
+  .container {
+    max-width: min(2200px, 92vw);
+    padding: 0 clamp(40px, 4vw, 88px);
+  }
+  body {
+    font-size: 19px;
+  }
+  .text-display {
+    font-size: clamp(56px, 4vw, 76px);
+  }
+  .text-h1 {
+    font-size: clamp(40px, 3vw, 54px);
+  }
+}
+
+/* Tablets */
+@media (max-width: 1024px) {
+  .container {
+    padding: 0 clamp(18px, 3vw, 32px);
+  }
+}
+
+/* Mobile & iPhone */
 @media (max-width: 768px) {
   .section-padding {
-    padding: 64px 0;
+    padding: 48px 0;
   }
   .container {
-    padding: 0 18px;
+    padding: 0 16px;
+  }
+  /* Ensure content clears iOS bottom tab bar */
+  main {
+    padding-bottom: calc(76px + env(safe-area-inset-bottom, 20px));
+  }
+}
+
+/* iPhone Mini (360px - 390px) */
+@media (max-width: 390px) {
+  .container {
+    padding: 0 12px;
+  }
+  .apple-card {
+    padding: 18px 14px !important;
+    border-radius: 14px !important;
   }
 }
 

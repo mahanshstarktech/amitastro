@@ -16,6 +16,8 @@ build/
 
 # Databases & logs
 *.db
+*.db-wal
+*.db-shm
 *.sqlite
 *.sqlite-journal
 *.log

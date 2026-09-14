@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { getOne, runQuery, getAll } from '../db/database';
+import { sendRealSmsOtp } from '../services/realServices';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'nakshaktram_secret_jwt_key_2026';
 
@@ -33,13 +34,14 @@ export const sendOtp = async (req: Request, res: Response) => {
       ON CONFLICT(phone) DO UPDATE SET code = ?, expires_at = ?, attempts = 0
     `, [phone, code, expiresAt, code, expiresAt]);
 
-    console.log(`[SMS Gateway Simulated] OTP for ${phone}: ${code}`);
+    // Dispatch real SMS (Twilio / MSG91 / Fast2SMS)
+    const smsResult = await sendRealSmsOtp(phone, code);
 
     return res.json({
       success: true,
       message: 'OTP sent successfully via SMS',
-      // In development mode, return the simulated code for immediate seamless testing
-      simulatedCode: code,
+      provider: smsResult.provider,
+      simulatedCode: smsResult.provider === 'simulated' ? code : undefined,
       cooldownSeconds: 60
     });
   } catch (err: any) {

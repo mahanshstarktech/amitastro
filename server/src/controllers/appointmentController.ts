@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthRequest } from '../middleware/auth';
 import { getAll, getOne, runQuery } from '../db/database';
+import { sendTelegramAdminAlert } from '../services/realServices';
 
 export const getPackages = async (req: any, res: Response) => {
   try {
@@ -114,6 +115,16 @@ export const createAppointment = async (req: AuthRequest, res: Response) => {
       JOIN birth_profiles bp ON a.birth_profile_id = bp.id
       WHERE a.id = ?
     `, [apptId]);
+
+    // Send real Telegram alert to Amit Soni
+    sendTelegramAdminAlert(
+      `🔔 *New Consultation Requested*\n` +
+      `• Package: ${pkg.name} (₹${pkg.price})\n` +
+      `• Date: ${requestedDate} (${requestedTimeWindow})\n` +
+      `• Client Chart: ${created?.profile_name}\n` +
+      `• Mode: ${consultationType || 'call'}\n` +
+      `• Client Note: ${customerNotes || 'None'}`
+    ).catch(() => {});
 
     return res.status(201).json({
       success: true,

@@ -1,308 +1,519 @@
 import sqlite3 from 'sqlite3';
+import { Pool, QueryResult } from 'pg';
 import path from 'path';
 import fs from 'fs';
 import bcrypt from 'bcryptjs';
 
-const DB_DIR = path.resolve(__dirname, '../../data');
-if (!fs.existsSync(DB_DIR)) {
-  fs.mkdirSync(DB_DIR, { recursive: true });
+const DATABASE_URL = process.env.DATABASE_URL;
+const isPostgres = !!DATABASE_URL && (DATABASE_URL.startsWith('postgres://') || DATABASE_URL.startsWith('postgresql://'));
+
+let sqliteDb: sqlite3.Database | null = null;
+let pgPool: Pool | null = null;
+
+if (isPostgres) {
+  console.log('Connecting to Production Cloud PostgreSQL Database...');
+  pgPool = new Pool({
+    connectionString: DATABASE_URL,
+    ssl: { rejectUnauthorized: false }
+  });
+} else {
+  const DB_DIR = path.resolve(__dirname, '../../data');
+  if (!fs.existsSync(DB_DIR)) {
+    fs.mkdirSync(DB_DIR, { recursive: true });
+  }
+  const DB_PATH = process.env.DATABASE_PATH || path.join(DB_DIR, 'nakshaktram.db');
+  sqliteDb = new sqlite3.Database(DB_PATH, (err) => {
+    if (err) {
+      console.error('Error opening SQLite database:', err.message);
+    } else {
+      console.log(`Connected to Local SQLite database at ${DB_PATH}`);
+    }
+  });
 }
 
-const DB_PATH = process.env.DATABASE_PATH || path.join(DB_DIR, 'nakshaktram.db');
+// Convert SQLite '?' placeholders to PostgreSQL '$1, $2, ...'
+function formatSqlForEngine(sql: string): string {
+  if (!isPostgres) return sql;
+  let count = 1;
+  return sql.replace(/\?/g, () => `$${count++}`);
+}
 
-export const db = new sqlite3.Database(DB_PATH, (err) => {
-  if (err) {
-    console.error('Error opening database:', err.message);
-  } else {
-    console.log(`Connected to SQLite database at ${DB_PATH}`);
+// Universal Query Runners
+export const runQuery = async (sql: string, params: any[] = []): Promise<{ id?: number | string; changes?: number }> => {
+  if (isPostgres && pgPool) {
+    const formatted = formatSqlForEngine(sql);
+    const res: QueryResult = await pgPool.query(formatted, params);
+    return { changes: res.rowCount || 0 };
+  } else if (sqliteDb) {
+    return new Promise((resolve, reject) => {
+      sqliteDb!.run(sql, params, function (err) {
+        if (err) reject(err);
+        else resolve({ id: this.lastID, changes: this.changes });
+      });
+    });
   }
-});
-
-// Helper for promise-based queries
-export const runQuery = (sql: string, params: any[] = []): Promise<{ id?: number; changes?: number }> => {
-  return new Promise((resolve, reject) => {
-    db.run(sql, params, function (err) {
-      if (err) reject(err);
-      else resolve({ id: this.lastID, changes: this.changes });
-    });
-  });
+  throw new Error('No database connection initialized');
 };
 
-export const getOne = <T>(sql: string, params: any[] = []): Promise<T | undefined> => {
-  return new Promise((resolve, reject) => {
-    db.get(sql, params, (err, row) => {
-      if (err) reject(err);
-      else resolve(row as T);
+export const getOne = async <T>(sql: string, params: any[] = []): Promise<T | undefined> => {
+  if (isPostgres && pgPool) {
+    const formatted = formatSqlForEngine(sql);
+    const res: QueryResult = await pgPool.query(formatted, params);
+    return (res.rows[0] as T) || undefined;
+  } else if (sqliteDb) {
+    return new Promise((resolve, reject) => {
+      sqliteDb!.get(sql, params, (err, row) => {
+        if (err) reject(err);
+        else resolve(row as T);
+      });
     });
-  });
+  }
+  throw new Error('No database connection initialized');
 };
 
-export const getAll = <T>(sql: string, params: any[] = []): Promise<T[]> => {
-  return new Promise((resolve, reject) => {
-    db.all(sql, params, (err, rows) => {
-      if (err) reject(err);
-      else resolve(rows as T[]);
+export const getAll = async <T>(sql: string, params: any[] = []): Promise<T[]> => {
+  if (isPostgres && pgPool) {
+    const formatted = formatSqlForEngine(sql);
+    const res: QueryResult = await pgPool.query(formatted, params);
+    return (res.rows as T[]) || [];
+  } else if (sqliteDb) {
+    return new Promise((resolve, reject) => {
+      sqliteDb!.all(sql, params, (err, rows) => {
+        if (err) reject(err);
+        else resolve((rows as T[]) || []);
+      });
     });
-  });
+  }
+  throw new Error('No database connection initialized');
 };
 
 export async function initDatabase() {
-  db.serialize(async () => {
-    // Enable WAL mode for high concurrency
-    db.run('PRAGMA journal_mode = WAL;');
+  if (isPostgres && pgPool) {
+    await initPostgresSchema();
+  } else if (sqliteDb) {
+    await initSqliteSchema();
+  }
+  await seedInitialData();
+}
 
-    // Users
-    db.run(`
-      CREATE TABLE IF NOT EXISTS users (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        email TEXT UNIQUE NOT NULL,
-        phone TEXT UNIQUE NOT NULL,
-        password_hash TEXT,
-        role TEXT DEFAULT 'customer',
-        is_phone_verified INTEGER DEFAULT 0,
-        trial_used INTEGER DEFAULT 0,
-        trial_seconds_remaining INTEGER DEFAULT 300,
-        created_at TEXT DEFAULT (datetime('now'))
-      );
-    `);
+async function initPostgresSchema() {
+  const ddl = `
+    CREATE TABLE IF NOT EXISTS users (
+      id VARCHAR(64) PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      email VARCHAR(255) UNIQUE NOT NULL,
+      phone VARCHAR(64) UNIQUE NOT NULL,
+      password_hash TEXT,
+      role VARCHAR(32) DEFAULT 'customer',
+      is_phone_verified INT DEFAULT 0,
+      trial_used INT DEFAULT 0,
+      trial_seconds_remaining INT DEFAULT 300,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
 
-    // Birth Profiles (Many to one with user)
-    db.run(`
-      CREATE TABLE IF NOT EXISTS birth_profiles (
-        id TEXT PRIMARY KEY,
-        user_id TEXT NOT NULL,
-        relation TEXT DEFAULT 'self',
-        full_name TEXT NOT NULL,
-        dob TEXT NOT NULL,
-        tob TEXT NOT NULL,
-        tob_uncertain INTEGER DEFAULT 0,
-        pob TEXT NOT NULL,
-        pob_lat REAL,
-        pob_lng REAL,
-        pob_timezone TEXT DEFAULT 'Asia/Kolkata',
-        created_at TEXT DEFAULT (datetime('now')),
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-      );
-    `);
+    CREATE TABLE IF NOT EXISTS birth_profiles (
+      id VARCHAR(64) PRIMARY KEY,
+      user_id VARCHAR(64) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      relation VARCHAR(32) DEFAULT 'self',
+      full_name VARCHAR(255) NOT NULL,
+      dob VARCHAR(32) NOT NULL,
+      tob VARCHAR(32) NOT NULL,
+      tob_uncertain INT DEFAULT 0,
+      pob VARCHAR(255) NOT NULL,
+      pob_lat FLOAT,
+      pob_lng FLOAT,
+      pob_timezone VARCHAR(64) DEFAULT 'Asia/Kolkata',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
 
-    // Packages
-    db.run(`
-      CREATE TABLE IF NOT EXISTS packages (
-        id TEXT PRIMARY KEY,
-        slug TEXT UNIQUE NOT NULL,
-        name TEXT NOT NULL,
-        price INTEGER NOT NULL,
-        duration_minutes INTEGER NOT NULL,
-        includes_json TEXT NOT NULL,
-        is_popular INTEGER DEFAULT 0,
-        is_trial INTEGER DEFAULT 0,
-        decoy_note TEXT,
-        per_minute_cost REAL
-      );
-    `);
+    CREATE TABLE IF NOT EXISTS packages (
+      id VARCHAR(64) PRIMARY KEY,
+      slug VARCHAR(64) UNIQUE NOT NULL,
+      name VARCHAR(255) NOT NULL,
+      price INT NOT NULL,
+      duration_minutes INT NOT NULL,
+      includes_json TEXT NOT NULL,
+      is_popular INT DEFAULT 0,
+      is_trial INT DEFAULT 0,
+      decoy_note TEXT,
+      per_minute_cost FLOAT
+    );
 
-    // Appointments
-    db.run(`
-      CREATE TABLE IF NOT EXISTS appointments (
-        id TEXT PRIMARY KEY,
-        customer_id TEXT NOT NULL,
-        birth_profile_id TEXT NOT NULL,
-        package_id TEXT NOT NULL,
-        consultation_type TEXT DEFAULT 'call',
-        requested_date TEXT NOT NULL,
-        requested_time_window TEXT NOT NULL,
-        confirmed_time_ist TEXT,
-        timezone_user TEXT DEFAULT 'Asia/Kolkata',
-        customer_notes TEXT,
-        status TEXT DEFAULT 'Requested',
-        created_at TEXT DEFAULT (datetime('now')),
-        FOREIGN KEY (customer_id) REFERENCES users(id),
-        FOREIGN KEY (birth_profile_id) REFERENCES birth_profiles(id),
-        FOREIGN KEY (package_id) REFERENCES packages(id)
-      );
-    `);
+    CREATE TABLE IF NOT EXISTS appointments (
+      id VARCHAR(64) PRIMARY KEY,
+      customer_id VARCHAR(64) NOT NULL REFERENCES users(id),
+      birth_profile_id VARCHAR(64) NOT NULL REFERENCES birth_profiles(id),
+      package_id VARCHAR(64) NOT NULL REFERENCES packages(id),
+      consultation_type VARCHAR(32) DEFAULT 'call',
+      requested_date VARCHAR(32) NOT NULL,
+      requested_time_window VARCHAR(64) NOT NULL,
+      confirmed_time_ist VARCHAR(64),
+      timezone_user VARCHAR(64) DEFAULT 'Asia/Kolkata',
+      customer_notes TEXT,
+      status VARCHAR(32) DEFAULT 'Requested',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
 
-    // Payments
-    db.run(`
-      CREATE TABLE IF NOT EXISTS payments (
-        id TEXT PRIMARY KEY,
-        appointment_id TEXT,
-        user_id TEXT NOT NULL,
-        amount INTEGER NOT NULL,
-        payment_method TEXT DEFAULT 'upi_qr',
-        utr_reference TEXT,
-        screenshot_url TEXT,
-        status TEXT DEFAULT 'Pending',
-        rejection_reason TEXT,
-        verified_by TEXT,
-        verified_at TEXT,
-        created_at TEXT DEFAULT (datetime('now')),
-        FOREIGN KEY (appointment_id) REFERENCES appointments(id),
-        FOREIGN KEY (user_id) REFERENCES users(id)
-      );
-    `);
+    CREATE TABLE IF NOT EXISTS payments (
+      id VARCHAR(64) PRIMARY KEY,
+      appointment_id VARCHAR(64) REFERENCES appointments(id),
+      user_id VARCHAR(64) NOT NULL REFERENCES users(id),
+      amount INT NOT NULL,
+      payment_method VARCHAR(32) DEFAULT 'upi_qr',
+      utr_reference VARCHAR(128),
+      screenshot_url TEXT,
+      status VARCHAR(32) DEFAULT 'Pending',
+      rejection_reason TEXT,
+      verified_by VARCHAR(64),
+      verified_at TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
 
-    // Categories
-    db.run(`
-      CREATE TABLE IF NOT EXISTS categories (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        slug TEXT UNIQUE NOT NULL,
-        parent_id TEXT,
-        description TEXT
-      );
-    `);
+    CREATE TABLE IF NOT EXISTS categories (
+      id VARCHAR(64) PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      slug VARCHAR(64) UNIQUE NOT NULL,
+      parent_id VARCHAR(64),
+      description TEXT
+    );
 
-    // Blog Posts
-    db.run(`
-      CREATE TABLE IF NOT EXISTS blog_posts (
-        id TEXT PRIMARY KEY,
-        slug TEXT UNIQUE NOT NULL,
-        title TEXT NOT NULL,
-        excerpt TEXT NOT NULL,
-        content_markdown TEXT NOT NULL,
-        category_id TEXT NOT NULL,
-        tags_json TEXT,
-        hero_image_url TEXT,
-        reading_time_min INTEGER DEFAULT 5,
-        is_featured INTEGER DEFAULT 0,
-        is_published INTEGER DEFAULT 1,
-        meta_title TEXT,
-        meta_description TEXT,
-        published_at TEXT DEFAULT (datetime('now')),
-        FOREIGN KEY (category_id) REFERENCES categories(id)
-      );
-    `);
+    CREATE TABLE IF NOT EXISTS blog_posts (
+      id VARCHAR(64) PRIMARY KEY,
+      slug VARCHAR(128) UNIQUE NOT NULL,
+      title VARCHAR(255) NOT NULL,
+      excerpt TEXT NOT NULL,
+      content_markdown TEXT NOT NULL,
+      category_id VARCHAR(64) NOT NULL REFERENCES categories(id),
+      tags_json TEXT,
+      hero_image_url TEXT,
+      reading_time_min INT DEFAULT 5,
+      is_featured INT DEFAULT 0,
+      is_published INT DEFAULT 1,
+      meta_title VARCHAR(255),
+      meta_description TEXT,
+      published_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
 
-    // Chat Conversations
-    db.run(`
-      CREATE TABLE IF NOT EXISTS chat_conversations (
-        id TEXT PRIMARY KEY,
-        customer_id TEXT UNIQUE NOT NULL,
-        admin_id TEXT DEFAULT 'admin-amit-soni',
-        is_locked INTEGER DEFAULT 0,
-        trial_expires_at TEXT,
-        last_message_at TEXT DEFAULT (datetime('now')),
-        unread_admin_count INTEGER DEFAULT 0,
-        unread_customer_count INTEGER DEFAULT 0,
-        FOREIGN KEY (customer_id) REFERENCES users(id)
-      );
-    `);
+    CREATE TABLE IF NOT EXISTS chat_conversations (
+      id VARCHAR(64) PRIMARY KEY,
+      customer_id VARCHAR(64) UNIQUE NOT NULL REFERENCES users(id),
+      admin_id VARCHAR(64) DEFAULT 'admin-amit-soni',
+      is_locked INT DEFAULT 0,
+      trial_expires_at TIMESTAMP,
+      last_message_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      unread_admin_count INT DEFAULT 0,
+      unread_customer_count INT DEFAULT 0
+    );
 
-    // Chat Messages
-    db.run(`
-      CREATE TABLE IF NOT EXISTS chat_messages (
-        id TEXT PRIMARY KEY,
-        conversation_id TEXT NOT NULL,
-        sender_type TEXT NOT NULL,
-        sender_id TEXT NOT NULL,
-        message_type TEXT DEFAULT 'text',
-        content TEXT NOT NULL,
-        attachment_url TEXT,
-        is_read INTEGER DEFAULT 0,
-        created_at TEXT DEFAULT (datetime('now')),
-        FOREIGN KEY (conversation_id) REFERENCES chat_conversations(id)
-      );
-    `);
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      id VARCHAR(64) PRIMARY KEY,
+      conversation_id VARCHAR(64) NOT NULL REFERENCES chat_conversations(id),
+      sender_type VARCHAR(32) NOT NULL,
+      sender_id VARCHAR(64) NOT NULL,
+      message_type VARCHAR(32) DEFAULT 'text',
+      content TEXT NOT NULL,
+      attachment_url TEXT,
+      is_read INT DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
 
-    // Availability & Working Hours
-    db.run(`
-      CREATE TABLE IF NOT EXISTS availability_rules (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        weekday INTEGER NOT NULL UNIQUE,
-        window1_start TEXT DEFAULT '09:00',
-        window1_end TEXT DEFAULT '17:00',
-        window2_start TEXT DEFAULT '20:00',
-        window2_end TEXT DEFAULT '23:59',
-        slot_duration INTEGER DEFAULT 30,
-        buffer_time INTEGER DEFAULT 10,
-        is_active INTEGER DEFAULT 1
-      );
-    `);
+    CREATE TABLE IF NOT EXISTS availability_rules (
+      id SERIAL PRIMARY KEY,
+      weekday INT NOT NULL UNIQUE,
+      window1_start VARCHAR(16) DEFAULT '09:00',
+      window1_end VARCHAR(16) DEFAULT '17:00',
+      window2_start VARCHAR(16) DEFAULT '20:00',
+      window2_end VARCHAR(16) DEFAULT '23:59',
+      slot_duration INT DEFAULT 30,
+      buffer_time INT DEFAULT 10,
+      is_active INT DEFAULT 1
+    );
 
-    // Blackout Dates
-    db.run(`
-      CREATE TABLE IF NOT EXISTS blackout_dates (
-        id TEXT PRIMARY KEY,
-        date TEXT NOT NULL UNIQUE,
-        reason TEXT
-      );
-    `);
+    CREATE TABLE IF NOT EXISTS blackout_dates (
+      id VARCHAR(64) PRIMARY KEY,
+      date VARCHAR(32) NOT NULL UNIQUE,
+      reason TEXT
+    );
 
-    // Customer CRM Meta (private admin notes and tags)
-    db.run(`
-      CREATE TABLE IF NOT EXISTS customer_crm_meta (
-        user_id TEXT PRIMARY KEY,
-        internal_notes TEXT,
-        tags_json TEXT DEFAULT '[]',
-        updated_at TEXT DEFAULT (datetime('now')),
-        FOREIGN KEY (user_id) REFERENCES users(id)
-      );
-    `);
+    CREATE TABLE IF NOT EXISTS customer_crm_meta (
+      user_id VARCHAR(64) PRIMARY KEY REFERENCES users(id),
+      internal_notes TEXT,
+      tags_json TEXT DEFAULT '[]',
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
 
-    // Broadcasts
-    db.run(`
-      CREATE TABLE IF NOT EXISTS broadcasts (
-        id TEXT PRIMARY KEY,
-        title TEXT NOT NULL,
-        message TEXT NOT NULL,
-        channels_json TEXT NOT NULL,
-        target_segment TEXT DEFAULT 'all',
-        sent_at TEXT DEFAULT (datetime('now'))
-      );
-    `);
+    CREATE TABLE IF NOT EXISTS broadcasts (
+      id VARCHAR(64) PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      message TEXT NOT NULL,
+      channels_json TEXT NOT NULL,
+      target_segment VARCHAR(64) DEFAULT 'all',
+      sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
 
-    // OTP verification store
-    db.run(`
-      CREATE TABLE IF NOT EXISTS otps (
-        phone TEXT PRIMARY KEY,
-        code TEXT NOT NULL,
-        expires_at INTEGER NOT NULL,
-        attempts INTEGER DEFAULT 0
-      );
-    `);
+    CREATE TABLE IF NOT EXISTS otps (
+      phone VARCHAR(64) PRIMARY KEY,
+      code VARCHAR(16) NOT NULL,
+      expires_at BIGINT NOT NULL,
+      attempts INT DEFAULT 0
+    );
 
-    // Audit logs
-    db.run(`
-      CREATE TABLE IF NOT EXISTS audit_logs (
-        id TEXT PRIMARY KEY,
-        admin_id TEXT NOT NULL,
-        action TEXT NOT NULL,
-        target_type TEXT,
-        target_id TEXT,
-        details TEXT,
-        created_at TEXT DEFAULT (datetime('now'))
-      );
-    `);
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id VARCHAR(64) PRIMARY KEY,
+      admin_id VARCHAR(64) NOT NULL,
+      action VARCHAR(128) NOT NULL,
+      target_type VARCHAR(64),
+      target_id VARCHAR(64),
+      details TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+  await pgPool!.query(ddl);
+  console.log('PostgreSQL schema initialized successfully!');
+}
 
-    // Seed Data
-    await seedInitialData();
+async function initSqliteSchema() {
+  return new Promise<void>((resolve) => {
+    sqliteDb!.serialize(() => {
+      sqliteDb!.run('PRAGMA journal_mode = WAL;');
+
+      sqliteDb!.run(`
+        CREATE TABLE IF NOT EXISTS users (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          email TEXT UNIQUE NOT NULL,
+          phone TEXT UNIQUE NOT NULL,
+          password_hash TEXT,
+          role TEXT DEFAULT 'customer',
+          is_phone_verified INTEGER DEFAULT 0,
+          trial_used INTEGER DEFAULT 0,
+          trial_seconds_remaining INTEGER DEFAULT 300,
+          created_at TEXT DEFAULT (datetime('now'))
+        );
+      `);
+
+      sqliteDb!.run(`
+        CREATE TABLE IF NOT EXISTS birth_profiles (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          relation TEXT DEFAULT 'self',
+          full_name TEXT NOT NULL,
+          dob TEXT NOT NULL,
+          tob TEXT NOT NULL,
+          tob_uncertain INTEGER DEFAULT 0,
+          pob TEXT NOT NULL,
+          pob_lat REAL,
+          pob_lng REAL,
+          pob_timezone TEXT DEFAULT 'Asia/Kolkata',
+          created_at TEXT DEFAULT (datetime('now')),
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+      `);
+
+      sqliteDb!.run(`
+        CREATE TABLE IF NOT EXISTS packages (
+          id TEXT PRIMARY KEY,
+          slug TEXT UNIQUE NOT NULL,
+          name TEXT NOT NULL,
+          price INTEGER NOT NULL,
+          duration_minutes INTEGER NOT NULL,
+          includes_json TEXT NOT NULL,
+          is_popular INTEGER DEFAULT 0,
+          is_trial INTEGER DEFAULT 0,
+          decoy_note TEXT,
+          per_minute_cost REAL
+        );
+      `);
+
+      sqliteDb!.run(`
+        CREATE TABLE IF NOT EXISTS appointments (
+          id TEXT PRIMARY KEY,
+          customer_id TEXT NOT NULL,
+          birth_profile_id TEXT NOT NULL,
+          package_id TEXT NOT NULL,
+          consultation_type TEXT DEFAULT 'call',
+          requested_date TEXT NOT NULL,
+          requested_time_window TEXT NOT NULL,
+          confirmed_time_ist TEXT,
+          timezone_user TEXT DEFAULT 'Asia/Kolkata',
+          customer_notes TEXT,
+          status TEXT DEFAULT 'Requested',
+          created_at TEXT DEFAULT (datetime('now')),
+          FOREIGN KEY (customer_id) REFERENCES users(id),
+          FOREIGN KEY (birth_profile_id) REFERENCES birth_profiles(id),
+          FOREIGN KEY (package_id) REFERENCES packages(id)
+        );
+      `);
+
+      sqliteDb!.run(`
+        CREATE TABLE IF NOT EXISTS payments (
+          id TEXT PRIMARY KEY,
+          appointment_id TEXT,
+          user_id TEXT NOT NULL,
+          amount INTEGER NOT NULL,
+          payment_method TEXT DEFAULT 'upi_qr',
+          utr_reference TEXT,
+          screenshot_url TEXT,
+          status TEXT DEFAULT 'Pending',
+          rejection_reason TEXT,
+          verified_by TEXT,
+          verified_at TEXT,
+          created_at TEXT DEFAULT (datetime('now')),
+          FOREIGN KEY (appointment_id) REFERENCES appointments(id),
+          FOREIGN KEY (user_id) REFERENCES users(id)
+        );
+      `);
+
+      sqliteDb!.run(`
+        CREATE TABLE IF NOT EXISTS categories (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          slug TEXT UNIQUE NOT NULL,
+          parent_id TEXT,
+          description TEXT
+        );
+      `);
+
+      sqliteDb!.run(`
+        CREATE TABLE IF NOT EXISTS blog_posts (
+          id TEXT PRIMARY KEY,
+          slug TEXT UNIQUE NOT NULL,
+          title TEXT NOT NULL,
+          excerpt TEXT NOT NULL,
+          content_markdown TEXT NOT NULL,
+          category_id TEXT NOT NULL,
+          tags_json TEXT,
+          hero_image_url TEXT,
+          reading_time_min INTEGER DEFAULT 5,
+          is_featured INTEGER DEFAULT 0,
+          is_published INTEGER DEFAULT 1,
+          meta_title TEXT,
+          meta_description TEXT,
+          published_at TEXT DEFAULT (datetime('now')),
+          FOREIGN KEY (category_id) REFERENCES categories(id)
+        );
+      `);
+
+      sqliteDb!.run(`
+        CREATE TABLE IF NOT EXISTS chat_conversations (
+          id TEXT PRIMARY KEY,
+          customer_id TEXT UNIQUE NOT NULL,
+          admin_id TEXT DEFAULT 'admin-amit-soni',
+          is_locked INTEGER DEFAULT 0,
+          trial_expires_at TEXT,
+          last_message_at TEXT DEFAULT (datetime('now')),
+          unread_admin_count INTEGER DEFAULT 0,
+          unread_customer_count INTEGER DEFAULT 0,
+          FOREIGN KEY (customer_id) REFERENCES users(id)
+        );
+      `);
+
+      sqliteDb!.run(`
+        CREATE TABLE IF NOT EXISTS chat_messages (
+          id TEXT PRIMARY KEY,
+          conversation_id TEXT NOT NULL,
+          sender_type TEXT NOT NULL,
+          sender_id TEXT NOT NULL,
+          message_type TEXT DEFAULT 'text',
+          content TEXT NOT NULL,
+          attachment_url TEXT,
+          is_read INTEGER DEFAULT 0,
+          created_at TEXT DEFAULT (datetime('now')),
+          FOREIGN KEY (conversation_id) REFERENCES chat_conversations(id)
+        );
+      `);
+
+      sqliteDb!.run(`
+        CREATE TABLE IF NOT EXISTS availability_rules (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          weekday INTEGER NOT NULL UNIQUE,
+          window1_start TEXT DEFAULT '09:00',
+          window1_end TEXT DEFAULT '17:00',
+          window2_start TEXT DEFAULT '20:00',
+          window2_end TEXT DEFAULT '23:59',
+          slot_duration INTEGER DEFAULT 30,
+          buffer_time INTEGER DEFAULT 10,
+          is_active INTEGER DEFAULT 1
+        );
+      `);
+
+      sqliteDb!.run(`
+        CREATE TABLE IF NOT EXISTS blackout_dates (
+          id TEXT PRIMARY KEY,
+          date TEXT NOT NULL UNIQUE,
+          reason TEXT
+        );
+      `);
+
+      sqliteDb!.run(`
+        CREATE TABLE IF NOT EXISTS customer_crm_meta (
+          user_id TEXT PRIMARY KEY,
+          internal_notes TEXT,
+          tags_json TEXT DEFAULT '[]',
+          updated_at TEXT DEFAULT (datetime('now')),
+          FOREIGN KEY (user_id) REFERENCES users(id)
+        );
+      `);
+
+      sqliteDb!.run(`
+        CREATE TABLE IF NOT EXISTS broadcasts (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          message TEXT NOT NULL,
+          channels_json TEXT NOT NULL,
+          target_segment TEXT DEFAULT 'all',
+          sent_at TEXT DEFAULT (datetime('now'))
+        );
+      `);
+
+      sqliteDb!.run(`
+        CREATE TABLE IF NOT EXISTS otps (
+          phone TEXT PRIMARY KEY,
+          code TEXT NOT NULL,
+          expires_at INTEGER NOT NULL,
+          attempts INTEGER DEFAULT 0
+        );
+      `);
+
+      sqliteDb!.run(`
+        CREATE TABLE IF NOT EXISTS audit_logs (
+          id TEXT PRIMARY KEY,
+          admin_id TEXT NOT NULL,
+          action TEXT NOT NULL,
+          target_type TEXT,
+          target_id TEXT,
+          details TEXT,
+          created_at TEXT DEFAULT (datetime('now'))
+        );
+      `, () => {
+        resolve();
+      });
+    });
   });
 }
 
 async function seedInitialData() {
   const adminExists = await getOne('SELECT id FROM users WHERE role = ?', ['admin']);
   if (!adminExists) {
-    console.log('Seeding initial Nakshaktram platform data...');
+    console.log('Seeding initial Nakshaktram platform records...');
 
     const salt = await bcrypt.genSalt(10);
     const adminPasswordHash = await bcrypt.hash('Nakshaktram@2026', salt);
     const customerPasswordHash = await bcrypt.hash('Customer@123', salt);
 
-    // 1. Admin Amit Soni
+    // Admin Amit Soni
     await runQuery(`
       INSERT INTO users (id, name, email, phone, password_hash, role, is_phone_verified)
       VALUES (?, ?, ?, ?, ?, ?, 1)
     `, ['admin-amit-soni', 'Amit Soni', 'admin@nakshaktram.com', '+919876543210', adminPasswordHash, 'admin']);
 
-    // 2. Demo Customer (Priya Sharma)
+    // Demo Customer (Priya Sharma)
     await runQuery(`
       INSERT INTO users (id, name, email, phone, password_hash, role, is_phone_verified, trial_used, trial_seconds_remaining)
       VALUES (?, ?, ?, ?, ?, ?, 1, 0, 300)
     `, ['cust-priya-sharma', 'Priya Sharma', 'priya.sharma@example.com', '+919811122233', customerPasswordHash, 'customer']);
 
-    // Demo customer birth profiles
+    // Demo Customer Birth Profiles
     await runQuery(`
       INSERT INTO birth_profiles (id, user_id, relation, full_name, dob, tob, tob_uncertain, pob, pob_lat, pob_lng, pob_timezone)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -313,13 +524,13 @@ async function seedInitialData() {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, ['bp-priya-spouse', 'cust-priya-sharma', 'spouse', 'Rahul Sharma', '1989-11-23', '14:40', 0, 'New Delhi, Delhi', 28.6139, 77.2090, 'Asia/Kolkata']);
 
-    // CRM notes for demo customer
+    // CRM meta
     await runQuery(`
       INSERT INTO customer_crm_meta (user_id, internal_notes, tags_json)
       VALUES (?, ?, ?)
     `, ['cust-priya-sharma', 'Prefers consultations in Hindi. Interested in career transit guidance and Vastu for new apartment.', JSON.stringify(['VIP', 'Career Focus', 'Prefers Hindi'])]);
 
-    // 3. Packages (Section 13)
+    // Packages
     const packages = [
       {
         id: 'pkg-trial',
@@ -327,12 +538,7 @@ async function seedInitialData() {
         name: 'Trial Session',
         price: 0,
         duration: 5,
-        includes: JSON.stringify([
-          '5-Minute Discovery Call',
-          'Shared Trial Chat Budget',
-          'Primary Kundli Highlight',
-          'One-time First Session Only'
-        ]),
+        includes: JSON.stringify(['5-Minute Discovery Call', 'Shared Trial Chat Budget', 'Primary Kundli Highlight', 'One-time First Session Only']),
         is_popular: 0,
         is_trial: 1,
         decoy: 'First session only',
@@ -344,12 +550,7 @@ async function seedInitialData() {
         name: 'Quick Consult',
         price: 500,
         duration: 15,
-        includes: JSON.stringify([
-          '15-Minute Focused Call',
-          'One Specific Query Analysis',
-          'Chat Follow-up Add-on Optional (₹100)',
-          'Instant Slot Scheduling'
-        ]),
+        includes: JSON.stringify(['15-Minute Focused Call', 'One Specific Query Analysis', 'Chat Follow-up Add-on Optional (₹100)', 'Instant Slot Scheduling']),
         is_popular: 0,
         is_trial: 0,
         decoy: 'For quick pressing questions',
@@ -361,12 +562,7 @@ async function seedInitialData() {
         name: 'Standard Consult',
         price: 999,
         duration: 30,
-        includes: JSON.stringify([
-          '30-Minute Comprehensive Call',
-          'Kundli & Dasha Breakdown',
-          '3-Day Follow-up In-App Chat',
-          'Core Astrological Remedies'
-        ]),
+        includes: JSON.stringify(['30-Minute Comprehensive Call', 'Kundli & Dasha Breakdown', '3-Day Follow-up In-App Chat', 'Core Astrological Remedies']),
         is_popular: 0,
         is_trial: 0,
         decoy: 'Decoy tier — Premium offers 2x time + remedies for only ₹800 more',
@@ -378,13 +574,7 @@ async function seedInitialData() {
         name: 'Premium Deep Consult',
         price: 1799,
         duration: 60,
-        includes: JSON.stringify([
-          '45–60 Minute In-Depth Session',
-          'Detailed Written Remedies PDF Report',
-          '7-Day Direct Follow-up In-App Chat',
-          'Priority Scheduling & Family Chart Glance',
-          'Gemstone & Vastu Guidance'
-        ]),
+        includes: JSON.stringify(['45–60 Minute In-Depth Session', 'Detailed Written Remedies PDF Report', '7-Day Direct Follow-up In-App Chat', 'Priority Scheduling & Family Chart Glance', 'Gemstone & Vastu Guidance']),
         is_popular: 1,
         is_trial: 0,
         decoy: 'Best value per minute with complete lifetime report',
@@ -399,7 +589,7 @@ async function seedInitialData() {
       `, [pkg.id, pkg.slug, pkg.name, pkg.price, pkg.duration, pkg.includes, pkg.is_popular, pkg.is_trial, pkg.decoy, pkg.cost_per_min]);
     }
 
-    // 4. Categories & Subcategories (Section 5)
+    // Categories
     const categories = [
       { id: 'cat-vedic', name: 'Vedic Astrology', slug: 'vedic', parent_id: null, desc: 'Foundational principles of ancient Vedic astrology, karma, and cosmic cycles.' },
       { id: 'cat-vastu', name: 'Vastu Shastra', slug: 'vastu', parent_id: null, desc: 'Harmonizing living and working spaces with directional energies.' },
@@ -419,7 +609,7 @@ async function seedInitialData() {
       `, [cat.id, cat.name, cat.slug, cat.parent_id, cat.desc]);
     }
 
-    // 5. Featured Blog Posts
+    // Blog Posts
     const blogPosts = [
       {
         id: 'post-1',
@@ -450,13 +640,6 @@ A **Mahadasha** is a major planetary period spanning several years. Depending on
 While the Mahadasha sets the overall climatic condition of your life, the **Antardasha** (or *Bhukti*) determines the day-to-day weather. For instance, living in a supportive Jupiter Mahadasha with a temporary Mars Antardasha can induce sudden decisive career moves or energetic real estate investments.
 
 > "Astrology does not lock destiny into stone; it illuminates the terrain so you can navigate with grace, clarity, and timely preparation." — Amit Soni
-
-## How Amit Soni Analyzes Your Dasha Sequence
-
-During a 1-on-1 consultation at Nakshaktram, we examine:
-1. **The dignity and strength (Shadbala)** of the ruling Dasha lord.
-2. **The House transit connections** — where the planet is currently moving relative to your Moon sign (*Chandra Lagna*).
-3. **Targeted Sattvic Remedies** — specific affirmations, mindful donations, and gemstones that align your vibrational field with positive cosmic currents.
         `
       },
       {
@@ -484,69 +667,6 @@ The North-East direction corresponds to the element of Water (*Jal*) and the div
 ## 2. The Kitchen in the South-East (Agneya Kon)
 
 The South-East is governed by the Fire element (*Agni*). Placing your cooking area here enhances digestive fire (*Jatharagni*), metabolic health, and household cheerfulness.
-- When cooking, position the burner so the cook faces East toward the morning sun.
-
-## 3. The Master Bedroom in the South-West (Nairutya Kon)
-
-Governed by the Earth element (*Prithvi*), the South-West provides grounding, stability, and executive leadership.
-- The master of the household should ideally rest in this corner to nurture enduring relationships and sound sleep.
-
-## Consultation with Amit Soni
-
-Vastu modifications in modern apartments do **not** require costly demolition. Through directional pyramids, sacred brass strips, lighting realignments, and indoor botanical placement, we can rectify energetic misalignments naturally.
-        `
-      },
-      {
-        id: 'post-3',
-        slug: 'saturn-sade-sati-myths-vs-reality',
-        title: 'Saturn’s Sade Sati: Dispelling the Fear and Embracing Karmic Transformation',
-        excerpt: 'Sade Sati is widely feared, but ancient sages described it as a great refiner. Understand the three 2.5-year phases and how to channel Shani’s blessing.',
-        category_id: 'cat-transits',
-        tags: JSON.stringify(['Saturn', 'Sade Sati', 'Transits', 'Karmic Growth']),
-        hero_image_url: 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?auto=format&fit=crop&w=1200&q=80',
-        reading_time: 7,
-        is_featured: 1,
-        content: `
-# Saturn’s Sade Sati: Dispelling the Fear
-
-Few astrological phenomena carry as much folklore as **Sade Sati** — the 7.5-year transit of Saturn (*Shani Dev*) over the natal Moon sign. Popular myths suggest catastrophe, but authentic Vedic texts reveal a far more uplifting reality: Saturn is a mentor, not a punisher.
-
-## The Three Phases (Dhaiyas)
-
-1. **First Phase (Rising Phase - 2.5 Years)**: Saturn traverses the 12th house from your natal Moon. This phase prompts introspection, re-evaluation of financial overheads, and letting go of unnecessary attachments.
-2. **Second Phase (Peak Phase - 2.5 Years)**: Saturn conjuncts your natal Moon in the 1st house. Emotional resilience is tested, discipline becomes compulsory, and deep self-honesty emerges.
-3. **Third Phase (Setting Phase - 2.5 Years)**: Saturn moves into the 2nd house from the Moon. Financial consolidation, career rewards for diligent efforts, and peace of mind return.
-
-## Authentic Remedies That Work
-
-- **Selfless Service**: Shani honors humility. Serving the underprivileged, elder care, and feeding animals (especially crows and black dogs on Saturdays).
-- **Saturday Oil Diya**: Lighting a mustard oil lamp under a Peepal tree at dusk.
-- **Mantra Sadhana**: Regular chanting of *Om Sham Shanaishcharaye Namah* or the *Hanuman Chalisa*.
-        `
-      },
-      {
-        id: 'post-4',
-        slug: 'choosing-the-right-gemstone-vedic-rules',
-        title: 'The Science of Ratna: Why You Should Never Wear a Gemstone Without Chart Analysis',
-        excerpt: 'Gemstones act as cosmic prism lenses for planetary rays. Learn why generic sun-sign gemstone recommendations often do more harm than good.',
-        category_id: 'cat-gemstones',
-        tags: JSON.stringify(['Gemstones', 'Yellow Sapphire', 'Blue Sapphire', 'Emerald']),
-        hero_image_url: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=1200&q=80',
-        reading_time: 5,
-        is_featured: 0,
-        content: `
-# The Science of Ratna (Gemstones)
-
-In Vedic gemmology (*Ratna Shastra*), natural gemstones are concentrated crystalline conductors that resonate with specific light spectrums emitted by the celestial spheres.
-
-## Why Sun-Sign Stones Can Be Risky
-
-Western astrology often suggests birthstones based solely on the month or Sun sign. In contrast, Vedic astrology evaluates:
-- **Your Ascendant (Lagna) Lord**: Is the planet a functional benefic for your unique constitution?
-- **Trika House Rulership**: If a planet rules difficult houses (6th, 8th, or 12th), strengthening it with a gemstone can inadvertently amplify obstacles.
-- **Natural Compatibility**: Wearing inimical stones together (such as Blue Sapphire and Ruby) creates energetic discord.
-
-At Nakshaktram, Amit Soni prescribes only high-vibrational, untreated natural gemstones tailored to your planetary periods (*Dasha*).
         `
       }
     ];
@@ -558,7 +678,7 @@ At Nakshaktram, Amit Soni prescribes only high-vibrational, untreated natural ge
       `, [post.id, post.slug, post.title, post.excerpt, post.content, post.category_id, post.tags, post.hero_image_url, post.reading_time, post.is_featured, post.title, post.excerpt]);
     }
 
-    // 6. Working Hours Rules (Section 8 — 9AM-5PM and 8PM-12AM IST)
+    // Availability rules
     for (let day = 0; day <= 6; day++) {
       await runQuery(`
         INSERT INTO availability_rules (weekday, window1_start, window1_end, window2_start, window2_end, slot_duration, buffer_time, is_active)
@@ -566,20 +686,19 @@ At Nakshaktram, Amit Soni prescribes only high-vibrational, untreated natural ge
       `, [day]);
     }
 
-    // 7. Seed sample appointment and payment verification queue item
+    // Seed sample appointment and payment verification queue item
     const sampleApptId = 'appt-demo-priya';
     await runQuery(`
       INSERT INTO appointments (id, customer_id, birth_profile_id, package_id, consultation_type, requested_date, requested_time_window, timezone_user, customer_notes, status)
       VALUES (?, ?, ?, ?, 'call', '2026-09-18', '11:00 AM - 01:00 PM', 'Asia/Kolkata', 'Seeking career transition guidance and clarity on current Dasha.', 'Requested')
     `, [sampleApptId, 'cust-priya-sharma', 'bp-priya-self', 'pkg-premium']);
 
-    // Sample payment awaiting verification
     await runQuery(`
       INSERT INTO payments (id, appointment_id, user_id, amount, payment_method, utr_reference, screenshot_url, status)
       VALUES (?, ?, ?, 1799, 'upi_qr', '425981029384', 'https://images.unsplash.com/photo-1556742049-0a67c5574f73?auto=format&fit=crop&w=600&q=80', 'Pending')
     `, ['pay-demo-priya', sampleApptId, 'cust-priya-sharma']);
 
-    // 8. Seed Chat Conversation
+    // Seed Chat Conversation
     const sampleChatId = 'conv-priya';
     await runQuery(`
       INSERT INTO chat_conversations (id, customer_id, admin_id, is_locked, unread_admin_count, unread_customer_count)
@@ -593,6 +712,6 @@ At Nakshaktram, Amit Soni prescribes only high-vibrational, untreated natural ge
         ('msg-2', ?, 'customer', 'cust-priya-sharma', 'text', 'Namaste Amit ji, thank you so much! I have submitted the payment UTR as well. Should I prepare any specific questions beforehand?', 0)
     `, [sampleChatId, sampleChatId]);
 
-    console.log('Database seeded successfully with initial Nakshaktram platform records!');
+    console.log('Database seeded successfully!');
   }
 }

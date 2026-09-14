@@ -2,13 +2,26 @@ import { Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthRequest } from '../middleware/auth';
 import { getAll, getOne, runQuery } from '../db/database';
+import { generateRealUpiIntent, sendTelegramAdminAlert } from '../services/realServices';
 
 export const getPaymentConfig = (req: any, res: Response) => {
+  const amount = parseFloat(req.query.amount as string) || 1799;
+  const vpa = process.env.UPI_VPA || 'nakshaktram@upi';
+  const name = process.env.UPI_NAME || 'Amit Soni (Nakshaktram Consultations)';
+
+  const { intentUrl, qrUrl } = generateRealUpiIntent({
+    vpa,
+    name,
+    amount,
+    transactionRef: `NAKSHA-${Date.now()}`
+  });
+
   return res.json({
     upi: {
-      vpa: 'nakshaktram@upi',
-      name: 'Amit Soni (Nakshaktram Consultations)',
-      qrImage: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=nakshaktram@upi&pn=Amit%20Soni%20Nakshaktram'
+      vpa,
+      name,
+      intentUrl,
+      qrImage: qrUrl
     },
     bank: {
       accountName: 'Amit Soni',
@@ -55,6 +68,15 @@ export const submitPaymentProof = async (req: AuthRequest, res: Response) => {
         VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending')
       `, [payId, appointmentId, userId, amount || 999, paymentMethod || 'upi_qr', utrReference, screenshotUrl || null]);
     }
+
+    // Send real Telegram alert to Amit Soni
+    sendTelegramAdminAlert(
+      `💳 *Payment UTR Submitted*\n` +
+      `• UTR / Ref: \`${utrReference}\`\n` +
+      `• Amount: ₹${amount || 999}\n` +
+      `• Appointment ID: ${appointmentId}\n` +
+      `• Action: Please verify in Admin Queue.`
+    ).catch(() => {});
 
     return res.json({
       success: true,
