@@ -165,6 +165,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthenticated: !!user,
         isAdmin: user?.role === 'admin',
         login,
+        loginWithGoogle,
         sendOtp,
         verifyOtp,
         logout,
