@@ -2,12 +2,23 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
 export async function apiRequest<T = any>(
   endpoint: string,
-  options: RequestInit = {}
+  optionsOrMethod?: RequestInit | string,
+  bodyData?: any
 ): Promise<T> {
+  let options: RequestInit = {};
+  if (typeof optionsOrMethod === 'string') {
+    options = {
+      method: optionsOrMethod,
+      body: bodyData !== undefined ? (typeof bodyData === 'string' ? bodyData : JSON.stringify(bodyData)) : undefined
+    };
+  } else if (optionsOrMethod) {
+    options = optionsOrMethod;
+  }
+
   const token = localStorage.getItem('nakshaktram_token');
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...(options.headers as Record<string, string> || {})
+    ...((options.headers as Record<string, string>) || {})
   };
 
   if (token) {

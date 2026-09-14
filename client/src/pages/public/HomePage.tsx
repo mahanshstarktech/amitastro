@@ -5,6 +5,7 @@ import {
   HelpCircle, ChevronDown, Check
 } from 'lucide-react';
 import { apiRequest } from '../../utils/api';
+import { useAuth } from '../../context/AuthContext';
 
 interface HomePageProps {
   onOpenBooking: (pkgId?: string) => void;
@@ -17,6 +18,9 @@ export const HomePage: React.FC<HomePageProps> = ({
   onOpenTrial,
   onNavigate
 }) => {
+  const { isAuthenticated, user } = useAuth();
+  const showTrialCTA = !isAuthenticated || (!!user?.isNewCustomer && !user?.trialUsed);
+
   const [featuredPosts, setFeaturedPosts] = useState<any[]>([]);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
@@ -182,13 +186,15 @@ export const HomePage: React.FC<HomePageProps> = ({
               <Calendar size={17} /> Book a Consultation
             </button>
 
-            <button
-              onClick={onOpenTrial}
-              className="apple-btn-secondary"
-              style={{ padding: '13px 24px', fontSize: 16 }}
-            >
-              <Phone size={17} /> 5-Min Free Trial
-            </button>
+            {showTrialCTA && (
+              <button
+                onClick={onOpenTrial}
+                className="apple-btn-secondary"
+                style={{ padding: '13px 24px', fontSize: 16 }}
+              >
+                <Phone size={17} /> 5-Min Free Trial
+              </button>
+            )}
 
             <button
               onClick={() => onNavigate('/blog')}

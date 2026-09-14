@@ -125,6 +125,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
         phone: user.phone,
         role: user.role,
         isPhoneVerified: !!user.is_phone_verified,
+        isNewCustomer: user.is_new_customer !== 0,
         trialUsed: !!user.trial_used,
         trialSecondsRemaining: user.trial_seconds_remaining
       },
@@ -170,6 +171,7 @@ export const login = async (req: Request, res: Response) => {
         phone: user.phone,
         role: user.role,
         isPhoneVerified: !!user.is_phone_verified,
+        isNewCustomer: user.is_new_customer !== 0,
         trialUsed: !!user.trial_used,
         trialSecondsRemaining: user.trial_seconds_remaining
       },
@@ -197,6 +199,7 @@ export const getMe = async (req: any, res: Response) => {
         phone: user.phone,
         role: user.role,
         isPhoneVerified: !!user.is_phone_verified,
+        isNewCustomer: user.is_new_customer !== 0,
         trialUsed: !!user.trial_used,
         trialSecondsRemaining: user.trial_seconds_remaining
       },

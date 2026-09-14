@@ -1,5 +1,5 @@
 import React from 'react';
-import { Compass, Calendar, Sparkles, BookOpen, User, ShieldCheck } from 'lucide-react';
+import { Compass, Calendar, Sparkles, BookOpen, User, ShieldCheck, Tag } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 interface AppleBottomNavProps {
@@ -17,11 +17,15 @@ export const AppleBottomNav: React.FC<AppleBottomNavProps> = ({
   onOpenTrial,
   onOpenAuth
 }) => {
-  const { isAuthenticated, isAdmin } = useAuth();
+  const { isAuthenticated, isAdmin, user } = useAuth();
 
   const isHome = currentPath === '/';
   const isBlog = currentPath.startsWith('/blog');
+  const isPricing = currentPath === '/pricing';
   const isPortal = currentPath.startsWith('/app') || currentPath.startsWith('/admin');
+
+  // 5-min trial is shown ONLY to new users or unauthenticated visitors
+  const showTrialCTA = !isAuthenticated || (!!user?.isNewCustomer && !user?.trialUsed);
 
   return (
     <nav
@@ -67,46 +71,69 @@ export const AppleBottomNav: React.FC<AppleBottomNavProps> = ({
         </span>
       </button>
 
-      {/* 2. Free Trial Tab (with FREE pill badge) */}
-      <button
-        onClick={onOpenTrial}
-        className="nav-tab-btn"
-        style={{
-          background: 'none',
-          border: 'none',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 4,
-          cursor: 'pointer',
-          color: '#8E8E93',
-          position: 'relative',
-          flex: 1
-        }}
-      >
-        <div style={{ position: 'relative' }}>
-          <Sparkles size={22} color="#C9A24B" strokeWidth={1.8} />
-          <span
-            style={{
-              position: 'absolute',
-              top: -6,
-              right: -14,
-              backgroundColor: '#C9A24B',
-              color: '#FFFFFF',
-              fontSize: 8.5,
-              fontWeight: 700,
-              padding: '1px 4px',
-              borderRadius: 4,
-              textTransform: 'uppercase'
-            }}
-          >
-            Free
+      {/* 2. Free Trial Tab (only for new/unauthenticated users) OR Plans Tab */}
+      {showTrialCTA ? (
+        <button
+          onClick={onOpenTrial}
+          className="nav-tab-btn"
+          style={{
+            background: 'none',
+            border: 'none',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 4,
+            cursor: 'pointer',
+            color: '#8E8E93',
+            position: 'relative',
+            flex: 1
+          }}
+        >
+          <div style={{ position: 'relative' }}>
+            <Sparkles size={22} color="#C9A24B" strokeWidth={1.8} />
+            <span
+              style={{
+                position: 'absolute',
+                top: -6,
+                right: -14,
+                backgroundColor: '#C9A24B',
+                color: '#FFFFFF',
+                fontSize: 8.5,
+                fontWeight: 700,
+                padding: '1px 4px',
+                borderRadius: 4,
+                textTransform: 'uppercase'
+              }}
+            >
+              Free
+            </span>
+          </div>
+          <span style={{ fontSize: 10.5, fontWeight: 500, color: '#C9A24B', letterSpacing: '-0.01em' }}>
+            5-Min Trial
           </span>
-        </div>
-        <span style={{ fontSize: 10.5, fontWeight: 500, color: '#C9A24B', letterSpacing: '-0.01em' }}>
-          5-Min Trial
-        </span>
-      </button>
+        </button>
+      ) : (
+        <button
+          onClick={() => onNavigate('/pricing')}
+          className="nav-tab-btn"
+          style={{
+            background: 'none',
+            border: 'none',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 4,
+            cursor: 'pointer',
+            color: isPricing ? '#3A3A6E' : '#8E8E93',
+            flex: 1
+          }}
+        >
+          <Tag size={22} strokeWidth={isPricing ? 2.2 : 1.7} />
+          <span style={{ fontSize: 10.5, fontWeight: isPricing ? 600 : 500, letterSpacing: '-0.01em' }}>
+            Plans
+          </span>
+        </button>
+      )}
 
       {/* 3. Consult / Book (Center Action) */}
       <button

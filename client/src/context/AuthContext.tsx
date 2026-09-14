@@ -8,6 +8,7 @@ export interface User {
   phone: string;
   role: 'customer' | 'admin';
   isPhoneVerified: boolean;
+  isNewCustomer: boolean;
   trialUsed: boolean;
   trialSecondsRemaining: number;
 }

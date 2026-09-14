@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Calendar, MessageSquare, User, CreditCard, Clock, Plus, Trash2, Edit3, 
-  CheckCircle2, AlertCircle, ArrowRight, ShieldCheck, Sparkles, Send, Paperclip
+  CheckCircle2, AlertCircle, ArrowRight, ShieldCheck, Sparkles, Send, Paperclip, X
 } from 'lucide-react';
 import { useAuth, type BirthProfile } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
@@ -27,6 +27,47 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
   const [conversation, setConversation] = useState<any>(null);
   const [msgInput, setMsgInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Follow-up appointment chat state
+  const [activeFollowupAppt, setActiveFollowupAppt] = useState<any | null>(null);
+  const [followupMessages, setFollowupMessages] = useState<any[]>([]);
+  const [followupInput, setFollowupInput] = useState('');
+  const [followupLoading, setFollowupLoading] = useState(false);
+  const [followupExpiry, setFollowupExpiry] = useState<any>(null);
+
+  const openFollowupModal = async (appt: any) => {
+    setActiveFollowupAppt(appt);
+    setFollowupLoading(true);
+    try {
+      const res = await apiRequest<any>(`/appointments/${appt.id}/followup`);
+      setFollowupMessages(res.messages || []);
+      setFollowupExpiry({
+        expiresAt: res.expiresAt,
+        isExpired: res.isExpired,
+        daysRemaining: res.daysRemaining,
+        hoursRemaining: res.hoursRemaining
+      });
+    } catch (err: any) {
+      showToast(err.message || 'Failed to load follow-up thread', 'error');
+    } finally {
+      setFollowupLoading(false);
+    }
+  };
+
+  const handleSendFollowup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!followupInput.trim() || !activeFollowupAppt) return;
+    try {
+      const res = await apiRequest<any>(`/appointments/${activeFollowupAppt.id}/followup`, 'POST', {
+        content: followupInput.trim()
+      });
+      setFollowupMessages((prev) => [...prev, res.message]);
+      setFollowupInput('');
+      showToast('Follow-up message sent', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to send message', 'error');
+    }
+  };
 
   // New profile modal state
   const [showAddProfileModal, setShowAddProfileModal] = useState(false);
@@ -121,7 +162,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
           </div>
 
           <div style={{ display: 'flex', gap: 10 }}>
-            {!user?.trialUsed && (
+            {(user?.isNewCustomer && !user?.trialUsed) && (
               <button
                 onClick={onOpenTrial}
                 className="apple-btn-secondary"
@@ -273,22 +314,24 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                   </div>
 
                   <h3 style={{ fontSize: 18, fontWeight: 600, color: '#1D1D1F', marginBottom: 6 }}>
-                    {user?.trialUsed ? 'Trial Completed' : '5-Minute Discovery Call'}
+                    {user?.trialUsed ? 'Trial Completed' : !user?.isNewCustomer ? 'Consultation Packages' : '5-Minute Discovery Call'}
                   </h3>
                   <p style={{ fontSize: 13.5, color: '#6E6E73', lineHeight: 1.5 }}>
                     {user?.trialUsed
                       ? 'You have already utilized your one-time trial. Upgrade to a consultation package for in-depth guidance.'
+                      : !user?.isNewCustomer
+                      ? 'Your account is configured for regular consultations. Book direct uninterrupted time with Amit Soni.'
                       : 'Experience Amit Soni’s calm, authoritative consultation style with a live 5-minute phone session.'}
                   </p>
                 </div>
 
-                {user?.trialUsed ? (
+                {(!user?.isNewCustomer || user?.trialUsed) ? (
                   <button
                     onClick={onOpenBooking}
                     className="apple-btn-gold"
                     style={{ width: '100%', marginTop: 20, fontSize: 13.5 }}
                   >
-                    View Packages
+                    View Packages & Book
                   </button>
                 ) : (
                   <button
@@ -441,9 +484,36 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                           "{appt.customer_notes}"
                         </div>
                       )}
+
+                      {/* Follow-up Tracking Badge */}
+                      {appt.followup_days > 0 && (
+                        <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          <span
+                            style={{
+                              fontSize: 11.5,
+                              padding: '3px 8px',
+                              borderRadius: 6,
+                              fontWeight: 600,
+                              backgroundColor: appt.status === 'Confirmed' ? (appt.followup_active ? '#E8F5E9' : '#F5F5F7') : '#F5F5F7',
+                              color: appt.status === 'Confirmed' ? (appt.followup_active ? '#2FA84F' : '#8E8E93') : '#8E8E93',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4
+                            }}
+                          >
+                            <Sparkles size={12} color={appt.status === 'Confirmed' && appt.followup_active ? '#2FA84F' : '#8E8E93'} />
+                            {appt.followup_days}-Day Follow-up {appt.status === 'Confirmed' ? (appt.followup_active ? '· Window Active' : '· Window Ended') : '· Unlocks Upon Confirmation'}
+                          </span>
+                          {appt.followup_chat_expires_at && appt.followup_active && (
+                            <span style={{ fontSize: 11, color: '#86868B' }}>
+                              Expires {new Date(appt.followup_chat_expires_at).toLocaleDateString()}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                       {appt.payment_status === 'Pending' && (
                         <button
                           onClick={() => setActiveTab('payments')}
@@ -454,12 +524,22 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                         </button>
                       )}
 
+                      {appt.status === 'Confirmed' && appt.followup_days > 0 && (
+                        <button
+                          onClick={() => openFollowupModal(appt)}
+                          className="apple-btn-secondary"
+                          style={{ fontSize: 13, padding: '8px 14px', borderColor: '#3A3A6E', color: '#3A3A6E', fontWeight: 600 }}
+                        >
+                          <Sparkles size={14} color="#C9A24B" /> Follow-up Chat ({appt.followup_days}d)
+                        </button>
+                      )}
+
                       <button
                         onClick={() => setActiveTab('chat')}
                         className="apple-btn-secondary"
                         style={{ fontSize: 13, padding: '8px 14px' }}
                       >
-                        <MessageSquare size={14} /> Chat
+                        <MessageSquare size={14} /> General Chat
                       </button>
                     </div>
                   </div>
@@ -831,6 +911,162 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
           </div>
         )}
       </div>
+
+      {/* Dedicated Follow-up Consultation Thread Modal */}
+      {activeFollowupAppt && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 3000,
+            backgroundColor: 'rgba(0,0,0,0.45)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16
+          }}
+        >
+          <div
+            className="apple-card"
+            style={{
+              width: '100%',
+              maxWidth: 640,
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              backgroundColor: '#FFF',
+              overflow: 'hidden',
+              boxShadow: '0 24px 60px rgba(0,0,0,0.2)'
+            }}
+          >
+            {/* Modal Header */}
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #E5E5EA', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <h3 style={{ fontSize: 17, fontWeight: 600, color: '#1D1D1F' }}>
+                    Follow-up Consultation Thread
+                  </h3>
+                  <span className="apple-badge-gold" style={{ fontSize: 10 }}>
+                    {activeFollowupAppt.followup_days}-Day Window
+                  </span>
+                </div>
+                <p style={{ fontSize: 12.5, color: '#6E6E73', marginTop: 2 }}>
+                  {activeFollowupAppt.package_name} · Chart: {activeFollowupAppt.profile_name}
+                </p>
+              </div>
+              <button
+                onClick={() => setActiveFollowupAppt(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#86868B', padding: 4 }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Expiry Banner */}
+            <div
+              style={{
+                padding: '10px 18px',
+                fontSize: 12.5,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                backgroundColor: followupExpiry?.isExpired ? '#FFF5F5' : '#F0F9F1',
+                borderBottom: '1px solid #E5E5EA',
+                color: followupExpiry?.isExpired ? '#D64545' : '#247D3B'
+              }}
+            >
+              <span>
+                {followupExpiry?.isExpired ? (
+                  <><strong>Window Concluded:</strong> Follow-up questions for this session are now closed.</>
+                ) : (
+                  <><strong>Window Active:</strong> {followupExpiry?.daysRemaining}d {followupExpiry?.hoursRemaining}h remaining to ask questions</>
+                )}
+              </span>
+              {followupExpiry?.expiresAt && (
+                <span style={{ fontSize: 11, opacity: 0.85 }}>
+                  Valid until {new Date(followupExpiry.expiresAt).toLocaleDateString()}
+                </span>
+              )}
+            </div>
+
+            {/* Messages Thread */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', minHeight: 280, maxHeight: 380, display: 'flex', flexDirection: 'column', gap: 10, backgroundColor: '#FAF9F6' }}>
+              {followupLoading ? (
+                <div style={{ textAlign: 'center', padding: '40px 0', color: '#8E8E93', fontSize: 13 }}>
+                  Loading conversation history...
+                </div>
+              ) : followupMessages.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '50px 20px', color: '#6E6E73' }}>
+                  <Sparkles size={32} color="#C9A24B" style={{ marginBottom: 10 }} />
+                  <div style={{ fontWeight: 600, fontSize: 15, color: '#1D1D1F', marginBottom: 4 }}>
+                    Start Your Follow-up Questions
+                  </div>
+                  <p style={{ fontSize: 13, maxWidth: 360, margin: '0 auto' }}>
+                    Ask any follow-up questions, clarification on remedies, or gemstones suggested by Amit Soni during your session.
+                  </p>
+                </div>
+              ) : (
+                followupMessages.map((m: any) => {
+                  const isMe = m.sender_type === 'customer';
+                  return (
+                    <div
+                      key={m.id}
+                      style={{
+                        alignSelf: isMe ? 'flex-end' : 'flex-start',
+                        maxWidth: '80%',
+                        backgroundColor: isMe ? '#E8F5E9' : '#FFFFFF',
+                        border: '1px solid #E5E5EA',
+                        borderRadius: 14,
+                        padding: '10px 14px',
+                        fontSize: 13.5
+                      }}
+                    >
+                      <div style={{ fontSize: 11, fontWeight: 600, color: isMe ? '#247D3B' : '#C9A24B', marginBottom: 3 }}>
+                        {isMe ? 'You' : 'Amit Soni (Astrologer)'}
+                      </div>
+                      <div style={{ color: '#1D1D1F', lineHeight: 1.45 }}>{m.content}</div>
+                      <div style={{ fontSize: 10, color: '#86868B', textAlign: 'right', marginTop: 4 }}>
+                        {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Input Form */}
+            <form
+              onSubmit={handleSendFollowup}
+              style={{
+                padding: '12px 18px',
+                borderTop: '1px solid #E5E5EA',
+                display: 'flex',
+                gap: 10,
+                backgroundColor: '#FFF'
+              }}
+            >
+              <input
+                type="text"
+                value={followupInput}
+                onChange={(e) => setFollowupInput(e.target.value)}
+                placeholder={followupExpiry?.isExpired ? "Follow-up period closed for this appointment" : "Type your follow-up query for Amit Soni..."}
+                disabled={followupExpiry?.isExpired}
+                className="apple-input"
+                style={{ flex: 1, borderRadius: 9999, padding: '9px 16px', fontSize: 13.5 }}
+              />
+              <button
+                type="submit"
+                disabled={followupExpiry?.isExpired || !followupInput.trim()}
+                className="apple-btn-primary"
+                style={{ padding: '9px 18px', fontSize: 13.5, opacity: (followupExpiry?.isExpired || !followupInput.trim()) ? 0.5 : 1 }}
+              >
+                <Send size={14} /> Send
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

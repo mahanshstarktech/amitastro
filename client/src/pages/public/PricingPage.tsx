@@ -1,5 +1,6 @@
 import React from 'react';
 import { Check, Star, Sparkles, Calendar, ShieldCheck, HelpCircle } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 interface PricingPageProps {
   onOpenBooking: (pkgId?: string) => void;
@@ -7,6 +8,9 @@ interface PricingPageProps {
 }
 
 export const PricingPage: React.FC<PricingPageProps> = ({ onOpenBooking, onOpenTrial }) => {
+  const { isAuthenticated, user } = useAuth();
+  const showTrialCTA = !isAuthenticated || (!!user?.isNewCustomer && !user?.trialUsed);
+
   return (
     <div style={{ minHeight: '100vh', paddingBottom: 96 }}>
       {/* Header */}
@@ -63,13 +67,23 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenBooking, onOpenT
               </ul>
             </div>
 
-            <button
-              onClick={onOpenTrial}
-              className="apple-btn-secondary"
-              style={{ width: '100%', marginTop: 28, padding: 12 }}
-            >
-              Start Free Trial
-            </button>
+            {showTrialCTA ? (
+              <button
+                onClick={onOpenTrial}
+                className="apple-btn-secondary"
+                style={{ width: '100%', marginTop: 28, padding: 12 }}
+              >
+                Start Free Trial
+              </button>
+            ) : (
+              <button
+                onClick={() => onOpenBooking('pkg-focused')}
+                className="apple-btn-secondary"
+                style={{ width: '100%', marginTop: 28, padding: 12, opacity: 0.85 }}
+              >
+                Book Focused Session
+              </button>
+            )}
           </div>
 
           {/* 2. Quick Consult */}

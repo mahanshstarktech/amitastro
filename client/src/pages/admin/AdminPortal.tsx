@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Users, Calendar, MessageSquare, CreditCard, BookOpen, Settings, BarChart2, 
   Send, ShieldCheck, CheckCircle2, XCircle, Clock, Search, Phone, Plus, Trash2, 
-  Edit3, ArrowRight, Eye, RefreshCw, AlertTriangle
+  Edit3, ArrowRight, Eye, RefreshCw, AlertTriangle, Copy, Check, ChevronDown, ChevronUp, Sparkles, Filter, X
 } from 'lucide-react';
 import { apiRequest } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
@@ -23,6 +23,16 @@ export const AdminPortal: React.FC = () => {
   const [chatConversations, setChatConversations] = useState<any[]>([]);
   const [activeChatConv, setActiveChatConv] = useState<any>(null);
   const [chatDetails, setChatDetails] = useState<any>(null);
+  const [customerFullContext, setCustomerFullContext] = useState<any>(null);
+  const [copiedProfileId, setCopiedProfileId] = useState<string | null>(null);
+  const [expandedProfileIds, setExpandedProfileIds] = useState<{ [id: string]: boolean }>({});
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [customerFilter, setCustomerFilter] = useState<'all' | 'new' | 'old'>('all');
+  const [chatSearch, setChatSearch] = useState('');
+  const [activeFollowupThread, setActiveFollowupThread] = useState<any | null>(null);
+  const [followupThreadMessages, setFollowupThreadMessages] = useState<any[]>([]);
+  const [adminFollowupInput, setAdminFollowupInput] = useState('');
+  const chatBottomRef = useRef<HTMLDivElement>(null);
   const [chatInput, setChatInput] = useState('');
   const [adminNote, setAdminNote] = useState('');
 
@@ -95,7 +105,95 @@ export const AdminPortal: React.FC = () => {
     apiRequest(`/chat/admin/conversation/${conv.id}`).then((res) => {
       setChatDetails(res);
       setAdminNote(res.customer360?.notes || '');
+      setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
     }).catch(() => {});
+
+    if (conv.customer_id) {
+      apiRequest(`/admin/customers/${conv.customer_id}/full-context`).then((res) => {
+        setCustomerFullContext(res);
+      }).catch(() => {});
+    }
+  };
+
+  const handleToggleNewCustomer = async (customerId: string, newStatus: boolean) => {
+    try {
+      await apiRequest(`/admin/customers/${customerId}/new-customer-status`, 'PATCH', {
+        isNewCustomer: newStatus
+      });
+      showToast(newStatus ? 'Client marked as New (5-min trial enabled)' : 'Client marked as Established (Trial revoked)', 'success');
+      setCustomers((prev) =>
+        prev.map((c) => (c.id === customerId ? { ...c, is_new_customer: newStatus ? 1 : 0 } : c))
+      );
+      if (customerFullContext?.customer?.id === customerId) {
+        setCustomerFullContext((prev: any) => ({
+          ...prev,
+          customer: { ...prev.customer, is_new_customer: newStatus ? 1 : 0, isNewCustomer: newStatus }
+        }));
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update customer status', 'error');
+    }
+  };
+
+  const handleCopyProfile = (profile: any) => {
+    const text = `Kundli Chart Profile:
+Name: ${profile.full_name}
+Relation: ${profile.relation.toUpperCase()}
+DOB: ${profile.dob}
+Time: ${profile.tob}${profile.tob_uncertain ? ' (Approximate)' : ''}
+Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
+
+    navigator.clipboard.writeText(text);
+    setCopiedProfileId(profile.id);
+    showToast(`Copied ${profile.full_name}'s birth details`, 'success');
+    setTimeout(() => {
+      setCopiedProfileId((curr) => (curr === profile.id ? null : curr));
+    }, 2500);
+  };
+
+  const toggleExpandProfile = (profileId: string) => {
+    setExpandedProfileIds((prev) => ({
+      ...prev,
+      [profileId]: !prev[profileId]
+    }));
+  };
+
+  const openFollowupThread = async (appt: any) => {
+    setActiveFollowupThread(appt);
+    try {
+      const res = await apiRequest<any>(`/appointments/${appt.id}/followup`);
+      setFollowupThreadMessages(res.messages || []);
+    } catch (err: any) {
+      showToast(err.message || 'Failed to load follow-up messages', 'error');
+    }
+  };
+
+  const handleSendAdminFollowup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminFollowupInput.trim() || !activeFollowupThread) return;
+    try {
+      const res = await apiRequest<any>(`/appointments/${activeFollowupThread.id}/followup`, 'POST', {
+        content: adminFollowupInput.trim()
+      });
+      setFollowupThreadMessages((prev) => [...prev, res.message]);
+      setAdminFollowupInput('');
+      showToast('Follow-up reply sent', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to send follow-up message', 'error');
+    }
+  };
+
+  const openCustomerChatFromCrm = (customer: any) => {
+    setActiveTab('chat');
+    // Find conversation if exists, or select it
+    const existingConv = chatConversations.find((c) => c.customer_id === customer.id);
+    if (existingConv) {
+      selectConversation(existingConv);
+    } else {
+      apiRequest(`/admin/customers/${customer.id}/full-context`).then((res) => {
+        setCustomerFullContext(res);
+      }).catch(() => {});
+    }
   };
 
   const fetchBlog = () => {
@@ -118,6 +216,20 @@ export const AdminPortal: React.FC = () => {
   const fetchAnalytics = () => {
     apiRequest('/admin/analytics').then((res) => setAnalytics(res)).catch(() => {});
   };
+
+  const filteredCustomers = customers.filter((c) => {
+    const q = customerSearch.toLowerCase();
+    const matchesSearch = !q || (c.name || '').toLowerCase().includes(q) || (c.phone || '').includes(q) || (c.email || '').toLowerCase().includes(q);
+    if (!matchesSearch) return false;
+    if (customerFilter === 'new') return !!c.is_new_customer && !c.trial_used;
+    if (customerFilter === 'old') return !c.is_new_customer || !!c.trial_used;
+    return true;
+  });
+
+  const filteredConversations = chatConversations.filter((conv) => {
+    const q = chatSearch.toLowerCase();
+    return !q || (conv.customer_name || '').toLowerCase().includes(q) || (conv.customer_phone || '').includes(q);
+  });
 
   // Status updates
   const handleApptStatus = async (apptId: string, status: string) => {
@@ -454,9 +566,36 @@ export const AdminPortal: React.FC = () => {
                         Client Note: "{a.customer_notes}"
                       </div>
                     )}
+
+                    {/* Follow-up Tracking Badge */}
+                    {a.followup_days > 0 && (
+                      <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            padding: '2px 8px',
+                            borderRadius: 6,
+                            fontWeight: 600,
+                            backgroundColor: a.status === 'Confirmed' ? (a.followup_active ? '#E8F5E9' : '#F5F5F7') : '#F5F5F7',
+                            color: a.status === 'Confirmed' ? (a.followup_active ? '#2FA84F' : '#8E8E93') : '#8E8E93',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4
+                          }}
+                        >
+                          <Sparkles size={11} color={a.status === 'Confirmed' && a.followup_active ? '#2FA84F' : '#8E8E93'} />
+                          {a.followup_days}-Day Follow-up {a.status === 'Confirmed' ? (a.followup_active ? '· Window Active' : '· Concluded') : '· Unlocks on Confirm'}
+                        </span>
+                        {a.followup_chat_expires_at && a.followup_active && (
+                          <span style={{ fontSize: 11, color: '#86868B' }}>
+                            Valid till {new Date(a.followup_chat_expires_at).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <a
                       href={`tel:${a.customer_phone}`}
                       className="apple-btn-secondary"
@@ -464,6 +603,16 @@ export const AdminPortal: React.FC = () => {
                     >
                       <Phone size={13} /> Call
                     </a>
+
+                    {a.status === 'Confirmed' && a.followup_days > 0 && (
+                      <button
+                        onClick={() => openFollowupThread(a)}
+                        className="apple-btn-secondary"
+                        style={{ padding: '7px 12px', fontSize: 12.5, color: '#3A3A6E', borderColor: '#3A3A6E', fontWeight: 600 }}
+                      >
+                        <Sparkles size={13} color="#C9A24B" /> Follow-up Thread
+                      </button>
+                    )}
 
                     {a.status === 'Requested' && (
                       <button
@@ -498,59 +647,98 @@ export const AdminPortal: React.FC = () => {
           </div>
         )}
 
-        {/* 3. UNIFIED CHAT INBOX WITH CUSTOMER 360 SIDEBAR (Section 10) */}
+        {/* 3. UNIFIED CHAT INBOX WITH ADVANCED CUSTOMER 360 & FAMILY PANEL (Section 10) */}
         {activeTab === 'chat' && (
           <div
             className="apple-card"
             style={{
-              height: 640,
+              height: 680,
               display: 'grid',
-              gridTemplateColumns: '280px 1fr 300px',
+              gridTemplateColumns: '290px 1fr 340px',
               overflow: 'hidden',
               backgroundColor: '#FFF'
             }}
           >
             {/* Left Conversation List */}
-            <div style={{ borderRight: '1px solid #E5E5EA', overflowY: 'auto' }}>
+            <div style={{ borderRight: '1px solid #E5E5EA', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               <div style={{ padding: '14px 16px', borderBottom: '1px solid #E5E5EA', fontWeight: 600, fontSize: 14 }}>
-                Active Inquiries ({chatConversations.length})
+                Active Inquiries ({filteredConversations.length})
               </div>
-              {chatConversations.map((conv) => {
-                const isSelected = activeChatConv?.id === conv.id;
-                return (
-                  <div
-                    key={conv.id}
-                    onClick={() => selectConversation(conv)}
-                    style={{
-                      padding: '14px 16px',
-                      borderBottom: '1px solid #F0F0F2',
-                      cursor: 'pointer',
-                      backgroundColor: isSelected ? '#F5F5F7' : '#FFFFFF'
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                      <strong style={{ fontSize: 14, color: '#1D1D1F' }}>{conv.customer_name}</strong>
-                      {conv.unread_admin_count > 0 && (
-                        <span style={{ backgroundColor: '#D64545', color: '#FFF', fontSize: 10, padding: '2px 5px', borderRadius: 9999 }}>
-                          {conv.unread_admin_count}
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ fontSize: 12.5, color: '#6E6E73', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {conv.last_message_text || 'No messages yet'}
-                    </div>
+
+              {/* Conversation search */}
+              <div style={{ padding: '10px 12px', borderBottom: '1px solid #E5E5EA', backgroundColor: '#FAF9F6' }}>
+                <div style={{ position: 'relative' }}>
+                  <Search size={14} color="#8E8E93" style={{ position: 'absolute', left: 10, top: 9 }} />
+                  <input
+                    type="text"
+                    value={chatSearch}
+                    onChange={(e) => setChatSearch(e.target.value)}
+                    placeholder="Search client or phone..."
+                    className="apple-input"
+                    style={{ paddingLeft: 30, fontSize: 12.5, padding: '5px 8px 5px 30px', width: '100%', borderRadius: 8 }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ flex: 1, overflowY: 'auto' }}>
+                {filteredConversations.length === 0 ? (
+                  <div style={{ padding: 24, textAlign: 'center', color: '#86868B', fontSize: 13 }}>
+                    No conversations found.
                   </div>
-                );
-              })}
+                ) : (
+                  filteredConversations.map((conv) => {
+                    const isSelected = activeChatConv?.id === conv.id;
+                    return (
+                      <div
+                        key={conv.id}
+                        onClick={() => selectConversation(conv)}
+                        style={{
+                          padding: '12px 14px',
+                          borderBottom: '1px solid #F0F0F2',
+                          cursor: 'pointer',
+                          backgroundColor: isSelected ? '#F5F5F7' : '#FFFFFF',
+                          transition: 'background-color 0.15s'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                          <strong style={{ fontSize: 13.5, color: '#1D1D1F' }}>{conv.customer_name}</strong>
+                          {conv.unread_admin_count > 0 && (
+                            <span style={{ backgroundColor: '#D64545', color: '#FFF', fontSize: 10, padding: '2px 6px', borderRadius: 9999, fontWeight: 700 }}>
+                              {conv.unread_admin_count}
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 12, color: '#8E8E93', marginBottom: 2 }}>
+                          {conv.customer_phone}
+                        </div>
+                        <div style={{ fontSize: 12, color: '#6E6E73', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {conv.last_message_text || 'No messages yet'}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
 
             {/* Middle Chat Messages Window */}
-            <div style={{ display: 'flex', flexDirection: 'column', backgroundColor: '#FAF9F6' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', backgroundColor: '#FAF9F6', borderRight: '1px solid #E5E5EA' }}>
               {/* Header */}
-              <div style={{ padding: '14px 20px', backgroundColor: '#FFF', borderBottom: '1px solid #E5E5EA', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ padding: '12px 18px', backgroundColor: '#FFF', borderBottom: '1px solid #E5E5EA', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <strong style={{ fontSize: 15 }}>{activeChatConv?.customer_name || 'Select Conversation'}</strong>
-                  <span style={{ fontSize: 12.5, color: '#6E6E73', marginLeft: 8 }}>{activeChatConv?.customer_phone}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <strong style={{ fontSize: 15, color: '#1D1D1F' }}>{activeChatConv?.customer_name || 'Select Inquiry'}</strong>
+                    {customerFullContext?.customer && (
+                      customerFullContext.customer.is_new_customer && !customerFullContext.customer.trial_used ? (
+                        <span className="apple-badge-success" style={{ fontSize: 10 }}>New Client</span>
+                      ) : customerFullContext.customer.trial_used ? (
+                        <span style={{ fontSize: 10, backgroundColor: '#F2E7FE', color: '#6A1B9A', padding: '1px 6px', borderRadius: 4, fontWeight: 600 }}>Trial Used</span>
+                      ) : (
+                        <span style={{ fontSize: 10, backgroundColor: '#F5F5F7', color: '#6E6E73', padding: '1px 6px', borderRadius: 4, fontWeight: 600 }}>Old Client</span>
+                      )
+                    )}
+                  </div>
+                  <span style={{ fontSize: 12, color: '#6E6E73' }}>{activeChatConv?.customer_phone}</span>
                 </div>
                 {activeChatConv?.customer_phone && (
                   <a
@@ -563,8 +751,13 @@ export const AdminPortal: React.FC = () => {
                 )}
               </div>
 
-              {/* Messages */}
-              <div style={{ flex: 1, padding: 20, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {/* Messages Scroll Area */}
+              <div style={{ flex: 1, padding: '16px 20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {chatDetails?.messages?.length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '40px 0', color: '#86868B', fontSize: 13 }}>
+                    No consultation messages exchanged yet with this client.
+                  </div>
+                )}
                 {chatDetails?.messages?.map((m: any) => {
                   const isMe = m.sender_type === 'admin';
                   return (
@@ -572,29 +765,34 @@ export const AdminPortal: React.FC = () => {
                       key={m.id}
                       style={{
                         alignSelf: isMe ? 'flex-end' : 'flex-start',
-                        maxWidth: '75%',
+                        maxWidth: '78%',
                         backgroundColor: isMe ? '#E8F5E9' : '#FFFFFF',
                         borderRadius: 14,
                         padding: '10px 14px',
                         border: '1px solid #E5E5EA',
-                        fontSize: 14
+                        fontSize: 13.5
                       }}
                     >
-                      <div>{m.content}</div>
-                      <div style={{ fontSize: 10.5, color: '#86868B', textAlign: 'right', marginTop: 4 }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: isMe ? '#247D3B' : '#3A3A6E', marginBottom: 2 }}>
+                        {isMe ? 'Amit Soni' : activeChatConv?.customer_name || 'Client'}
+                      </div>
+                      <div style={{ color: '#1D1D1F', lineHeight: 1.45 }}>{m.content}</div>
+                      <div style={{ fontSize: 10, color: '#86868B', textAlign: 'right', marginTop: 4 }}>
                         {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </div>
                   );
                 })}
+                <div ref={chatBottomRef} />
               </div>
 
               {/* Quick Reply Templates */}
-              <div style={{ padding: '6px 14px', backgroundColor: '#FFF', borderTop: '1px solid #E5E5EA', display: 'flex', gap: 8, overflowX: 'auto' }}>
+              <div style={{ padding: '6px 14px', backgroundColor: '#FFF', borderTop: '1px solid #E5E5EA', display: 'flex', gap: 6, overflowX: 'auto' }}>
                 {[
                   'Namaste! Your slot is confirmed.',
-                  'Please share a photo of your palm or birth chart.',
-                  'Our session will commence in 10 minutes.'
+                  'Please send the birth time and birth city of your family member.',
+                  'Kindly upload a photo of your palms for Rekha Vichar.',
+                  'Our consultation will commence in 10 minutes.'
                 ].map((txt) => (
                   <button
                     key={txt}
@@ -612,59 +810,228 @@ export const AdminPortal: React.FC = () => {
                   type="text"
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
-                  placeholder="Respond to client as Amit Soni..."
+                  placeholder="Reply as Amit Soni..."
                   className="apple-input"
                   style={{ borderRadius: 9999, padding: '8px 14px', fontSize: 13.5 }}
                 />
                 <button type="submit" className="apple-btn-primary" style={{ padding: '8px 18px', fontSize: 13.5 }}>
-                  Send
+                  <Send size={14} /> Send
                 </button>
               </form>
             </div>
 
-            {/* Right Customer 360 Sidebar (Section 10) */}
-            <div style={{ borderLeft: '1px solid #E5E5EA', overflowY: 'auto', padding: 18, backgroundColor: '#FFF' }}>
-              <h4 style={{ fontSize: 14, fontWeight: 600, color: '#1D1D1F', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Customer 360 View
-              </h4>
+            {/* Right Customer 360 Sidebar — WHOLE FAMILY DETAILS & CONTROLS */}
+            <div style={{ overflowY: 'auto', padding: '16px 16px', backgroundColor: '#FFF', display: 'flex', flexDirection: 'column', gap: 18 }}>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <h4 style={{ fontSize: 13, fontWeight: 700, color: '#1D1D1F', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Customer 360 View
+                  </h4>
+                  {customerFullContext?.customer && (
+                    <span style={{ fontSize: 11, color: '#86868B' }}>
+                      ID: {customerFullContext.customer.id.substring(0, 8)}
+                    </span>
+                  )}
+                </div>
 
-              {chatDetails?.customer360 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  {/* Birth Profiles */}
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: '#86868B', marginBottom: 6 }}>Saved Birth Charts</div>
-                    {chatDetails.customer360.birthProfiles.map((p: any) => (
-                      <div key={p.id} style={{ fontSize: 12.5, padding: '8px 10px', backgroundColor: '#F5F5F7', borderRadius: 8, marginBottom: 6 }}>
-                        <strong>{p.full_name}</strong> ({p.relation})<br />
-                        DOB: {p.dob} at {p.tob}<br />
-                        POB: {p.pob}
+                {/* Customer Account Status & New Client Toggle */}
+                {customerFullContext?.customer && (
+                  <div style={{ backgroundColor: '#F8F8FA', padding: '12px 14px', borderRadius: 12, border: '1px solid #E5E5EA' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                      <span style={{ fontSize: 12, color: '#6E6E73', fontWeight: 500 }}>Client Status</span>
+                      {customerFullContext.customer.is_new_customer && !customerFullContext.customer.trial_used ? (
+                        <span className="apple-badge-success" style={{ fontSize: 10.5 }}>New (Trial Enabled)</span>
+                      ) : customerFullContext.customer.trial_used ? (
+                        <span style={{ fontSize: 10.5, backgroundColor: '#F2E7FE', color: '#6A1B9A', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>Trial Used</span>
+                      ) : (
+                        <span style={{ fontSize: 10.5, backgroundColor: '#E5E5EA', color: '#48484A', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>Old (Trial Revoked)</span>
+                      )}
+                    </div>
+
+                    {/* Admin Toggle button */}
+                    <button
+                      onClick={() => handleToggleNewCustomer(customerFullContext.customer.id, !customerFullContext.customer.is_new_customer)}
+                      className="apple-btn-secondary"
+                      style={{
+                        width: '100%',
+                        padding: '6px 10px',
+                        fontSize: 11.5,
+                        fontWeight: 600,
+                        color: customerFullContext.customer.is_new_customer ? '#D64545' : '#2FA84F',
+                        borderColor: customerFullContext.customer.is_new_customer ? '#F5C6CB' : '#C3E6CB'
+                      }}
+                    >
+                      {customerFullContext.customer.is_new_customer
+                        ? 'Revoke 5-Min Trial (Mark Old)'
+                        : 'Grant 5-Min Trial (Mark New)'}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* WHOLE FAMILY DETAILS & BIRTH PROFILES PANEL */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: '#3A3A6E', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                    Family Kundli Profiles ({customerFullContext?.birthProfiles?.length || 0})
+                  </span>
+                </div>
+
+                {(!customerFullContext?.birthProfiles || customerFullContext.birthProfiles.length === 0) ? (
+                  <div style={{ fontSize: 12.5, color: '#86868B', padding: '12px 10px', backgroundColor: '#F5F5F7', borderRadius: 10, textAlign: 'center' }}>
+                    No family profiles added yet by client.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {customerFullContext.birthProfiles.map((p: any) => {
+                      const rel = (p.relation || 'self').toLowerCase();
+                      const relColor =
+                        rel === 'self' ? '#3A3A6E' :
+                        rel === 'spouse' ? '#C9A24B' :
+                        ['son', 'daughter', 'child'].includes(rel) ? '#2FA84F' :
+                        ['father', 'mother', 'parent'].includes(rel) ? '#8A4AF3' : '#007AFF';
+
+                      const isExpanded = !!expandedProfileIds[p.id];
+
+                      return (
+                        <div
+                          key={p.id}
+                          style={{
+                            border: '1px solid #E5E5EA',
+                            borderRadius: 12,
+                            padding: '10px 12px',
+                            backgroundColor: '#FAFAFC',
+                            transition: 'border-color 0.15s'
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                            <span
+                              style={{
+                                fontSize: 10.5,
+                                fontWeight: 700,
+                                textTransform: 'uppercase',
+                                padding: '2px 7px',
+                                borderRadius: 4,
+                                backgroundColor: `${relColor}15`,
+                                color: relColor
+                              }}
+                            >
+                              {p.relation}
+                            </span>
+
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              <button
+                                onClick={() => handleCopyProfile(p)}
+                                className="apple-btn-secondary"
+                                style={{ padding: '3px 8px', fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 3 }}
+                                title="Copy chart data for Jagannatha Hora or astrology tool"
+                              >
+                                {copiedProfileId === p.id ? <Check size={11} color="#2FA84F" /> : <Copy size={11} />}
+                                {copiedProfileId === p.id ? 'Copied' : 'Copy'}
+                              </button>
+
+                              <button
+                                onClick={() => toggleExpandProfile(p.id)}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8E8E93', padding: 2 }}
+                              >
+                                {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                              </button>
+                            </div>
+                          </div>
+
+                          <div style={{ fontWeight: 600, fontSize: 13.5, color: '#1D1D1F', marginBottom: 3 }}>
+                            {p.full_name}
+                          </div>
+
+                          <div style={{ fontSize: 12, color: '#48484A', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <div>📅 DOB: <strong>{p.dob}</strong></div>
+                            <div>⏰ TOB: <strong>{p.tob}</strong> {p.tob_uncertain ? '<span style="color:#D98E04">(Approx)</span>' : ''}</div>
+                            <div>📍 POB: <strong>{p.pob}</strong></div>
+                          </div>
+
+                          {isExpanded && (
+                            <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px dashed #E5E5EA', fontSize: 11.5, color: '#6E6E73' }}>
+                              <div>Profile ID: <code style={{ fontSize: 10.5 }}>{p.id}</code></div>
+                              {p.notes && <div style={{ marginTop: 4 }}>Notes: <em>{p.notes}</em></div>}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* APPOINTMENT & FOLLOW-UP HISTORY */}
+              <div>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: '#3A3A6E', textTransform: 'uppercase', letterSpacing: '0.03em', display: 'block', marginBottom: 8 }}>
+                  Consultation History ({customerFullContext?.appointments?.length || 0})
+                </span>
+
+                {(!customerFullContext?.appointments || customerFullContext.appointments.length === 0) ? (
+                  <div style={{ fontSize: 12, color: '#86868B' }}>No consultations booked yet.</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {customerFullContext.appointments.slice(0, 4).map((a: any) => (
+                      <div key={a.id} style={{ border: '1px solid #E5E5EA', borderRadius: 10, padding: '8px 10px', fontSize: 12, backgroundColor: '#FAF9F6' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
+                          <strong>{a.package_name}</strong>
+                          <span className={a.status === 'Confirmed' ? 'apple-badge-success' : 'apple-badge-gold'} style={{ fontSize: 10 }}>
+                            {a.status}
+                          </span>
+                        </div>
+                        <div style={{ color: '#6E6E73' }}>
+                          {a.requested_date} ({a.requested_time_window})
+                        </div>
+
+                        {a.followup_days > 0 && (
+                          <div style={{ marginTop: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: 10.5, color: a.followup_active ? '#247D3B' : '#8E8E93', fontWeight: 600 }}>
+                              {a.followup_days}d Follow-up: {a.followup_active ? 'Active' : 'Ended'}
+                            </span>
+                            {a.status === 'Confirmed' && (
+                              <button
+                                onClick={() => openFollowupThread(a)}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3A3A6E', fontSize: 11, fontWeight: 600, textDecoration: 'underline' }}
+                              >
+                                View Thread
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
+                )}
+              </div>
 
-                  {/* Private Astrologer Notes */}
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: '#86868B', marginBottom: 4 }}>Internal Private Notes</div>
-                    <textarea
-                      rows={3}
-                      value={adminNote}
-                      onChange={(e) => setAdminNote(e.target.value)}
-                      placeholder="Private client notes (never visible to client)..."
-                      className="apple-input"
-                      style={{ fontSize: 12.5, padding: 8 }}
-                    />
-                    <button
-                      onClick={handleSaveNotes}
-                      className="apple-btn-secondary"
-                      style={{ width: '100%', marginTop: 6, padding: '6px 10px', fontSize: 12 }}
-                    >
-                      Save Private Notes
-                    </button>
-                  </div>
+              {/* FINANCIAL SUMMARY */}
+              <div style={{ backgroundColor: '#F0F9F1', padding: '10px 12px', borderRadius: 10, border: '1px solid #C3E6CB' }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#247D3B', textTransform: 'uppercase' }}>Verified Lifetime Spending</div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: '#1D1D1F', marginTop: 2 }}>
+                  ₹{(customerFullContext?.totalSpent || 0).toLocaleString('en-IN')}
                 </div>
-              ) : (
-                <div style={{ fontSize: 13, color: '#86868B' }}>Select a conversation to inspect customer history.</div>
-              )}
+              </div>
+
+              {/* PRIVATE ASTROLOGER NOTES */}
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#86868B', marginBottom: 4, textTransform: 'uppercase' }}>Private Astrologer Notes</div>
+                <textarea
+                  rows={3}
+                  value={adminNote}
+                  onChange={(e) => setAdminNote(e.target.value)}
+                  placeholder="Private notes (remedies prescribed, gems, birth chart insights)..."
+                  className="apple-input"
+                  style={{ fontSize: 12, padding: 8, width: '100%' }}
+                />
+                <button
+                  onClick={handleSaveNotes}
+                  className="apple-btn-secondary"
+                  style={{ width: '100%', marginTop: 6, padding: '6px 10px', fontSize: 12 }}
+                >
+                  Save Internal Notes
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -732,56 +1099,160 @@ export const AdminPortal: React.FC = () => {
           </div>
         )}
 
-        {/* 5. CUSTOMERS CRM */}
+        {/* 5. CUSTOMERS CRM & CLIENT MANAGEMENT */}
         {activeTab === 'customers' && (
           <div className="apple-card" style={{ padding: '28px 24px', backgroundColor: '#FFF' }}>
-            <h2 className="text-h2" style={{ fontSize: 20, marginBottom: 16 }}>
-              Client Directory & CRM
-            </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {customers.map((c) => (
-                <div
-                  key={c.id}
-                  style={{
-                    border: '1px solid #E5E5EA',
-                    borderRadius: 14,
-                    padding: '14px 18px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    flexWrap: 'wrap',
-                    gap: 12
-                  }}
-                >
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 15, color: '#1D1D1F' }}>
-                      {c.name}
-                    </div>
-                    <div style={{ fontSize: 13, color: '#6E6E73' }}>
-                      {c.phone} · {c.email}
-                    </div>
-                    {c.tags && c.tags.length > 0 && (
-                      <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-                        {c.tags.map((tg: string) => (
-                          <span key={tg} className="apple-badge-primary" style={{ fontSize: 10.5 }}>
-                            {tg}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 14, marginBottom: 20 }}>
+              <div>
+                <h2 className="text-h2" style={{ fontSize: 20 }}>
+                  Client Directory & CRM
+                </h2>
+                <p style={{ fontSize: 13, color: '#6E6E73', marginTop: 2 }}>
+                  Showing {filteredCustomers.length} of {customers.length} registered clients · Toggle 5-min trial eligibility for new and returning clients.
+                </p>
+              </div>
 
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 13, color: '#1D1D1F' }}>
-                      Appointments: <strong>{c.appointment_count}</strong>
+              {/* Search & Filters */}
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ position: 'relative' }}>
+                  <Search size={14} color="#8E8E93" style={{ position: 'absolute', left: 10, top: 10 }} />
+                  <input
+                    type="text"
+                    value={customerSearch}
+                    onChange={(e) => setCustomerSearch(e.target.value)}
+                    placeholder="Search by name, phone, email..."
+                    className="apple-input"
+                    style={{ paddingLeft: 30, fontSize: 13, padding: '7px 12px 7px 30px', minWidth: 230 }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: 4, backgroundColor: '#F5F5F7', padding: 3, borderRadius: 8 }}>
+                  {(['all', 'new', 'old'] as const).map((f) => (
+                    <button
+                      key={f}
+                      onClick={() => setCustomerFilter(f)}
+                      style={{
+                        border: 'none',
+                        padding: '6px 12px',
+                        borderRadius: 6,
+                        fontSize: 12,
+                        fontWeight: customerFilter === f ? 600 : 500,
+                        backgroundColor: customerFilter === f ? '#FFF' : 'transparent',
+                        boxShadow: customerFilter === f ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                        cursor: 'pointer',
+                        color: customerFilter === f ? '#1D1D1F' : '#6E6E73'
+                      }}
+                    >
+                      {f === 'all' ? `All (${customers.length})` : f === 'new' ? `New (${customers.filter(c => c.is_new_customer && !c.trial_used).length})` : `Established (${customers.filter(c => !c.is_new_customer || c.trial_used).length})`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {filteredCustomers.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '48px 20px', color: '#8E8E93' }}>
+                No clients match the selected filter or search term.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {filteredCustomers.map((c) => (
+                  <div
+                    key={c.id}
+                    style={{
+                      border: '1px solid #E5E5EA',
+                      borderRadius: 14,
+                      padding: '16px 20px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: 14,
+                      backgroundColor: '#FFF'
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <span style={{ fontWeight: 600, fontSize: 15, color: '#1D1D1F' }}>
+                          {c.name}
+                        </span>
+
+                        {/* Status Badge */}
+                        {c.is_new_customer && !c.trial_used ? (
+                          <span className="apple-badge-success" style={{ fontSize: 11 }}>
+                            New Client · Trial Eligible
+                          </span>
+                        ) : c.trial_used ? (
+                          <span style={{ fontSize: 11, backgroundColor: '#F2E7FE', color: '#6A1B9A', padding: '2px 8px', borderRadius: 6, fontWeight: 600 }}>
+                            Trial Utilized
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: 11, backgroundColor: '#F5F5F7', color: '#6E6E73', padding: '2px 8px', borderRadius: 6, fontWeight: 600 }}>
+                            Established Client · Trial Revoked
+                          </span>
+                        )}
+                      </div>
+
+                      <div style={{ fontSize: 13, color: '#6E6E73' }}>
+                        {c.phone} · {c.email}
+                      </div>
+
+                      {c.tags && c.tags.length > 0 && (
+                        <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                          {c.tags.map((tg: string) => (
+                            <span key={tg} className="apple-badge-primary" style={{ fontSize: 10.5 }}>
+                              {tg}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    <div style={{ fontSize: 13, color: '#2FA84F', fontWeight: 600 }}>
-                      Spent: ₹{(c.total_spent || 0).toLocaleString('en-IN')}
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 13, color: '#1D1D1F' }}>
+                          Appointments: <strong>{c.appointment_count}</strong>
+                        </div>
+                        <div style={{ fontSize: 13, color: '#2FA84F', fontWeight: 600 }}>
+                          Spent: ₹{(c.total_spent || 0).toLocaleString('en-IN')}
+                        </div>
+                      </div>
+
+                      {/* Admin Toggle: Mark Old Client (Revoke) vs Mark New Client (Grant) */}
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        {c.is_new_customer ? (
+                          <button
+                            onClick={() => handleToggleNewCustomer(c.id, false)}
+                            className="apple-btn-secondary"
+                            style={{ fontSize: 12, padding: '7px 12px', color: '#D64545', borderColor: '#F5C6CB' }}
+                            title="Revoke 5-minute free trial eligibility for this client"
+                          >
+                            Revoke Trial (Mark Old)
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleToggleNewCustomer(c.id, true)}
+                            className="apple-btn-secondary"
+                            style={{ fontSize: 12, padding: '7px 12px', color: '#2FA84F', borderColor: '#C3E6CB' }}
+                            title="Grant 5-minute free trial eligibility to this client"
+                          >
+                            Grant Trial (Mark New)
+                          </button>
+                        )}
+
+                        <button
+                          onClick={() => openCustomerChatFromCrm(c)}
+                          className="apple-btn-primary"
+                          style={{ fontSize: 12, padding: '7px 14px' }}
+                        >
+                          <MessageSquare size={13} /> Chat & Family 360
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -1068,6 +1539,153 @@ export const AdminPortal: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Admin Follow-up Consultation Thread Modal */}
+      {activeFollowupThread && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 3000,
+            backgroundColor: 'rgba(0,0,0,0.45)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16
+          }}
+        >
+          <div
+            className="apple-card"
+            style={{
+              width: '100%',
+              maxWidth: 640,
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              backgroundColor: '#FFF',
+              overflow: 'hidden',
+              boxShadow: '0 24px 60px rgba(0,0,0,0.2)'
+            }}
+          >
+            {/* Modal Header */}
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #E5E5EA', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <h3 style={{ fontSize: 17, fontWeight: 600, color: '#1D1D1F' }}>
+                    Follow-up Consultation Thread
+                  </h3>
+                  <span className="apple-badge-gold" style={{ fontSize: 10 }}>
+                    {activeFollowupThread.followup_days}-Day Window
+                  </span>
+                </div>
+                <p style={{ fontSize: 12.5, color: '#6E6E73', marginTop: 2 }}>
+                  Client: <strong>{activeFollowupThread.customer_name}</strong> ({activeFollowupThread.customer_phone}) · {activeFollowupThread.package_name}
+                </p>
+              </div>
+              <button
+                onClick={() => setActiveFollowupThread(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#86868B', padding: 4 }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Expiry Banner */}
+            <div
+              style={{
+                padding: '10px 18px',
+                fontSize: 12.5,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                backgroundColor: activeFollowupThread.followup_active ? '#F0F9F1' : '#F5F5F7',
+                borderBottom: '1px solid #E5E5EA',
+                color: activeFollowupThread.followup_active ? '#247D3B' : '#8E8E93'
+              }}
+            >
+              <span>
+                <strong>Follow-up Status:</strong> {activeFollowupThread.followup_active ? 'Active Window · Client can send queries' : 'Window Concluded'}
+              </span>
+              {activeFollowupThread.followup_chat_expires_at && (
+                <span style={{ fontSize: 11 }}>
+                  Expires: {new Date(activeFollowupThread.followup_chat_expires_at).toLocaleDateString()}
+                </span>
+              )}
+            </div>
+
+            {/* Messages Thread */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', minHeight: 280, maxHeight: 380, display: 'flex', flexDirection: 'column', gap: 10, backgroundColor: '#FAF9F6' }}>
+              {followupThreadMessages.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '50px 20px', color: '#6E6E73' }}>
+                  <Sparkles size={30} color="#C9A24B" style={{ marginBottom: 8 }} />
+                  <div style={{ fontWeight: 600, fontSize: 14, color: '#1D1D1F', marginBottom: 4 }}>
+                    No follow-up messages yet
+                  </div>
+                  <p style={{ fontSize: 12.5, maxWidth: 360, margin: '0 auto' }}>
+                    Messages submitted by the client within the {activeFollowupThread.followup_days}-day window will appear here. You can also proactively message the client.
+                  </p>
+                </div>
+              ) : (
+                followupThreadMessages.map((m: any) => {
+                  const isMe = m.sender_type === 'admin';
+                  return (
+                    <div
+                      key={m.id}
+                      style={{
+                        alignSelf: isMe ? 'flex-end' : 'flex-start',
+                        maxWidth: '80%',
+                        backgroundColor: isMe ? '#E8F5E9' : '#FFFFFF',
+                        border: '1px solid #E5E5EA',
+                        borderRadius: 14,
+                        padding: '10px 14px',
+                        fontSize: 13.5
+                      }}
+                    >
+                      <div style={{ fontSize: 11, fontWeight: 600, color: isMe ? '#247D3B' : '#3A3A6E', marginBottom: 3 }}>
+                        {isMe ? 'Amit Soni (You)' : activeFollowupThread.customer_name || 'Client'}
+                      </div>
+                      <div style={{ color: '#1D1D1F', lineHeight: 1.45 }}>{m.content}</div>
+                      <div style={{ fontSize: 10, color: '#86868B', textAlign: 'right', marginTop: 4 }}>
+                        {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Input Form */}
+            <form
+              onSubmit={handleSendAdminFollowup}
+              style={{
+                padding: '12px 18px',
+                borderTop: '1px solid #E5E5EA',
+                display: 'flex',
+                gap: 10,
+                backgroundColor: '#FFF'
+              }}
+            >
+              <input
+                type="text"
+                value={adminFollowupInput}
+                onChange={(e) => setAdminFollowupInput(e.target.value)}
+                placeholder="Reply to client follow-up query..."
+                className="apple-input"
+                style={{ flex: 1, borderRadius: 9999, padding: '9px 16px', fontSize: 13.5 }}
+              />
+              <button
+                type="submit"
+                disabled={!adminFollowupInput.trim()}
+                className="apple-btn-primary"
+                style={{ padding: '9px 18px', fontSize: 13.5, opacity: !adminFollowupInput.trim() ? 0.5 : 1 }}
+              >
+                <Send size={14} /> Send Reply
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

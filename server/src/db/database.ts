@@ -106,6 +106,7 @@ async function initPostgresSchema() {
       password_hash TEXT,
       role VARCHAR(32) DEFAULT 'customer',
       is_phone_verified INT DEFAULT 0,
+      is_new_customer INT DEFAULT 1,
       trial_used INT DEFAULT 0,
       trial_seconds_remaining INT DEFAULT 300,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -151,6 +152,8 @@ async function initPostgresSchema() {
       timezone_user VARCHAR(64) DEFAULT 'Asia/Kolkata',
       customer_notes TEXT,
       status VARCHAR(32) DEFAULT 'Requested',
+      followup_days INT DEFAULT 0,
+      followup_chat_expires_at TIMESTAMP,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -267,8 +270,28 @@ async function initPostgresSchema() {
       details TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS followup_messages (
+      id VARCHAR(64) PRIMARY KEY,
+      appointment_id VARCHAR(64) NOT NULL REFERENCES appointments(id),
+      sender_type VARCHAR(32) NOT NULL,
+      sender_id VARCHAR(64) NOT NULL,
+      content TEXT NOT NULL,
+      attachment_url TEXT,
+      is_read INT DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
   `;
   await pgPool!.query(ddl);
+  // Safe migrations for existing databases
+  const migrations = [
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS is_new_customer INT DEFAULT 1`,
+    `ALTER TABLE appointments ADD COLUMN IF NOT EXISTS followup_days INT DEFAULT 0`,
+    `ALTER TABLE appointments ADD COLUMN IF NOT EXISTS followup_chat_expires_at TIMESTAMP`,
+  ];
+  for (const m of migrations) {
+    try { await pgPool!.query(m); } catch (_) { /* column already exists */ }
+  }
   console.log('PostgreSQL schema initialized successfully!');
 }
 
@@ -286,6 +309,7 @@ async function initSqliteSchema() {
           password_hash TEXT,
           role TEXT DEFAULT 'customer',
           is_phone_verified INTEGER DEFAULT 0,
+          is_new_customer INTEGER DEFAULT 1,
           trial_used INTEGER DEFAULT 0,
           trial_seconds_remaining INTEGER DEFAULT 300,
           created_at TEXT DEFAULT (datetime('now'))
@@ -338,6 +362,8 @@ async function initSqliteSchema() {
           timezone_user TEXT DEFAULT 'Asia/Kolkata',
           customer_notes TEXT,
           status TEXT DEFAULT 'Requested',
+          followup_days INTEGER DEFAULT 0,
+          followup_chat_expires_at TEXT,
           created_at TEXT DEFAULT (datetime('now')),
           FOREIGN KEY (customer_id) REFERENCES users(id),
           FOREIGN KEY (birth_profile_id) REFERENCES birth_profiles(id),
@@ -485,7 +511,26 @@ async function initSqliteSchema() {
           details TEXT,
           created_at TEXT DEFAULT (datetime('now'))
         );
-      `, () => {
+      `);
+
+      sqliteDb!.run(`
+        CREATE TABLE IF NOT EXISTS followup_messages (
+          id TEXT PRIMARY KEY,
+          appointment_id TEXT NOT NULL,
+          sender_type TEXT NOT NULL,
+          sender_id TEXT NOT NULL,
+          content TEXT NOT NULL,
+          attachment_url TEXT,
+          is_read INTEGER DEFAULT 0,
+          created_at TEXT DEFAULT (datetime('now')),
+          FOREIGN KEY (appointment_id) REFERENCES appointments(id)
+        );
+      `);
+
+      // Safe migrations for existing SQLite databases
+      sqliteDb!.run(`ALTER TABLE users ADD COLUMN is_new_customer INTEGER DEFAULT 1`, () => {});
+      sqliteDb!.run(`ALTER TABLE appointments ADD COLUMN followup_days INTEGER DEFAULT 0`, () => {});
+      sqliteDb!.run(`ALTER TABLE appointments ADD COLUMN followup_chat_expires_at TEXT`, () => {
         resolve();
       });
     });
@@ -503,14 +548,14 @@ async function seedInitialData() {
 
     // Admin Amit Soni
     await runQuery(`
-      INSERT INTO users (id, name, email, phone, password_hash, role, is_phone_verified)
-      VALUES (?, ?, ?, ?, ?, ?, 1)
+      INSERT INTO users (id, name, email, phone, password_hash, role, is_phone_verified, is_new_customer)
+      VALUES (?, ?, ?, ?, ?, ?, 1, 0)
     `, ['admin-amit-soni', 'Amit Soni', 'admin@nakshaktram.com', '+919876543210', adminPasswordHash, 'admin']);
 
     // Demo Customer (Priya Sharma)
     await runQuery(`
-      INSERT INTO users (id, name, email, phone, password_hash, role, is_phone_verified, trial_used, trial_seconds_remaining)
-      VALUES (?, ?, ?, ?, ?, ?, 1, 0, 300)
+      INSERT INTO users (id, name, email, phone, password_hash, role, is_phone_verified, is_new_customer, trial_used, trial_seconds_remaining)
+      VALUES (?, ?, ?, ?, ?, ?, 1, 1, 0, 300)
     `, ['cust-priya-sharma', 'Priya Sharma', 'priya.sharma@example.com', '+919811122233', customerPasswordHash, 'customer']);
 
     // Demo Customer Birth Profiles
@@ -566,7 +611,8 @@ async function seedInitialData() {
         is_popular: 0,
         is_trial: 0,
         decoy: 'Decoy tier — Premium offers 2x time + remedies for only ₹800 more',
-        cost_per_min: 33.30
+        cost_per_min: 33.30,
+        followup_days: 3
       },
       {
         id: 'pkg-premium',
@@ -578,7 +624,8 @@ async function seedInitialData() {
         is_popular: 1,
         is_trial: 0,
         decoy: 'Best value per minute with complete lifetime report',
-        cost_per_min: 29.98
+        cost_per_min: 29.98,
+        followup_days: 7
       }
     ];
 

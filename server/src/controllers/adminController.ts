@@ -62,7 +62,8 @@ export const getCustomersCrm = async (req: AuthRequest, res: Response) => {
     const { search } = req.query;
     let sql = `
       SELECT 
-        u.id, u.name, u.email, u.phone, u.trial_used, u.trial_seconds_remaining, u.created_at,
+        u.id, u.name, u.email, u.phone, u.trial_used, u.trial_seconds_remaining,
+        u.is_new_customer, u.created_at,
         crm.internal_notes, crm.tags_json,
         (SELECT COUNT(*) FROM appointments WHERE customer_id = u.id) as appointment_count,
         (SELECT COALESCE(SUM(p.amount), 0) FROM payments p WHERE p.user_id = u.id AND p.status = 'Verified') as total_spent
@@ -99,9 +100,10 @@ export const getCustomerDetails = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Customer not found' });
     }
 
-    const profiles = await getAll<any>('SELECT * FROM birth_profiles WHERE user_id = ?', [id]);
+    const profiles = await getAll<any>('SELECT * FROM birth_profiles WHERE user_id = ? ORDER BY created_at ASC', [id]);
     const appointments = await getAll<any>(`
-      SELECT a.*, p.name as package_name, p.price, p.duration_minutes
+      SELECT a.*, p.name as package_name, p.price, p.duration_minutes,
+        CASE WHEN a.followup_chat_expires_at IS NOT NULL AND a.followup_chat_expires_at > datetime('now') THEN 1 ELSE 0 END as followup_active
       FROM appointments a
       JOIN packages p ON a.package_id = p.id
       WHERE a.customer_id = ?
@@ -111,10 +113,85 @@ export const getCustomerDetails = async (req: AuthRequest, res: Response) => {
     const crm = await getOne<any>('SELECT * FROM customer_crm_meta WHERE user_id = ?', [id]);
 
     return res.json({
-      customer: user,
+      customer: {
+        ...user,
+        isNewCustomer: user.is_new_customer !== 0
+      },
       birthProfiles: profiles,
       appointments,
       payments,
+      crm: {
+        notes: crm?.internal_notes || '',
+        tags: JSON.parse(crm?.tags_json || '[]')
+      }
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+export const toggleNewCustomerStatus = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { isNewCustomer } = req.body;
+
+    const user = await getOne<any>('SELECT id, name FROM users WHERE id = ? AND role = ?', [id, 'customer']);
+    if (!user) return res.status(404).json({ error: 'Customer not found' });
+
+    await runQuery('UPDATE users SET is_new_customer = ? WHERE id = ?', [isNewCustomer ? 1 : 0, id]);
+
+    await runQuery(`
+      INSERT INTO audit_logs (id, admin_id, action, target_type, target_id, details)
+      VALUES (?, ?, 'CUSTOMER_NEW_STATUS_TOGGLE', 'user', ?, ?)
+    `, [`audit-${uuidv4().substring(0, 8)}`, req.user!.id, id, `Set is_new_customer=${isNewCustomer ? 1 : 0} for ${user.name}`]);
+
+    return res.json({ success: true, isNewCustomer: !!isNewCustomer });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+export const getCustomerFullContext = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const user = await getOne<any>('SELECT * FROM users WHERE id = ?', [id]);
+    if (!user) return res.status(404).json({ error: 'Customer not found' });
+
+    const [profiles, appointments, payments, crm, followupMessages] = await Promise.all([
+      getAll<any>('SELECT * FROM birth_profiles WHERE user_id = ? ORDER BY relation ASC', [id]),
+      getAll<any>(`
+        SELECT a.*, p.name as package_name, p.price, p.duration_minutes, p.slug as package_slug,
+          CASE WHEN a.followup_chat_expires_at IS NOT NULL AND a.followup_chat_expires_at > datetime('now') THEN 1 ELSE 0 END as followup_active,
+          (SELECT COUNT(*) FROM followup_messages fm WHERE fm.appointment_id = a.id AND fm.is_read = 0 AND fm.sender_type = 'customer') as followup_unread
+        FROM appointments a
+        JOIN packages p ON a.package_id = p.id
+        WHERE a.customer_id = ?
+        ORDER BY a.created_at DESC
+      `, [id]),
+      getAll<any>('SELECT * FROM payments WHERE user_id = ? ORDER BY created_at DESC', [id]),
+      getOne<any>('SELECT * FROM customer_crm_meta WHERE user_id = ?', [id]),
+      getAll<any>(`
+        SELECT fm.*, a.requested_date, a.requested_time_window, p.name as package_name
+        FROM followup_messages fm
+        JOIN appointments a ON fm.appointment_id = a.id
+        JOIN packages p ON a.package_id = p.id
+        WHERE a.customer_id = ?
+        ORDER BY fm.created_at DESC
+        LIMIT 20
+      `, [id])
+    ]);
+
+    const totalSpent = payments
+      .filter((p: any) => p.status === 'Verified')
+      .reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
+
+    return res.json({
+      customer: { ...user, isNewCustomer: user.is_new_customer !== 0 },
+      birthProfiles: profiles,
+      appointments,
+      payments,
+      followupMessages,
+      totalSpent,
       crm: {
         notes: crm?.internal_notes || '',
         tags: JSON.parse(crm?.tags_json || '[]')

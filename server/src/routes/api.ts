@@ -33,6 +33,11 @@ router.get('/appointments/my', authenticateToken, apptCtrl.getMyAppointments);
 router.get('/appointments/all', authenticateToken, requireAdmin, apptCtrl.getAllAppointments);
 router.patch('/appointments/:id/status', authenticateToken, requireAdmin, apptCtrl.updateAppointmentStatus);
 
+// 4b. Follow-up Chat
+router.get('/appointments/:id/followup', authenticateToken, apptCtrl.getFollowupMessages);
+router.post('/appointments/:id/followup', authenticateToken, apptCtrl.sendFollowupMessage);
+router.get('/appointments/admin/followups', authenticateToken, requireAdmin, apptCtrl.getActiveFollowups);
+
 // 5. Payments
 router.get('/payments/config', payCtrl.getPaymentConfig);
 router.post('/payments/proof', authenticateToken, payCtrl.submitPaymentProof);
@@ -62,7 +67,9 @@ router.delete('/blog/admin/posts/:id', authenticateToken, requireAdmin, blogCtrl
 // 9. Admin Operations
 router.get('/admin/dashboard', authenticateToken, requireAdmin, adminCtrl.getDashboardStats);
 router.get('/admin/customers', authenticateToken, requireAdmin, adminCtrl.getCustomersCrm);
+router.get('/admin/customers/:id/full-context', authenticateToken, requireAdmin, adminCtrl.getCustomerFullContext);
 router.get('/admin/customers/:id', authenticateToken, requireAdmin, adminCtrl.getCustomerDetails);
+router.patch('/admin/customers/:id/new-customer-status', authenticateToken, requireAdmin, adminCtrl.toggleNewCustomerStatus);
 router.patch('/admin/packages/:id', authenticateToken, requireAdmin, adminCtrl.updatePackage);
 router.get('/admin/availability-settings', authenticateToken, requireAdmin, adminCtrl.getAvailabilitySettings);
 router.put('/admin/availability-settings', authenticateToken, requireAdmin, adminCtrl.updateAvailabilityRules);

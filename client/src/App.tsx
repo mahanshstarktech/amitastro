@@ -17,7 +17,7 @@ import { TrialCutoffModal } from './components/trial/TrialCutoffModal';
 import { useAuth } from './context/AuthContext';
 
 export const App: React.FC = () => {
-  const { isAuthenticated, isAdmin } = useAuth();
+  const { isAuthenticated, isAdmin, user } = useAuth();
 
   const [currentPath, setCurrentPath] = useState<string>(() => window.location.pathname || '/');
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
@@ -25,6 +25,9 @@ export const App: React.FC = () => {
   const [bookingModalOpen, setBookingModalOpen] = useState<boolean>(false);
   const [selectedPkgId, setSelectedPkgId] = useState<string>('pkg-premium');
   const [trialModalOpen, setTrialModalOpen] = useState<boolean>(false);
+
+  // Trial eligibility: must be authenticated, new customer, and trial not yet used
+  const isTrialEligible = isAuthenticated && !!user?.isNewCustomer && !user?.trialUsed;
 
   // Sync browser back/forward buttons
   useEffect(() => {
@@ -56,8 +59,18 @@ export const App: React.FC = () => {
       handleOpenAuth('signup');
       return;
     }
+    if (!user?.isNewCustomer) {
+      // Returning/old client — show toast and redirect to booking
+      setBookingModalOpen(true);
+      return;
+    }
+    if (user?.trialUsed) {
+      setBookingModalOpen(true);
+      return;
+    }
     setTrialModalOpen(true);
   };
+
 
   // Route matching logic
   const renderRoute = () => {
