@@ -85,8 +85,30 @@ export const AppleFooter: React.FC<AppleFooterProps> = ({ onNavigate }) => {
         >
           {/* Col 1: About */}
           <div>
-            <div style={{ fontWeight: 600, fontSize: 15, color: '#1D1D1F', marginBottom: 16 }}>
-              About Amit Astro
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+              <div
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  backgroundColor: '#FFFFFF',
+                  border: '1px solid #E5E5EA',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 2,
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.04)'
+                }}
+              >
+                <img
+                  src="/icons/logo-mark.png"
+                  alt="Amit Astro Logo"
+                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                />
+              </div>
+              <div style={{ fontWeight: 600, fontSize: 16, color: '#1D1D1F' }}>
+                About Amit Astro
+              </div>
             </div>
             <p style={{ fontSize: 13.5, color: '#6E6E73', lineHeight: 1.6, marginBottom: 16 }}>
               Founded by <strong>Amit</strong>, Amit Astro unites classical Parashari Vedic Astrology, authentic Vastu Shastra, and bespoke cosmic remedies with modern discretion and clarity.

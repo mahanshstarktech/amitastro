@@ -582,16 +582,21 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                     width: 40,
                     height: 40,
                     borderRadius: '50%',
-                    backgroundColor: '#3A3A6E',
-                    color: '#FFFFFF',
+                    backgroundColor: '#FFFFFF',
+                    border: '1px solid #E5E5EA',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontWeight: 600,
-                    fontSize: 15
+                    padding: 5,
+                    overflow: 'hidden',
+                    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.06)'
                   }}
                 >
-                  A
+                  <img
+                    src="/icons/logo-mark.png"
+                    alt="Amit"
+                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                  />
                 </div>
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 15, color: '#1D1D1F' }}>

@@ -89,18 +89,25 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
         >
           <div
             style={{
-              width: 34,
-              height: 34,
+              width: 36,
+              height: 36,
               borderRadius: 10,
-              background: 'linear-gradient(135deg, #3A3A6E, #232347)',
+              backgroundColor: '#FFFFFF',
+              border: '1px solid #E5E5EA',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#FFFFFF',
-              boxShadow: '0 2px 8px rgba(58, 58, 110, 0.2)'
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+              overflow: 'hidden',
+              padding: 3,
+              flexShrink: 0
             }}
           >
-            <Sparkles size={18} color="#C9A24B" />
+            <img
+              src="/icons/logo-mark.png"
+              alt="Amit Astro Logo"
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            />
           </div>
           <div>
             <div style={{ fontWeight: 700, fontSize: 18, color: '#1D1D1F', letterSpacing: '-0.02em', lineHeight: 1.1 }}>

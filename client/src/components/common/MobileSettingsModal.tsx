@@ -256,7 +256,12 @@ export const MobileSettingsModal: React.FC<MobileSettingsModalProps> = ({
 
         {/* App Info Footer */}
         <div style={{ textAlign: 'center', marginTop: 24, fontSize: 12, color: '#A1A1A6' }}>
-          <div>Amit Astro · Consultation by Amit</div>
+          <img
+            src="/icons/logo-mark.png"
+            alt="Amit Astro"
+            style={{ width: 32, height: 32, objectFit: 'contain', margin: '0 auto 8px', display: 'block' }}
+          />
+          <div style={{ color: '#1D1D1F', fontWeight: 600 }}>Amit Astro · Consultation by Amit</div>
           <div style={{ marginTop: 2 }}>{t('settings.app_version', 'Amit Astro Web App v1.2')}</div>
         </div>
       </div>

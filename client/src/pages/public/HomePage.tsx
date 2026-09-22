@@ -229,17 +229,20 @@ export const HomePage: React.FC<HomePageProps> = ({
                   width: 64,
                   height: 64,
                   borderRadius: 20,
-                  backgroundColor: '#3A3A6E',
-                  color: '#FFFFFF',
+                  backgroundColor: '#FFFFFF',
+                  border: '1px solid #E5E5EA',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: 24,
-                  fontWeight: 600,
-                  boxShadow: '0 4px 14px rgba(58, 58, 110, 0.25)'
+                  padding: 8,
+                  boxShadow: '0 4px 14px rgba(0, 0, 0, 0.08)'
                 }}
               >
-                A
+                <img
+                  src="/icons/logo-mark.png"
+                  alt="Amit Astro"
+                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                />
               </div>
               <div>
                 <div style={{ fontWeight: 600, fontSize: 18, color: '#1D1D1F' }}>

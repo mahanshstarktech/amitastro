@@ -28,18 +28,21 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onOpenBooking, onNavigate 
               width: 96,
               height: 96,
               borderRadius: 30,
-              backgroundColor: '#3A3A6E',
-              color: '#FFFFFF',
+              backgroundColor: '#FFFFFF',
+              border: '1px solid #E5E5EA',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: 36,
-              fontWeight: 700,
               marginBottom: 20,
-              boxShadow: '0 8px 24px rgba(58, 58, 110, 0.25)'
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.08)',
+              padding: 12
             }}
           >
-            A
+            <img
+              src="/icons/logo-mark.png"
+              alt="Amit Astro"
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            />
           </div>
 
           <h1 className="text-display" style={{ fontSize: 44, marginBottom: 6 }}>
