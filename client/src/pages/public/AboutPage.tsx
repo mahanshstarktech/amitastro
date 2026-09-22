@@ -1,5 +1,6 @@
 import React from 'react';
 import { Sparkles, Calendar, Award, Star, Compass, ShieldCheck, ArrowRight, Heart } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface AboutPageProps {
   onOpenBooking: () => void;
@@ -7,6 +8,8 @@ interface AboutPageProps {
 }
 
 export const AboutPage: React.FC<AboutPageProps> = ({ onOpenBooking, onNavigate }) => {
+  const { t } = useLanguage();
+
   const specs = [
     { title: 'Janma Kundli Breakdown', desc: 'Accurate planetary positioning and Vimshottari Dasha calculation.', link: '/blog/kundli' },
     { title: 'Home & Business Vastu', desc: 'Harmonizing spatial energy flows without destructive renovations.', link: '/blog/vastu' },
@@ -36,14 +39,14 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onOpenBooking, onNavigate 
               boxShadow: '0 8px 24px rgba(58, 58, 110, 0.25)'
             }}
           >
-            AS
+            A
           </div>
 
           <h1 className="text-display" style={{ fontSize: 44, marginBottom: 6 }}>
-            Amit Soni
+            {t('brand.astrologer_name', 'Amit')}
           </h1>
           <p style={{ fontSize: 18, color: '#3A3A6E', fontWeight: 500, marginBottom: 28 }}>
-            Vedic Astrologer & Vastu Consultant
+            {t('brand.tagline', 'Vedic Astrology & Vastu Consultation')}
           </p>
 
           {/* Stat Row (Section 6) */}

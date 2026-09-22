@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Calendar, User as UserIcon, Menu, X, ChevronDown, Compass, ShieldCheck, Download } from 'lucide-react';
+import { Sparkles, Calendar, User as UserIcon, Menu, X, ChevronDown, Compass, ShieldCheck, Download, Globe } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface AppleHeaderProps {
   onOpenAuth: (mode?: 'login' | 'signup') => void;
@@ -16,6 +17,7 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
   onNavigate
 }) => {
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [blogDropdownOpen, setBlogDropdownOpen] = useState(false);
@@ -102,10 +104,10 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
           </div>
           <div>
             <div style={{ fontWeight: 700, fontSize: 18, color: '#1D1D1F', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
-              Nakshaktram
+              {t('brand.name', 'Amit Astro')}
             </div>
             <div style={{ fontSize: 10.5, color: '#6E6E73', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-              Amit Soni · Vedic Astrologer
+              {t('brand.astrologer', 'Amit · Vedic Astrologer')}
             </div>
           </div>
         </div>
@@ -124,7 +126,7 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
               transition: 'color 0.15s ease'
             }}
           >
-            Home
+            {t('nav.home', 'Home')}
           </button>
 
           {/* Blog Dropdown */}
@@ -148,7 +150,7 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
                 transition: 'color 0.15s ease'
               }}
             >
-              Blog <ChevronDown size={14} />
+              {t('nav.blog', 'Articles')} <ChevronDown size={14} />
             </button>
 
             {blogDropdownOpen && (
@@ -209,7 +211,7 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
               transition: 'color 0.15s ease'
             }}
           >
-            About Amit Soni
+            {t('nav.about', 'About Amit')}
           </button>
 
           <button
@@ -224,7 +226,7 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
               transition: 'color 0.15s ease'
             }}
           >
-            Pricing & Packages
+            {t('nav.pricing', 'Pricing & Packages')}
           </button>
 
           <button
@@ -239,21 +241,74 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
               transition: 'color 0.15s ease'
             }}
           >
-            Contact
+            {t('nav.contact', 'Contact')}
           </button>
         </nav>
 
         {/* Right CTA / Auth Controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(8px, 1vw, 14px)', flexShrink: 0 }}>
+          {/* Desktop Language Switcher Button (Right side of top-nav, hidden on mobile) */}
+          <div className="desktop-lang-switcher" style={{ display: 'flex', alignItems: 'center' }}>
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                backgroundColor: '#F5F5F7',
+                borderRadius: 20,
+                padding: '3px 4px',
+                border: '1px solid #E5E5EA',
+                boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.03)'
+              }}
+            >
+              <Globe size={13} color="#6E6E73" style={{ marginLeft: 6, marginRight: 3 }} />
+              <button
+                type="button"
+                onClick={() => setLanguage('en')}
+                style={{
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '4px 9px',
+                  borderRadius: 16,
+                  fontSize: 12,
+                  fontWeight: language === 'en' ? 700 : 500,
+                  backgroundColor: language === 'en' ? '#FFFFFF' : 'transparent',
+                  color: language === 'en' ? '#1D1D1F' : '#6E6E73',
+                  boxShadow: language === 'en' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                EN
+              </button>
+              <button
+                type="button"
+                onClick={() => setLanguage('hi')}
+                style={{
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '4px 9px',
+                  borderRadius: 16,
+                  fontSize: 12,
+                  fontWeight: language === 'hi' ? 700 : 500,
+                  backgroundColor: language === 'hi' ? '#FFFFFF' : 'transparent',
+                  color: language === 'hi' ? '#1D1D1F' : '#6E6E73',
+                  boxShadow: language === 'hi' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                हिन्दी
+              </button>
+            </div>
+          </div>
+
           {/* PWA Install Button if available */}
           {deferredPrompt && (
             <button
               onClick={handleInstallClick}
               className="apple-btn-secondary install-btn"
               style={{ padding: '7px 12px', fontSize: 12.5 }}
-              title="Install Nakshaktram App"
+              title="Install Amit Astro App"
             >
-              <Download size={14} /> Install
+              <Download size={14} /> {t('nav.install', 'Install')}
             </button>
           )}
 
@@ -320,7 +375,7 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
               whiteSpace: 'nowrap'
             }}
           >
-            <Calendar size={14} /> Book Consultation
+            <Calendar size={14} /> {t('nav.book_now', 'Book Consultation')}
           </button>
         </div>
       </div>
@@ -336,6 +391,7 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
           .top-book-btn { display: none !important; }
           .signout-desktop-btn { display: none !important; }
           .install-btn { display: none !important; }
+          .desktop-lang-switcher { display: none !important; }
         }
         @keyframes dropdownFade {
           from { opacity: 0; transform: translateY(4px); }

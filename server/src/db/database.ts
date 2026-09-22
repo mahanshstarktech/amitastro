@@ -549,11 +549,11 @@ async function seedInitialData() {
     const adminPasswordHash = await bcrypt.hash('Nakshaktram@2026', salt);
     const customerPasswordHash = await bcrypt.hash('Customer@123', salt);
 
-    // Admin Amit Soni
+    // Admin Amit
     await runQuery(`
       INSERT INTO users (id, name, email, phone, password_hash, role, is_phone_verified, is_new_customer)
       VALUES (?, ?, ?, ?, ?, ?, 1, 0)
-    `, ['admin-amit-soni', 'Amit Soni', 'admin@nakshaktram.com', '+919876543210', adminPasswordHash, 'admin']);
+    `, ['admin-amit-soni', 'Amit', 'admin@nakshaktram.com', '+919876543210', adminPasswordHash, 'admin']);
 
     // Demo Customer (Priya Sharma)
     await runQuery(`
@@ -689,7 +689,7 @@ A **Mahadasha** is a major planetary period spanning several years. Depending on
 
 While the Mahadasha sets the overall climatic condition of your life, the **Antardasha** (or *Bhukti*) determines the day-to-day weather. For instance, living in a supportive Jupiter Mahadasha with a temporary Mars Antardasha can induce sudden decisive career moves or energetic real estate investments.
 
-> "Astrology does not lock destiny into stone; it illuminates the terrain so you can navigate with grace, clarity, and timely preparation." — Amit Soni
+> "Astrology does not lock destiny into stone; it illuminates the terrain so you can navigate with grace, clarity, and timely preparation." — Amit
         `
       },
       {

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { apiRequest } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface HomePageProps {
   onOpenBooking: (pkgId?: string) => void;
@@ -19,6 +20,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   onNavigate
 }) => {
   const { isAuthenticated, user } = useAuth();
+  const { t } = useLanguage();
   const showTrialCTA = !isAuthenticated || (!!user?.isNewCustomer && !user?.trialUsed);
 
   const [featuredPosts, setFeaturedPosts] = useState<any[]>([]);
@@ -117,7 +119,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   const faqs = [
     {
-      q: 'How does the consultation with Amit Soni take place?',
+      q: 'How does the consultation with Amit take place?',
       a: 'Consultations are conducted directly over a personal phone call or through our high-definition real-time in-app chat. When your slot is confirmed, Amit connects with you at the agreed time. You also have access to follow-up chat support depending on your package.'
     },
     {
@@ -129,8 +131,8 @@ export const HomePage: React.FC<HomePageProps> = ({
       a: 'When filling out your birth details, you can select the "Approximate / Not Sure" option. Amit uses classical birth time rectification techniques (Prashna Kundli and major life events verification) to refine your chart.'
     },
     {
-      q: 'What languages does Amit Soni consult in?',
-      a: 'Amit consults fluently in both Hindi and English. You can specify your language preference in the discussion notes when booking.'
+      q: 'What languages does Amit consult in?',
+      a: 'Amit consults fluently in both Hindi and English. You can specify your language preference in the discussion notes when booking or toggle it anytime in the app settings.'
     },
     {
       q: 'How are payments processed?',
@@ -146,7 +148,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           {/* Subtle Pill Badge */}
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 20 }}>
             <span className="apple-badge-gold">
-              <Sparkles size={13} /> Classical Parashari Jyotish & Vastu
+              <Sparkles size={13} /> {t('hero.badge', 'Trusted Vedic Wisdom for Clarity & Direction')}
             </span>
           </div>
 
@@ -159,8 +161,8 @@ export const HomePage: React.FC<HomePageProps> = ({
               fontWeight: 700
             }}
           >
-            Cosmic clarity meets <br />
-            calm, thoughtful guidance.
+            {t('hero.title_part1', 'Cosmic clarity meets')} <br />
+            {t('hero.title_part2', 'calm, thoughtful guidance.')}
           </h1>
 
           {/* Supporting Copy */}
@@ -173,7 +175,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               lineHeight: 1.6
             }}
           >
-            Personalized Vedic Kundli breakdown, spatial Vastu alignment, and sattvic remedies with <strong>Amit Soni</strong>. No clichés, no fear — only grounded wisdom for your path ahead.
+            {t('hero.subtitle', 'Personalized Vedic Kundli breakdown, spatial Vastu alignment, and sattvic remedies with Amit. No clichés, no fear — only grounded wisdom for your path ahead.')}
           </p>
 
           {/* Action CTAs */}
@@ -183,7 +185,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               className="apple-btn-primary"
               style={{ padding: '13px 28px', fontSize: 16 }}
             >
-              <Calendar size={17} /> Book a Consultation
+              <Calendar size={17} /> {t('hero.cta_primary', 'Book a Consultation')}
             </button>
 
             {showTrialCTA && (
@@ -192,7 +194,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 className="apple-btn-secondary"
                 style={{ padding: '13px 24px', fontSize: 16 }}
               >
-                <Phone size={17} /> 5-Min Free Trial
+                <Phone size={17} /> {t('hero.cta_trial', '5-Min Free Trial')}
               </button>
             )}
 
@@ -201,11 +203,11 @@ export const HomePage: React.FC<HomePageProps> = ({
               className="apple-btn-secondary"
               style={{ padding: '13px 22px', fontSize: 16 }}
             >
-              Read the Blog <ArrowRight size={15} />
+              {t('nav.blog', 'Read Articles')} <ArrowRight size={15} />
             </button>
           </div>
 
-          {/* Amit Soni Hero Profile Card */}
+          {/* Amit Hero Profile Card */}
           <div
             className="apple-card"
             style={{
@@ -237,14 +239,14 @@ export const HomePage: React.FC<HomePageProps> = ({
                   boxShadow: '0 4px 14px rgba(58, 58, 110, 0.25)'
                 }}
               >
-                AS
+                A
               </div>
               <div>
                 <div style={{ fontWeight: 600, fontSize: 18, color: '#1D1D1F' }}>
-                  Amit Soni
+                  {t('brand.astrologer_name', 'Amit')}
                 </div>
                 <div style={{ fontSize: 13.5, color: '#6E6E73' }}>
-                  Vedic Astrologer & Vastu Consultant
+                  {t('brand.tagline', 'Vedic Astrology & Vastu Consultation')}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
                   <Star size={14} color="#C9A24B" fill="#C9A24B" />
@@ -388,7 +390,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           <div style={{ textAlign: 'center', marginBottom: 48 }}>
             <span className="apple-badge-gold">Seamless 4-Step Journey</span>
             <h2 className="text-h1" style={{ marginTop: 8, marginBottom: 10 }}>
-              How Nakshaktram Works
+              How Amit Astro Works
             </h2>
             <p className="text-body" style={{ fontSize: 16 }}>
               From initial intent to deep astrological insight in four transparent steps.

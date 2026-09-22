@@ -16,7 +16,7 @@ export const LegalPage: React.FC<LegalPageProps> = ({ initialTab = 'privacy' }) 
             Policies & Astrology Disclaimers
           </h1>
           <p className="text-body-large" style={{ maxWidth: 600, margin: '0 auto' }}>
-            Nakshaktram values your absolute privacy and sets clear boundaries regarding cosmic guidance.
+            Amit Astro values your absolute privacy and sets clear boundaries regarding cosmic guidance.
           </p>
         </div>
       </section>
@@ -79,11 +79,11 @@ export const LegalPage: React.FC<LegalPageProps> = ({ initialTab = 'privacy' }) 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 18, color: '#1D1D1F', lineHeight: 1.7 }}>
               <h2 className="text-h2" style={{ fontSize: 24 }}>Privacy Policy & Personal Birth Data Protection</h2>
               <p>
-                At <strong>Nakshaktram</strong>, we recognize that birth charts, exact birth timings, family genealogies, and personal life questions are deeply sensitive personal information (PII). We hold your information in highest confidence.
+                At <strong>Amit Astro</strong>, we recognize that birth charts, exact birth timings, family genealogies, and personal life questions are deeply sensitive personal information (PII). We hold your information in highest confidence.
               </p>
               <h3 style={{ fontSize: 18, fontWeight: 600 }}>1. Data We Collect</h3>
               <p>
-                We collect your name, mobile phone number, optional email address, and birth specifics (date, time, and coordinates/city of birth). This information is utilized solely by Amit Soni for casting mathematical planetary positions (Kundli) and delivering your consultation.
+                We collect your name, mobile phone number, optional email address, and birth specifics (date, time, and coordinates/city of birth). This information is utilized solely by Amit for casting mathematical planetary positions (Kundli) and delivering your consultation.
               </p>
               <h3 style={{ fontSize: 18, fontWeight: 600 }}>2. No Third-Party Commercial Sharing</h3>
               <p>
@@ -91,7 +91,7 @@ export const LegalPage: React.FC<LegalPageProps> = ({ initialTab = 'privacy' }) 
               </p>
               <h3 style={{ fontSize: 18, fontWeight: 600 }}>3. Right to Deletion & Export</h3>
               <p>
-                In compliance with modern digital data principles, you may request full export or permanent anonymization/deletion of your account and saved family birth profiles at any time by contacting privacy@nakshaktram.com or through your account portal.
+                In compliance with modern digital data principles, you may request full export or permanent anonymization/deletion of your account and saved family birth profiles at any time by contacting privacy@amitastro.com or through your account portal.
               </p>
             </div>
           )}
@@ -109,15 +109,15 @@ export const LegalPage: React.FC<LegalPageProps> = ({ initialTab = 'privacy' }) 
                   fontSize: 14.5
                 }}
               >
-                <strong>Statutory Astrology & Guidance Disclaimer:</strong> All astrological analyses, planetary calculations, and Vastu consultations provided by Amit Soni and Nakshaktram are traditional Vedic opinions offered purely for spiritual clarity, personal enrichment, and guidance purposes. They do not constitute, and must not be used as, a substitute for professional clinical medical advice, psychiatric therapy, legal representation, or financial/investment counseling.
+                <strong>Statutory Astrology & Guidance Disclaimer:</strong> All astrological analyses, planetary calculations, and Vastu consultations provided by Amit and Amit Astro are traditional Vedic opinions offered purely for spiritual clarity, personal enrichment, and guidance purposes. They do not constitute, and must not be used as, a substitute for professional clinical medical advice, psychiatric therapy, legal representation, or financial/investment counseling.
               </div>
               <h3 style={{ fontSize: 18, fontWeight: 600 }}>1. Nature of Consultations</h3>
               <p>
-                Astrology deals with cosmic probabilities and karmic tendencies. Individual decisions remain strictly the personal responsibility of the seeker. Nakshaktram and Amit Soni accept no liability for personal or commercial actions taken following a session.
+                Astrology deals with cosmic probabilities and karmic tendencies. Individual decisions remain strictly the personal responsibility of the seeker. Amit Astro and Amit accept no liability for personal or commercial actions taken following a session.
               </p>
               <h3 style={{ fontSize: 18, fontWeight: 600 }}>2. Client Conduct</h3>
               <p>
-                We maintain a respectful, spiritually supportive environment. Any abusive, harassing, or hostile behavior toward Amit Soni or our support team results in immediate session termination without refund.
+                We maintain a respectful, spiritually supportive environment. Any abusive, harassing, or hostile behavior toward Amit or our support team results in immediate session termination without refund.
               </p>
             </div>
           )}
@@ -134,11 +134,11 @@ export const LegalPage: React.FC<LegalPageProps> = ({ initialTab = 'privacy' }) 
               </p>
               <h3 style={{ fontSize: 18, fontWeight: 600 }}>2. Cancellation & Refunds</h3>
               <p>
-                Cancellations requested at least 24 hours in advance of the confirmed slot are eligible for a 100% full refund to the original source of payment. Because Amit Soni reserves dedicated prep time to cast and analyze your chart before the call, cancellations requested within 4 hours or no-shows are non-refundable.
+                Cancellations requested at least 24 hours in advance of the confirmed slot are eligible for a 100% full refund to the original source of payment. Because Amit reserves dedicated prep time to cast and analyze your chart before the call, cancellations requested within 4 hours or no-shows are non-refundable.
               </p>
               <h3 style={{ fontSize: 18, fontWeight: 600 }}>3. Astrologer Unavailability</h3>
               <p>
-                In the rare event that Amit Soni is called away for an urgent religious ceremony or health reason, we will immediately offer priority rescheduling at your convenience or an unconditional immediate 100% refund.
+                In the rare event that Amit is called away for an urgent religious ceremony or health reason, we will immediately offer priority rescheduling at your convenience or an unconditional immediate 100% refund.
               </p>
             </div>
           )}

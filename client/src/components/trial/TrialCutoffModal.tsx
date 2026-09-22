@@ -92,7 +92,7 @@ export const TrialCutoffModal: React.FC<TrialCutoffModalProps> = ({
       return;
     }
     setIsInCall(true);
-    showToast('Connecting to Amit Soni (Trial Discovery Line)...', 'info');
+    showToast('Connecting to Amit (Trial Discovery Line)...', 'info');
   };
 
   const handleEndCall = () => {
@@ -148,7 +148,7 @@ export const TrialCutoffModal: React.FC<TrialCutoffModalProps> = ({
               Complimentary Trial Ended
             </h2>
             <p className="text-body" style={{ fontSize: 14.5, marginBottom: 24, lineHeight: 1.5 }}>
-              Your 5-minute discovery consultation with Amit Soni has completed. To explore your birth chart in depth with comprehensive remedies, book a consultation package.
+              Your 5-minute discovery consultation with Amit has completed. To explore your birth chart in depth with comprehensive remedies, book a consultation package.
             </p>
 
             <div
@@ -217,7 +217,7 @@ export const TrialCutoffModal: React.FC<TrialCutoffModalProps> = ({
               {isInCall ? 'Session in Progress' : '5-Minute Discovery Session'}
             </h2>
             <p className="text-body" style={{ fontSize: 14, marginBottom: 24 }}>
-              Direct consultation with Amit Soni. Enforced 5-minute window for first-time clients.
+              Direct consultation with Amit. Enforced 5-minute window for first-time clients.
             </p>
 
             {/* Countdown Display */}
@@ -281,7 +281,7 @@ export const TrialCutoffModal: React.FC<TrialCutoffModalProps> = ({
               {isInCall ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <div style={{ fontSize: 13.5, color: '#2FA84F', fontWeight: 500 }}>
-                    ● Connected with Amit Soni (+91 98765 43210)
+                    ● Connected with Amit (+91 98765 43210)
                   </div>
                   <button
                     onClick={handleEndCall}

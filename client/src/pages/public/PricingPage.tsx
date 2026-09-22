@@ -1,6 +1,7 @@
 import React from 'react';
 import { Check, Star, Sparkles, Calendar, ShieldCheck, HelpCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface PricingPageProps {
   onOpenBooking: (pkgId?: string) => void;
@@ -9,6 +10,7 @@ interface PricingPageProps {
 
 export const PricingPage: React.FC<PricingPageProps> = ({ onOpenBooking, onOpenTrial }) => {
   const { isAuthenticated, user } = useAuth();
+  const { t } = useLanguage();
   const showTrialCTA = !isAuthenticated || (!!user?.isNewCustomer && !user?.trialUsed);
 
   return (
@@ -18,10 +20,10 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenBooking, onOpenT
         <div className="container">
           <span className="apple-badge-gold">Transparent, Fixed Investments</span>
           <h1 className="text-display" style={{ fontSize: 44, marginTop: 10, marginBottom: 12 }}>
-            Consultation Packages
+            {t('pricing.title', 'Consultation Packages')}
           </h1>
           <p className="text-body-large" style={{ maxWidth: 640, margin: '0 auto' }}>
-            Direct, uninterrupted time with Amit Soni. No hidden fees or automated answers — strictly personalized analysis.
+            {t('pricing.subtitle', 'Direct, uninterrupted time with Amit. No hidden fees or automated answers — strictly personalized analysis.')}
           </p>
         </div>
       </section>

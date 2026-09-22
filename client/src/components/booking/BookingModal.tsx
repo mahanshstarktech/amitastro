@@ -157,7 +157,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     }
 
     if (blackoutDates.includes(selectedDate)) {
-      showToast('Amit Soni is unavailable on this selected date. Please choose another date.', 'warning');
+      showToast('Amit is unavailable on this selected date. Please choose another date.', 'warning');
       return;
     }
 
@@ -280,7 +280,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 Vedic Consultation Booking
               </span>
               <h2 className="text-h2" style={{ fontSize: 24, marginTop: 4, marginBottom: 4 }}>
-                Reserve Your Session with Amit Soni
+                Reserve Your Session with Amit
               </h2>
               <p className="text-body" style={{ fontSize: 14 }}>
                 Detected timezone: <strong>{userTimezone}</strong> (Internal schedule managed in IST).
@@ -450,7 +450,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   />
                   {blackoutDates.includes(selectedDate) && (
                     <span style={{ fontSize: 11.5, color: '#D64545', marginTop: 4, display: 'block' }}>
-                      Amit Soni is unavailable on this date.
+                      Amit is unavailable on this date.
                     </span>
                   )}
                 </div>
@@ -566,7 +566,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, backgroundColor: '#F5F5F7', borderRadius: 18, padding: '18px 20px', marginBottom: 20, border: '1px solid #E5E5EA' }}>
               <div style={{ textAlign: 'center', flex: '0 0 140px', margin: '0 auto' }}>
                 <img
-                  src={paymentConfig?.upi?.qrImage || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=${paymentConfig?.upi?.vpa || 'nakshaktram@upi'}&pn=Amit%20Soni&am=${currentPkg.price}`}
+                  src={paymentConfig?.upi?.qrImage || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=${paymentConfig?.upi?.vpa || 'nakshaktram@upi'}&pn=Amit%20Astro&am=${currentPkg.price}`}
                   alt="UPI QR Code"
                   style={{ width: 130, height: 130, borderRadius: 12, border: '1px solid #E5E5EA', backgroundColor: '#FFF' }}
                 />
@@ -635,7 +635,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               Consultation Request Received!
             </h2>
             <p className="text-body" style={{ fontSize: 14.5, marginBottom: 20, maxWidth: 440, margin: '0 auto 24px' }}>
-              Amit Soni has received your birth details and preferred window for{' '}
+              Amit has received your birth details and preferred window for{' '}
               <strong>{selectedDate} ({selectedWindow})</strong>. Your slot will be confirmed via in-app chat.
             </p>
 

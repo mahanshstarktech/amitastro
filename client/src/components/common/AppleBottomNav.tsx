@@ -1,6 +1,7 @@
 import React from 'react';
-import { Compass, Calendar, Sparkles, BookOpen, User, ShieldCheck, Tag } from 'lucide-react';
+import { Compass, Calendar, Sparkles, Tag, Settings as SettingsIcon, User, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface AppleBottomNavProps {
   currentPath: string;
@@ -8,6 +9,7 @@ interface AppleBottomNavProps {
   onOpenBooking: () => void;
   onOpenTrial: () => void;
   onOpenAuth: () => void;
+  onOpenSettings: () => void;
 }
 
 export const AppleBottomNav: React.FC<AppleBottomNavProps> = ({
@@ -15,12 +17,13 @@ export const AppleBottomNav: React.FC<AppleBottomNavProps> = ({
   onNavigate,
   onOpenBooking,
   onOpenTrial,
-  onOpenAuth
+  onOpenAuth,
+  onOpenSettings
 }) => {
   const { isAuthenticated, isAdmin, user } = useAuth();
+  const { t } = useLanguage();
 
   const isHome = currentPath === '/';
-  const isBlog = currentPath.startsWith('/blog');
   const isPricing = currentPath === '/pricing';
   const isPortal = currentPath.startsWith('/app') || currentPath.startsWith('/admin');
 
@@ -36,16 +39,16 @@ export const AppleBottomNav: React.FC<AppleBottomNavProps> = ({
         left: 0,
         right: 0,
         zIndex: 1000,
-        backgroundColor: 'rgba(251, 251, 253, 0.90)',
+        backgroundColor: 'rgba(251, 251, 253, 0.92)',
         backdropFilter: 'blur(25px) saturate(180%)',
         WebkitBackdropFilter: 'blur(25px) saturate(180%)',
         borderTop: '1px solid #E5E5EA',
         paddingTop: 8,
         paddingBottom: 'max(10px, env(safe-area-inset-bottom, 12px))',
-        display: 'none', // Managed by media query
+        display: 'none', // Shown only on screens <= 768px via CSS
         justifyContent: 'space-around',
         alignItems: 'center',
-        boxShadow: '0 -2px 16px rgba(0, 0, 0, 0.03)'
+        boxShadow: '0 -2px 16px rgba(0, 0, 0, 0.04)'
       }}
     >
       {/* 1. Home Tab */}
@@ -58,20 +61,20 @@ export const AppleBottomNav: React.FC<AppleBottomNavProps> = ({
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: 4,
+          gap: 3,
           cursor: 'pointer',
           color: isHome ? '#3A3A6E' : '#8E8E93',
           transition: 'transform 0.15s ease, color 0.15s ease',
           flex: 1
         }}
       >
-        <Compass size={22} strokeWidth={isHome ? 2.2 : 1.7} />
+        <Compass size={21} strokeWidth={isHome ? 2.2 : 1.7} />
         <span style={{ fontSize: 10.5, fontWeight: isHome ? 600 : 500, letterSpacing: '-0.01em' }}>
-          Home
+          {t('nav.home', 'Home')}
         </span>
       </button>
 
-      {/* 2. Free Trial Tab (only for new/unauthenticated users) OR Plans Tab */}
+      {/* 2. Free Trial Tab OR Plans Tab */}
       {showTrialCTA ? (
         <button
           onClick={onOpenTrial}
@@ -82,7 +85,7 @@ export const AppleBottomNav: React.FC<AppleBottomNavProps> = ({
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: 4,
+            gap: 3,
             cursor: 'pointer',
             color: '#8E8E93',
             position: 'relative',
@@ -90,17 +93,17 @@ export const AppleBottomNav: React.FC<AppleBottomNavProps> = ({
           }}
         >
           <div style={{ position: 'relative' }}>
-            <Sparkles size={22} color="#C9A24B" strokeWidth={1.8} />
+            <Sparkles size={21} color="#C9A24B" strokeWidth={1.8} />
             <span
               style={{
                 position: 'absolute',
-                top: -6,
-                right: -14,
+                top: -5,
+                right: -12,
                 backgroundColor: '#C9A24B',
                 color: '#FFFFFF',
-                fontSize: 8.5,
+                fontSize: 8,
                 fontWeight: 700,
-                padding: '1px 4px',
+                padding: '1px 3px',
                 borderRadius: 4,
                 textTransform: 'uppercase'
               }}
@@ -109,7 +112,7 @@ export const AppleBottomNav: React.FC<AppleBottomNavProps> = ({
             </span>
           </div>
           <span style={{ fontSize: 10.5, fontWeight: 500, color: '#C9A24B', letterSpacing: '-0.01em' }}>
-            5-Min Trial
+            {t('nav.trial', '5-Min Trial')}
           </span>
         </button>
       ) : (
@@ -122,20 +125,20 @@ export const AppleBottomNav: React.FC<AppleBottomNavProps> = ({
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: 4,
+            gap: 3,
             cursor: 'pointer',
             color: isPricing ? '#3A3A6E' : '#8E8E93',
             flex: 1
           }}
         >
-          <Tag size={22} strokeWidth={isPricing ? 2.2 : 1.7} />
+          <Tag size={21} strokeWidth={isPricing ? 2.2 : 1.7} />
           <span style={{ fontSize: 10.5, fontWeight: isPricing ? 600 : 500, letterSpacing: '-0.01em' }}>
-            Plans
+            {t('nav.pricing', 'Plans')}
           </span>
         </button>
       )}
 
-      {/* 3. Consult / Book (Center Action) */}
+      {/* 3. Consult / Book (Center Highlight CTA) */}
       <button
         onClick={onOpenBooking}
         className="nav-tab-btn"
@@ -145,15 +148,15 @@ export const AppleBottomNav: React.FC<AppleBottomNavProps> = ({
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: 4,
+          gap: 3,
           cursor: 'pointer',
           flex: 1
         }}
       >
         <div
           style={{
-            width: 44,
-            height: 44,
+            width: 42,
+            height: 42,
             borderRadius: '50%',
             background: 'linear-gradient(135deg, #3A3A6E, #282850)',
             display: 'flex',
@@ -164,16 +167,16 @@ export const AppleBottomNav: React.FC<AppleBottomNavProps> = ({
             marginTop: -16
           }}
         >
-          <Calendar size={20} strokeWidth={2} />
+          <Calendar size={19} strokeWidth={2} />
         </div>
         <span style={{ fontSize: 10.5, fontWeight: 600, color: '#3A3A6E', marginTop: -2 }}>
-          Consult
+          {t('nav.book_now', 'Consult')}
         </span>
       </button>
 
-      {/* 4. Blog / Guidance */}
+      {/* 4. Settings (Mobile Language Switcher inside Settings) */}
       <button
-        onClick={() => onNavigate('/blog')}
+        onClick={onOpenSettings}
         className="nav-tab-btn"
         style={{
           background: 'none',
@@ -181,15 +184,16 @@ export const AppleBottomNav: React.FC<AppleBottomNavProps> = ({
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: 4,
+          gap: 3,
           cursor: 'pointer',
-          color: isBlog ? '#3A3A6E' : '#8E8E93',
+          color: '#8E8E93',
           flex: 1
         }}
+        title="Settings & Language"
       >
-        <BookOpen size={22} strokeWidth={isBlog ? 2.2 : 1.7} />
-        <span style={{ fontSize: 10.5, fontWeight: isBlog ? 600 : 500, letterSpacing: '-0.01em' }}>
-          Articles
+        <SettingsIcon size={21} strokeWidth={1.8} />
+        <span style={{ fontSize: 10.5, fontWeight: 500, letterSpacing: '-0.01em' }}>
+          {t('nav.settings', 'Settings')}
         </span>
       </button>
 
@@ -209,19 +213,19 @@ export const AppleBottomNav: React.FC<AppleBottomNavProps> = ({
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: 4,
+          gap: 3,
           cursor: 'pointer',
           color: isPortal ? '#3A3A6E' : '#8E8E93',
           flex: 1
         }}
       >
         {isAdmin ? (
-          <ShieldCheck size={22} strokeWidth={isPortal ? 2.2 : 1.7} />
+          <ShieldCheck size={21} strokeWidth={isPortal ? 2.2 : 1.7} />
         ) : (
-          <User size={22} strokeWidth={isPortal ? 2.2 : 1.7} />
+          <User size={21} strokeWidth={isPortal ? 2.2 : 1.7} />
         )}
         <span style={{ fontSize: 10.5, fontWeight: isPortal ? 600 : 500, letterSpacing: '-0.01em' }}>
-          {isAuthenticated ? (isAdmin ? 'Admin' : 'Portal') : 'Sign In'}
+          {isAuthenticated ? (isAdmin ? t('nav.admin', 'Admin') : t('nav.portal', 'Portal')) : t('nav.signin', 'Sign In')}
         </span>
       </button>
 

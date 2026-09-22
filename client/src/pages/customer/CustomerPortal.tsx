@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Calendar, MessageSquare, User, CreditCard, Clock, Plus, Trash2, Edit3, 
-  CheckCircle2, AlertCircle, ArrowRight, ShieldCheck, Sparkles, Send, Paperclip, X
+  CheckCircle2, AlertCircle, ArrowRight, ShieldCheck, Sparkles, Send, Paperclip, X,
+  Settings, Globe, Check
 } from 'lucide-react';
 import { useAuth, type BirthProfile } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { apiRequest } from '../../utils/api';
 
 interface CustomerPortalProps {
   onOpenBooking: () => void;
   onOpenTrial: () => void;
-  initialTab?: 'dashboard' | 'appointments' | 'chat' | 'profile' | 'payments';
+  initialTab?: 'dashboard' | 'appointments' | 'chat' | 'profile' | 'payments' | 'settings';
 }
 
 export const CustomerPortal: React.FC<CustomerPortalProps> = ({
@@ -20,8 +22,9 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
 }) => {
   const { user, profiles, addProfile, deleteProfile } = useAuth();
   const { showToast } = useNotification();
+  const { language, setLanguage, t } = useLanguage();
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'appointments' | 'chat' | 'profile' | 'payments'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'appointments' | 'chat' | 'profile' | 'payments' | 'settings'>(initialTab);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [conversation, setConversation] = useState<any>(null);
@@ -191,7 +194,8 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
             { id: 'appointments', label: 'My Appointments', icon: Calendar, badge: appointments.length },
             { id: 'chat', label: 'Consultation Chat', icon: MessageSquare },
             { id: 'profile', label: 'Birth Profiles (Family)', icon: User, badge: profiles.length },
-            { id: 'payments', label: 'Payments & UPI', icon: CreditCard }
+            { id: 'payments', label: 'Payments & UPI', icon: CreditCard },
+            { id: 'settings', label: t('nav.settings', 'Settings'), icon: Settings }
           ].map((t) => {
             const Icon = t.icon;
             const active = activeTab === t.id;
@@ -280,7 +284,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                         No Upcoming Sessions
                       </h3>
                       <p style={{ fontSize: 13.5, color: '#6E6E73' }}>
-                        Book a session with Amit Soni to analyze your Dasha or Vastu.
+                        Book a session with Amit to analyze your Dasha or Vastu.
                       </p>
                     </div>
                   )}
@@ -320,8 +324,8 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                     {user?.trialUsed
                       ? 'You have already utilized your one-time trial. Upgrade to a consultation package for in-depth guidance.'
                       : !user?.isNewCustomer
-                      ? 'Your account is configured for regular consultations. Book direct uninterrupted time with Amit Soni.'
-                      : 'Experience Amit Soni’s calm, authoritative consultation style with a live 5-minute phone session.'}
+                      ? 'Your account is configured for regular consultations. Book direct uninterrupted time with Amit.'
+                      : 'Experience Amit’s calm, authoritative consultation style with a live 5-minute phone session.'}
                   </p>
                 </div>
 
@@ -393,7 +397,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                 </div>
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 16, color: '#1D1D1F' }}>
-                    Direct Chat Line with Amit Soni
+                    Direct Chat Line with Amit
                   </div>
                   <div style={{ fontSize: 13.5, color: '#6E6E73' }}>
                     Send questions, share palm photos, or confirm upcoming consultation timings.
@@ -421,7 +425,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                   Consultation History & Slots
                 </h2>
                 <p className="text-body" style={{ fontSize: 14 }}>
-                  All scheduled, confirmed, and previous sessions with Amit Soni.
+                  All scheduled, confirmed, and previous sessions with Amit.
                 </p>
               </div>
 
@@ -587,11 +591,11 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                     fontSize: 15
                   }}
                 >
-                  AS
+                  A
                 </div>
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 15, color: '#1D1D1F' }}>
-                    Amit Soni (Astrologer)
+                    Amit (Astrologer)
                   </div>
                   <div style={{ fontSize: 12, color: '#2FA84F', display: 'flex', alignItems: 'center', gap: 4 }}>
                     <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#2FA84F' }} />
@@ -673,7 +677,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                 type="text"
                 value={msgInput}
                 onChange={(e) => setMsgInput(e.target.value)}
-                placeholder="Type a message or question for Amit Soni..."
+                placeholder="Type a message or question for Amit..."
                 className="apple-input"
                 style={{ borderRadius: 9999, padding: '10px 18px', fontSize: 14 }}
               />
@@ -885,7 +889,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
             >
               <div style={{ textAlign: 'center' }}>
                 <img
-                  src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=nakshaktram@upi&pn=Amit%20Soni%20Nakshaktram"
+                  src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=nakshaktram@upi&pn=Amit%20Astro"
                   alt="UPI QR Code"
                   style={{ width: 140, height: 140, borderRadius: 12, border: '1px solid #E5E5EA', backgroundColor: '#FFF' }}
                 />
@@ -901,12 +905,157 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                 <div style={{ fontWeight: 600, fontSize: 15, color: '#1D1D1F' }}>
                   Bank Transfer (NEFT / IMPS)
                 </div>
-                <div>Account Name: <strong>Amit Soni</strong></div>
+                <div>Account Name: <strong>Amit</strong></div>
                 <div>Bank: <strong>HDFC Bank</strong></div>
                 <div>Account No: <strong>50100492817291</strong></div>
                 <div>IFSC: <strong>HDFC0001234</strong></div>
                 <div>Branch: <strong>Jaipur Central, Rajasthan</strong></div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* 6. SETTINGS & LANGUAGE TAB */}
+        {activeTab === 'settings' && (
+          <div className="apple-card" style={{ padding: '32px 28px', maxWidth: 760 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  backgroundColor: 'rgba(58, 58, 110, 0.08)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#3A3A6E'
+                }}
+              >
+                <Globe size={22} />
+              </div>
+              <div>
+                <h3 className="text-h3" style={{ fontSize: 20, margin: 0 }}>
+                  {t('settings.language_title', 'Language (भाषा)')}
+                </h3>
+                <p className="text-subheadline" style={{ margin: 0, marginTop: 4 }}>
+                  {t('settings.language_desc', 'Choose your preferred display language')}
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16, marginBottom: 32 }}>
+              {/* English Card */}
+              <div
+                onClick={() => {
+                  setLanguage('en');
+                  showToast('Language updated to English', 'success');
+                }}
+                style={{
+                  padding: '20px',
+                  borderRadius: 16,
+                  border: language === 'en' ? '2px solid #3A3A6E' : '1px solid #E5E5EA',
+                  backgroundColor: language === 'en' ? 'rgba(58, 58, 110, 0.04)' : '#FFFFFF',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 16, color: '#1D1D1F' }}>
+                    English (Default)
+                  </div>
+                  <div style={{ fontSize: 13, color: '#6E6E73', marginTop: 4 }}>
+                    Default display language for Amit Astro
+                  </div>
+                </div>
+                {language === 'en' && (
+                  <div
+                    style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: '50%',
+                      backgroundColor: '#3A3A6E',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#FFF'
+                    }}
+                  >
+                    <Check size={16} strokeWidth={2.5} />
+                  </div>
+                )}
+              </div>
+
+              {/* Hindi Card */}
+              <div
+                onClick={() => {
+                  setLanguage('hi');
+                  showToast('भाषा बदलकर हिन्दी कर दी गई है', 'success');
+                }}
+                style={{
+                  padding: '20px',
+                  borderRadius: 16,
+                  border: language === 'hi' ? '2px solid #3A3A6E' : '1px solid #E5E5EA',
+                  backgroundColor: language === 'hi' ? 'rgba(58, 58, 110, 0.04)' : '#FFFFFF',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 16, color: '#1D1D1F' }}>
+                    हिन्दी (Hindi)
+                  </div>
+                  <div style={{ fontSize: 13, color: '#6E6E73', marginTop: 4 }}>
+                    अमित एस्ट्रो की संपूर्ण सामग्री हिन्दी में
+                  </div>
+                </div>
+                {language === 'hi' && (
+                  <div
+                    style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: '50%',
+                      backgroundColor: '#3A3A6E',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#FFF'
+                    }}
+                  >
+                    <Check size={16} strokeWidth={2.5} />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Account Details */}
+            <div style={{ borderTop: '1px solid #E5E5EA', paddingTop: 24 }}>
+              <h4 style={{ fontSize: 16, fontWeight: 600, color: '#1D1D1F', marginBottom: 12 }}>
+                {t('settings.account', 'Account Details')}
+              </h4>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+                <div style={{ padding: '14px 16px', backgroundColor: '#F5F5F7', borderRadius: 14 }}>
+                  <div style={{ fontSize: 12, color: '#8E8E93' }}>Name</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#1D1D1F', marginTop: 2 }}>{user?.name || 'Client'}</div>
+                </div>
+                <div style={{ padding: '14px 16px', backgroundColor: '#F5F5F7', borderRadius: 14 }}>
+                  <div style={{ fontSize: 12, color: '#8E8E93' }}>Phone</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#1D1D1F', marginTop: 2 }}>{user?.phone || '—'}</div>
+                </div>
+                <div style={{ padding: '14px 16px', backgroundColor: '#F5F5F7', borderRadius: 14 }}>
+                  <div style={{ fontSize: 12, color: '#8E8E93' }}>Email</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#1D1D1F', marginTop: 2 }}>{user?.email || '—'}</div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ marginTop: 28, textAlign: 'center', fontSize: 12, color: '#8E8E93' }}>
+              Amit Astro · Consultation by Amit
             </div>
           </div>
         )}
@@ -1003,7 +1152,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                     Start Your Follow-up Questions
                   </div>
                   <p style={{ fontSize: 13, maxWidth: 360, margin: '0 auto' }}>
-                    Ask any follow-up questions, clarification on remedies, or gemstones suggested by Amit Soni during your session.
+                    Ask any follow-up questions, clarification on remedies, or gemstones suggested by Amit during your session.
                   </p>
                 </div>
               ) : (
@@ -1023,7 +1172,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                       }}
                     >
                       <div style={{ fontSize: 11, fontWeight: 600, color: isMe ? '#247D3B' : '#C9A24B', marginBottom: 3 }}>
-                        {isMe ? 'You' : 'Amit Soni (Astrologer)'}
+                        {isMe ? 'You' : 'Amit (Astrologer)'}
                       </div>
                       <div style={{ color: '#1D1D1F', lineHeight: 1.45 }}>{m.content}</div>
                       <div style={{ fontSize: 10, color: '#86868B', textAlign: 'right', marginTop: 4 }}>
@@ -1050,7 +1199,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                 type="text"
                 value={followupInput}
                 onChange={(e) => setFollowupInput(e.target.value)}
-                placeholder={followupExpiry?.isExpired ? "Follow-up period closed for this appointment" : "Type your follow-up query for Amit Soni..."}
+                placeholder={followupExpiry?.isExpired ? "Follow-up period closed for this appointment" : "Type your follow-up query for Amit..."}
                 disabled={followupExpiry?.isExpired}
                 className="apple-input"
                 style={{ flex: 1, borderRadius: 9999, padding: '9px 16px', fontSize: 13.5 }}

@@ -14,6 +14,7 @@ import { AdminPortal } from './pages/admin/AdminPortal';
 import { AuthModal } from './components/auth/AuthModal';
 import { BookingModal } from './components/booking/BookingModal';
 import { TrialCutoffModal } from './components/trial/TrialCutoffModal';
+import { MobileSettingsModal } from './components/common/MobileSettingsModal';
 import { useAuth } from './context/AuthContext';
 
 export const App: React.FC = () => {
@@ -25,6 +26,7 @@ export const App: React.FC = () => {
   const [bookingModalOpen, setBookingModalOpen] = useState<boolean>(false);
   const [selectedPkgId, setSelectedPkgId] = useState<string>('pkg-premium');
   const [trialModalOpen, setTrialModalOpen] = useState<boolean>(false);
+  const [settingsModalOpen, setSettingsModalOpen] = useState<boolean>(false);
 
   // Trial eligibility: must be authenticated, new customer, and trial not yet used
   const isTrialEligible = isAuthenticated && !!user?.isNewCustomer && !user?.trialUsed;
@@ -205,12 +207,19 @@ export const App: React.FC = () => {
         onOpenBooking={() => handleOpenBooking()}
         onOpenTrial={handleOpenTrial}
         onOpenAuth={() => handleOpenAuth('login')}
+        onOpenSettings={() => setSettingsModalOpen(true)}
       />
 
       {/* Apple Footer (hidden in admin views for focused dashboarding) */}
       {!currentPath.startsWith('/admin') && <AppleFooter onNavigate={navigateTo} />}
 
       {/* Global Modals */}
+      <MobileSettingsModal
+        isOpen={settingsModalOpen}
+        onClose={() => setSettingsModalOpen(false)}
+        onOpenAuth={() => handleOpenAuth('login')}
+      />
+
       <AuthModal
         isOpen={authModalOpen}
         onClose={() => setAuthModalOpen(false)}

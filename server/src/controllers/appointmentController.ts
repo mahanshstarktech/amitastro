@@ -149,7 +149,7 @@ export const createAppointment = async (req: AuthRequest, res: Response) => {
 
     return res.status(201).json({
       success: true,
-      message: 'Consultation request submitted! Amit Soni will confirm your slot shortly.',
+      message: 'Consultation request submitted! Amit will confirm your slot shortly.',
       appointment: created
     });
   } catch (err: any) {

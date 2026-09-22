@@ -395,8 +395,8 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
           <span style={{ backgroundColor: '#C9A24B', color: '#FFF', fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 4, textTransform: 'uppercase' }}>
             Astrologer Admin
           </span>
-          <span style={{ fontWeight: 600, fontSize: 16 }}>Nakshaktram Command Center</span>
-          <span style={{ fontSize: 13, color: '#A1A1A6' }}>· Amit Soni</span>
+          <span style={{ fontWeight: 600, fontSize: 16 }}>Amit Astro Command Center</span>
+          <span style={{ fontSize: 13, color: '#A1A1A6' }}>· Amit</span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -774,7 +774,7 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                       }}
                     >
                       <div style={{ fontSize: 11, fontWeight: 600, color: isMe ? '#247D3B' : '#3A3A6E', marginBottom: 2 }}>
-                        {isMe ? 'Amit Soni' : activeChatConv?.customer_name || 'Client'}
+                        {isMe ? 'Amit' : activeChatConv?.customer_name || 'Client'}
                       </div>
                       <div style={{ color: '#1D1D1F', lineHeight: 1.45 }}>{m.content}</div>
                       <div style={{ fontSize: 10, color: '#86868B', textAlign: 'right', marginTop: 4 }}>
@@ -810,7 +810,7 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                   type="text"
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
-                  placeholder="Reply as Amit Soni..."
+                  placeholder="Reply as Amit..."
                   className="apple-input"
                   style={{ borderRadius: 9999, padding: '8px 14px', fontSize: 13.5 }}
                 />
@@ -1643,7 +1643,7 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                       }}
                     >
                       <div style={{ fontSize: 11, fontWeight: 600, color: isMe ? '#247D3B' : '#3A3A6E', marginBottom: 3 }}>
-                        {isMe ? 'Amit Soni (You)' : activeFollowupThread.customer_name || 'Client'}
+                        {isMe ? 'Amit (You)' : activeFollowupThread.customer_name || 'Client'}
                       </div>
                       <div style={{ color: '#1D1D1F', lineHeight: 1.45 }}>{m.content}</div>
                       <div style={{ fontSize: 10, color: '#86868B', textAlign: 'right', marginTop: 4 }}>

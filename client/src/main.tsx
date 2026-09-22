@@ -5,13 +5,16 @@ import './index.css';
 import { App } from './App';
 import { AuthProvider } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
+import { LanguageProvider } from './context/LanguageContext';
 
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <NotificationProvider>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
-    </NotificationProvider>
+    <LanguageProvider>
+      <NotificationProvider>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </NotificationProvider>
+    </LanguageProvider>
   </React.StrictMode>,
 );

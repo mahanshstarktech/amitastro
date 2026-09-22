@@ -40,7 +40,7 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({
 
   const handleShareWhatsApp = () => {
     const url = encodeURIComponent(window.location.href);
-    const text = encodeURIComponent(`Thought you might appreciate this Vedic essay by Amit Soni: "${data?.post?.title}"\n${window.location.href}`);
+    const text = encodeURIComponent(`Thought you might appreciate this Vedic essay by Amit: "${data?.post?.title}"\n${window.location.href}`);
     window.open(`https://wa.me/?text=${text}`, '_blank');
   };
 
@@ -245,7 +245,7 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({
             Need Personalized Astrological Clarity?
           </h3>
           <p style={{ fontSize: 15, color: '#6E6E73', maxWidth: 540, margin: '0 auto 20px', lineHeight: 1.5 }}>
-            Every birth chart is as unique as a fingerprint. Discuss your specific Mahadasha and receive sattvic remedies directly from Amit Soni.
+            Every birth chart is as unique as a fingerprint. Discuss your specific Mahadasha and receive sattvic remedies directly from Amit.
           </p>
           <button
             onClick={onOpenBooking}

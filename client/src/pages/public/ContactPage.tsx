@@ -10,7 +10,7 @@ export const ContactPage: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitted(true);
-    showToast('Message sent! Amit Soni’s team will respond within a few hours.', 'success');
+    showToast('Message sent! Amit’s team will respond within a few hours.', 'success');
   };
 
   return (
@@ -19,7 +19,7 @@ export const ContactPage: React.FC = () => {
         <div className="container">
           <span className="apple-badge-primary">Direct Inquiries</span>
           <h1 className="text-display" style={{ fontSize: 44, marginTop: 10, marginBottom: 12 }}>
-            Get in Touch with Amit Soni
+            Get in Touch with Amit
           </h1>
           <p className="text-body-large" style={{ maxWidth: 600, margin: '0 auto' }}>
             Have a question regarding consultations, slot availability, or Vastu assessments? Connect with us directly.
@@ -69,7 +69,7 @@ export const ContactPage: React.FC = () => {
                 </div>
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 14, color: '#1D1D1F' }}>Email</div>
-                  <div style={{ color: '#6E6E73', fontSize: 14 }}>consultations@nakshaktram.com</div>
+                  <div style={{ color: '#6E6E73', fontSize: 14 }}>consultations@amitastro.com</div>
                 </div>
               </div>
 
@@ -94,7 +94,7 @@ export const ContactPage: React.FC = () => {
               Send an Inquiry
             </h2>
             <p className="text-body" style={{ fontSize: 14, marginBottom: 24 }}>
-              Fill in your query and Amit Soni's office will reach back.
+              Fill in your query and Amit's office will reach back.
             </p>
 
             {submitted ? (

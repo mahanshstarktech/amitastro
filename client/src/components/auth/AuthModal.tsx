@@ -244,7 +244,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setIsLoading(true);
     try {
       await login(email, password);
-      showToast('Welcome back to Nakshaktram', 'success');
+      showToast('Welcome back to Amit Astro', 'success');
       onClose();
       if (onSuccess) onSuccess();
     } catch (err: any) {
@@ -288,7 +288,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     try {
       if (asAdmin) {
         await login('admin@nakshaktram.com', 'Nakshaktram@2026');
-        showToast('Signed in as Astrologer Amit Soni', 'success');
+        showToast('Signed in as Astrologer Amit', 'success');
       } else {
         await login('priya.sharma@example.com', 'Customer@123');
         showToast('Signed in as Demo Customer (Priya Sharma)', 'success');
@@ -372,7 +372,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <Lock size={22} color="#3A3A6E" />
               </div>
               <h2 className="text-h2" style={{ fontSize: 22, marginBottom: 4 }}>
-                Sign In to Nakshaktram
+                Sign In to Amit Astro
               </h2>
               <p className="text-body" style={{ fontSize: 13.5 }}>
                 Access consultation slots, birth charts, and private astrologer chat.
@@ -906,7 +906,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 Cast Your Kundli
               </h2>
               <p className="text-body" style={{ fontSize: 13 }}>
-                Enter your birth details for authentic planetary calculations by Amit Soni.
+                Enter your birth details for authentic planetary calculations by Amit.
               </p>
             </div>
 

@@ -15,10 +15,10 @@ export const getOrCreateConversation = async (req: AuthRequest, res: Response) =
         VALUES (?, ?, 'admin-amit-soni')
       `, [convId, userId]);
 
-      // Add welcoming message from Amit Soni
+      // Add welcoming message from Amit
       await runQuery(`
         INSERT INTO chat_messages (id, conversation_id, sender_type, sender_id, message_type, content, is_read)
-        VALUES (?, ?, 'admin', 'admin-amit-soni', 'text', 'Namaste! Welcome to Nakshaktram. You can share your queries or photos of your palm/kundli here.', 1)
+        VALUES (?, ?, 'admin', 'admin-amit-soni', 'text', 'Namaste! I am Amit. Welcome to Amit Astro. You can share your queries or photos of your palm/kundli here.', 1)
       `, [`msg-${uuidv4().substring(0, 8)}`, convId]);
 
       conversation = await getOne<any>('SELECT * FROM chat_conversations WHERE id = ?', [convId]);

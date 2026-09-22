@@ -60,10 +60,10 @@ export const BlogPage: React.FC<BlogPageProps> = ({
         <div className="container" style={{ textAlign: 'center' }}>
           <span className="apple-badge-gold">Authentic Astrological Library</span>
           <h1 className="text-display" style={{ fontSize: 42, marginTop: 10, marginBottom: 12 }}>
-            The Nakshaktram Chronicle
+            The Amit Astro Chronicle
           </h1>
           <p className="text-body-large" style={{ maxWidth: 640, margin: '0 auto 28px' }}>
-            In-depth Vedic Jyotish essays, Vastu Shastra principles, planetary transits, and remedial gemmology written directly by <strong>Amit Soni</strong>.
+            In-depth Vedic Jyotish essays, Vastu Shastra principles, planetary transits, and remedial gemmology written directly by <strong>Amit</strong>.
           </p>
 
           {/* Search bar */}
@@ -162,7 +162,7 @@ export const BlogPage: React.FC<BlogPageProps> = ({
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #E5E5EA', paddingTop: 14, marginTop: 8 }}>
                     <div style={{ fontSize: 12.5, color: '#1D1D1F', fontWeight: 500 }}>
-                      By Amit Soni
+                      By Amit
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#3A3A6E', fontSize: 13, fontWeight: 600 }}>
                       Read Article <ArrowRight size={14} />

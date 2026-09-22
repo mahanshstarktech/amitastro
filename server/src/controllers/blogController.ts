@@ -95,7 +95,7 @@ export const getPostBySlug = async (req: Request, res: Response) => {
         tags: JSON.parse(post.tags_json || '[]')
       },
       author: {
-        name: 'Amit Soni',
+        name: 'Amit',
         title: 'Vedic Astrologer & Vastu Consultant',
         experience: '15+ Years Experience',
         bio: 'Practicing classical Parashari Jyotish, Vastu Shastra, and remedial gems. Trusted advisor across India and internationally.'
