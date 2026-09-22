@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Globe, Check, ShieldCheck, User as UserIcon, Sparkles } from 'lucide-react';
+import { X, Globe, Check, ShieldCheck, User as UserIcon, Sparkles, HelpCircle, FileText, Scale, HeartHandshake, ChevronRight } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 
@@ -7,12 +7,14 @@ interface MobileSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onOpenAuth?: () => void;
+  onNavigate?: (path: string) => void;
 }
 
 export const MobileSettingsModal: React.FC<MobileSettingsModalProps> = ({
   isOpen,
   onClose,
-  onOpenAuth
+  onOpenAuth,
+  onNavigate
 }) => {
   const { language, setLanguage, t } = useLanguage();
   const { user, isAuthenticated } = useAuth();
@@ -252,6 +254,122 @@ export const MobileSettingsModal: React.FC<MobileSettingsModalProps> = ({
               {t('nav.signin', 'Sign In / Register')}
             </button>
           )}
+        </div>
+
+        {/* Section: Support, FAQ & Compliance */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: '#8E8E93', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>
+            Support & Legal Compliance
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <button
+              onClick={() => {
+                onClose();
+                if (onNavigate) onNavigate('/faq');
+              }}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 14px',
+                borderRadius: 14,
+                backgroundColor: '#F5F5F7',
+                border: 'none',
+                cursor: 'pointer',
+                textAlign: 'left'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <HelpCircle size={18} color="#3A3A6E" />
+                <span style={{ fontSize: 14, fontWeight: 500, color: '#1D1D1F' }}>
+                  Help Center & FAQs
+                </span>
+              </div>
+              <ChevronRight size={16} color="#8E8E93" />
+            </button>
+
+            <button
+              onClick={() => {
+                onClose();
+                if (onNavigate) onNavigate('/legal/privacy');
+              }}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 14px',
+                borderRadius: 14,
+                backgroundColor: '#F5F5F7',
+                border: 'none',
+                cursor: 'pointer',
+                textAlign: 'left'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <ShieldCheck size={18} color="#0284C7" />
+                <span style={{ fontSize: 14, fontWeight: 500, color: '#1D1D1F' }}>
+                  Privacy & Data Protection (DPDP)
+                </span>
+              </div>
+              <ChevronRight size={16} color="#8E8E93" />
+            </button>
+
+            <button
+              onClick={() => {
+                onClose();
+                if (onNavigate) onNavigate('/legal/grievance');
+              }}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 14px',
+                borderRadius: 14,
+                backgroundColor: '#F5F5F7',
+                border: 'none',
+                cursor: 'pointer',
+                textAlign: 'left'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Scale size={18} color="#7C3AED" />
+                <span style={{ fontSize: 14, fontWeight: 500, color: '#1D1D1F' }}>
+                  Grievance Officer (IT Rules)
+                </span>
+              </div>
+              <ChevronRight size={16} color="#8E8E93" />
+            </button>
+
+            <button
+              onClick={() => {
+                onClose();
+                if (onNavigate) onNavigate('/legal/ethics');
+              }}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 14px',
+                borderRadius: 14,
+                backgroundColor: '#F5F5F7',
+                border: 'none',
+                cursor: 'pointer',
+                textAlign: 'left'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <HeartHandshake size={18} color="#C9A24B" />
+                <span style={{ fontSize: 14, fontWeight: 500, color: '#1D1D1F' }}>
+                  Ethical Charter (Zero Fear)
+                </span>
+              </div>
+              <ChevronRight size={16} color="#8E8E93" />
+            </button>
+          </div>
         </div>
 
         {/* App Info Footer */}

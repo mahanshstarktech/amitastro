@@ -9,6 +9,8 @@ import { AboutPage } from './pages/public/AboutPage';
 import { PricingPage } from './pages/public/PricingPage';
 import { ContactPage } from './pages/public/ContactPage';
 import { LegalPage } from './pages/public/LegalPage';
+import { FaqPage } from './pages/public/FaqPage';
+import { NotFoundPage } from './pages/public/NotFoundPage';
 import { CustomerPortal } from './pages/customer/CustomerPortal';
 import { AdminPortal } from './pages/admin/AdminPortal';
 import { AuthModal } from './components/auth/AuthModal';
@@ -162,23 +164,59 @@ export const App: React.FC = () => {
       return <ContactPage />;
     }
 
-    // Legal Pages
-    if (currentPath === '/legal/privacy') {
-      return <LegalPage initialTab="privacy" />;
-    }
-    if (currentPath === '/legal/terms') {
-      return <LegalPage initialTab="terms" />;
-    }
-    if (currentPath === '/legal/refund-policy') {
-      return <LegalPage initialTab="refund" />;
+    // Help Center / FAQ
+    if (currentPath === '/faq' || currentPath === '/help') {
+      return (
+        <FaqPage
+          onNavigate={navigateTo}
+          onOpenBooking={handleOpenBooking}
+          onOpenTrial={handleOpenTrial}
+        />
+      );
     }
 
-    // Default: Home Page
+    // Comprehensive Legal & Compliance Pages
+    if (currentPath === '/legal' || currentPath === '/legal/privacy') {
+      return <LegalPage initialTab="privacy" onNavigate={navigateTo} />;
+    }
+    if (currentPath === '/legal/terms') {
+      return <LegalPage initialTab="terms" onNavigate={navigateTo} />;
+    }
+    if (currentPath === '/legal/disclaimer') {
+      return <LegalPage initialTab="disclaimer" onNavigate={navigateTo} />;
+    }
+    if (currentPath === '/legal/refund-policy' || currentPath === '/legal/refund') {
+      return <LegalPage initialTab="refund" onNavigate={navigateTo} />;
+    }
+    if (currentPath === '/legal/delivery' || currentPath === '/legal/shipping') {
+      return <LegalPage initialTab="delivery" onNavigate={navigateTo} />;
+    }
+    if (currentPath === '/legal/grievance') {
+      return <LegalPage initialTab="grievance" onNavigate={navigateTo} />;
+    }
+    if (currentPath === '/legal/ethics') {
+      return <LegalPage initialTab="ethics" onNavigate={navigateTo} />;
+    }
+    if (currentPath === '/legal/cookies') {
+      return <LegalPage initialTab="cookies" onNavigate={navigateTo} />;
+    }
+
+    // Home Page
+    if (currentPath === '/' || currentPath === '') {
+      return (
+        <HomePage
+          onOpenBooking={handleOpenBooking}
+          onOpenTrial={handleOpenTrial}
+          onNavigate={navigateTo}
+        />
+      );
+    }
+
+    // Fallback: 404 Celestial Coordinate Not Found
     return (
-      <HomePage
-        onOpenBooking={handleOpenBooking}
-        onOpenTrial={handleOpenTrial}
+      <NotFoundPage
         onNavigate={navigateTo}
+        onOpenBooking={() => handleOpenBooking()}
       />
     );
   };
@@ -218,6 +256,7 @@ export const App: React.FC = () => {
         isOpen={settingsModalOpen}
         onClose={() => setSettingsModalOpen(false)}
         onOpenAuth={() => handleOpenAuth('login')}
+        onNavigate={navigateTo}
       />
 
       <AuthModal

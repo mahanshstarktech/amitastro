@@ -172,6 +172,7 @@ export const AppleFooter: React.FC<AppleFooterProps> = ({ onNavigate }) => {
               <li><span onClick={() => onNavigate('/about')} style={{ color: '#6E6E73', cursor: 'pointer' }}>{t('nav.about', 'About Amit')}</span></li>
               <li><span onClick={() => onNavigate('/pricing')} style={{ color: '#6E6E73', cursor: 'pointer' }}>{t('nav.pricing', 'Consultation Packages')}</span></li>
               <li><span onClick={() => onNavigate('/blog')} style={{ color: '#6E6E73', cursor: 'pointer' }}>{t('nav.blog', 'Astrology & Vastu Blog')}</span></li>
+              <li><span onClick={() => onNavigate('/faq')} style={{ color: '#6E6E73', cursor: 'pointer', fontWeight: 500 }}>Help Center & FAQ</span></li>
               <li><span onClick={() => onNavigate('/contact')} style={{ color: '#6E6E73', cursor: 'pointer' }}>{t('nav.contact', 'Contact & Directions')}</span></li>
               <li>
                 <a
@@ -186,18 +187,25 @@ export const AppleFooter: React.FC<AppleFooterProps> = ({ onNavigate }) => {
             </ul>
           </div>
 
-          {/* Col 4: Trust & Admin */}
+          {/* Col 4: Trust & Compliance */}
           <div>
             <div style={{ fontWeight: 600, fontSize: 15, color: '#1D1D1F', marginBottom: 16 }}>
-              Client Trust & Hours
+              Trust & Compliance
             </div>
-            <p style={{ fontSize: 13, color: '#6E6E73', lineHeight: 1.6, marginBottom: 14 }}>
+            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 9, fontSize: 13, marginBottom: 16 }}>
+              <li><span onClick={() => onNavigate('/legal/ethics')} style={{ color: '#6E6E73', cursor: 'pointer' }}>Ethical Charter (Zero Fear)</span></li>
+              <li><span onClick={() => onNavigate('/legal/delivery')} style={{ color: '#6E6E73', cursor: 'pointer' }}>Digital Delivery & Shipping</span></li>
+              <li><span onClick={() => onNavigate('/legal/grievance')} style={{ color: '#6E6E73', cursor: 'pointer' }}>Grievance Officer (IT Rules)</span></li>
+              <li><span onClick={() => onNavigate('/legal/disclaimer')} style={{ color: '#6E6E73', cursor: 'pointer' }}>Statutory Disclaimer</span></li>
+              <li><span onClick={() => onNavigate('/legal/cookies')} style={{ color: '#6E6E73', cursor: 'pointer' }}>Cookie & Local Storage</span></li>
+            </ul>
+
+            <p style={{ fontSize: 12.5, color: '#86868B', lineHeight: 1.5, margin: 0 }}>
               <strong>Consultation Windows (IST):</strong><br />
-              Morning: 09:00 AM – 05:00 PM<br />
-              Evening: 08:00 PM – 12:00 Midnight<br />
-              Monday through Sunday (Subject to slots)
+              09:00 AM – 05:00 PM & 08:00 PM – Midnight<br />
+              Monday through Sunday
             </p>
-            <div style={{ marginTop: 12 }}>
+            <div style={{ marginTop: 10 }}>
               <button
                 onClick={() => onNavigate('/admin')}
                 style={{
@@ -213,6 +221,44 @@ export const AppleFooter: React.FC<AppleFooterProps> = ({ onNavigate }) => {
                 Astrologer Portal Login
               </button>
             </div>
+          </div>
+        </div>
+
+        {/* Trust Badges Strip */}
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 20,
+            padding: '14px 20px',
+            backgroundColor: '#FFFFFF',
+            borderRadius: 12,
+            border: '1px solid #E5E5EA',
+            marginBottom: 20,
+            fontSize: 12.5,
+            color: '#424245'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ color: '#2FA84F' }}>🔒</span>
+            <span><strong>256-Bit SSL</strong> Encrypted</span>
+          </div>
+          <div style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: '#D2D2D7' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ color: '#3A3A6E' }}>🛡️</span>
+            <span><strong>India DPDP Act 2023</strong> & GDPR Protected</span>
+          </div>
+          <div style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: '#D2D2D7' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ color: '#D97706' }}>⚡</span>
+            <span><strong>Instant Digital Delivery</strong> (₹0 Shipping)</span>
+          </div>
+          <div style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: '#D2D2D7' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ color: '#7C3AED' }}>⚖️</span>
+            <span>Statutory Grievance Redressal</span>
           </div>
         </div>
 
@@ -252,7 +298,7 @@ export const AppleFooter: React.FC<AppleFooterProps> = ({ onNavigate }) => {
             © {new Date().getFullYear()} Amit Astro by Amit. {t('footer.rights', 'All rights reserved.')}
           </div>
 
-          <div style={{ display: 'flex', gap: 20 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18 }}>
             <span onClick={() => onNavigate('/legal/privacy')} style={{ cursor: 'pointer', color: '#6E6E73' }}>
               Privacy Policy
             </span>
@@ -260,7 +306,19 @@ export const AppleFooter: React.FC<AppleFooterProps> = ({ onNavigate }) => {
               Terms of Service
             </span>
             <span onClick={() => onNavigate('/legal/refund-policy')} style={{ cursor: 'pointer', color: '#6E6E73' }}>
-              Refund & Cancellation
+              Refund Policy
+            </span>
+            <span onClick={() => onNavigate('/legal/delivery')} style={{ cursor: 'pointer', color: '#6E6E73' }}>
+              Delivery Policy
+            </span>
+            <span onClick={() => onNavigate('/legal/grievance')} style={{ cursor: 'pointer', color: '#6E6E73' }}>
+              Grievance Officer
+            </span>
+            <span onClick={() => onNavigate('/legal/ethics')} style={{ cursor: 'pointer', color: '#6E6E73' }}>
+              Ethical Charter
+            </span>
+            <span onClick={() => onNavigate('/faq')} style={{ cursor: 'pointer', color: '#6E6E73' }}>
+              FAQ
             </span>
           </div>
         </div>
