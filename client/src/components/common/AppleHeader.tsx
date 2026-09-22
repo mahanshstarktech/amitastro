@@ -1,5 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { Sparkles, Calendar, User as UserIcon, Menu, X, ChevronDown, Compass, ShieldCheck, Download, Globe } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Sparkles, 
+  Calendar, 
+  User as UserIcon, 
+  Settings as SettingsIcon,
+  Globe, 
+  Download, 
+  ShieldCheck, 
+  ChevronDown, 
+  LogOut, 
+  Check, 
+  Compass, 
+  HelpCircle, 
+  HeartHandshake, 
+  FileText,
+  MessageCircle,
+  ExternalLink
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -19,15 +36,19 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
   const { language, setLanguage, t } = useLanguage();
   const [isScrolled, setIsScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [blogDropdownOpen, setBlogDropdownOpen] = useState(false);
+  const [accountDropdownOpen, setAccountDropdownOpen] = useState(false);
+  const [settingsDropdownOpen, setSettingsDropdownOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  const accountRef = useRef<HTMLDivElement>(null);
+  const settingsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
+      setIsScrolled(window.scrollY > 15);
     };
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
 
     // PWA install prompt listener
     const handleBeforeInstallPrompt = (e: any) => {
@@ -36,9 +57,21 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
     };
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
+    // Click outside listener for dropdowns
+    const handleClickOutside = (e: MouseEvent) => {
+      if (accountRef.current && !accountRef.current.contains(e.target as Node)) {
+        setAccountDropdownOpen(false);
+      }
+      if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
+        setSettingsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+
     return () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
 
@@ -64,19 +97,32 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
 
   return (
     <header
-      className="frosted-glass"
       style={{
         position: 'sticky',
         top: 0,
         zIndex: 1000,
         height: isScrolled ? 58 : 68,
-        transition: 'height 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+        transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
         display: 'flex',
-        alignItems: 'center'
+        alignItems: 'center',
+        backgroundColor: isScrolled ? 'rgba(255, 255, 255, 0.82)' : 'rgba(255, 255, 255, 0.74)',
+        backdropFilter: 'blur(20px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+        borderBottom: '1px solid rgba(0, 0, 0, 0.07)',
+        boxShadow: isScrolled ? '0 4px 20px rgba(0, 0, 0, 0.03)' : '0 1px 0 rgba(0, 0, 0, 0.02)'
       }}
     >
-      <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-        {/* Brand Logo */}
+      <div 
+        style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between', 
+          width: '100%',
+          padding: '0 clamp(16px, 2.5vw, 36px)',
+          gap: 16
+        }}
+      >
+        {/* VERY LEFT: Brand Logo & Name */}
         <div
           onClick={() => onNavigate('/')}
           style={{
@@ -84,7 +130,8 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
             alignItems: 'center',
             gap: 10,
             cursor: 'pointer',
-            textDecoration: 'none'
+            textDecoration: 'none',
+            flexShrink: 0
           }}
         >
           <div
@@ -110,16 +157,16 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
             />
           </div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 18, color: '#1D1D1F', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+            <div style={{ fontWeight: 700, fontSize: 17.5, color: '#1D1D1F', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
               {t('brand.name', 'Amit Astro')}
             </div>
-            <div style={{ fontSize: 10.5, color: '#6E6E73', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+            <div style={{ fontSize: 10, color: '#6E6E73', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
               {t('brand.astrologer', 'Amit · Vedic Astrologer')}
             </div>
           </div>
         </div>
 
-        {/* Desktop Navigation Links */}
+        {/* CENTER: Desktop Navigation Links */}
         <nav style={{ display: 'none', alignItems: 'center', gap: 28 }} className="desktop-nav">
           <button
             onClick={() => onNavigate('/')}
@@ -136,7 +183,7 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
             {t('nav.home', 'Home')}
           </button>
 
-          {/* Blog Dropdown */}
+          {/* Articles Dropdown */}
           <div
             style={{ position: 'relative' }}
             onMouseEnter={() => setBlogDropdownOpen(true)}
@@ -170,12 +217,13 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
                   backgroundColor: '#FFFFFF',
                   borderRadius: 16,
                   padding: '10px 8px',
-                  boxShadow: '0 12px 36px rgba(0, 0, 0, 0.08)',
+                  boxShadow: '0 12px 36px rgba(0, 0, 0, 0.1)',
                   border: '1px solid #E5E5EA',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 2,
-                  animation: 'dropdownFade 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                  animation: 'dropdownFade 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                  zIndex: 1100
                 }}
               >
                 {blogCategories.map((cat) => (
@@ -252,126 +300,521 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
           </button>
         </nav>
 
-        {/* Right CTA / Auth Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(8px, 1vw, 14px)', flexShrink: 0 }}>
-          {/* Desktop Language Switcher Button (Right side of top-nav, hidden on mobile) */}
-          <div className="desktop-lang-switcher" style={{ display: 'flex', alignItems: 'center' }}>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                backgroundColor: '#F5F5F7',
-                borderRadius: 20,
-                padding: '3px 4px',
-                border: '1px solid #E5E5EA',
-                boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.03)'
+        {/* VERY RIGHT: Settings Icon + Account/Person Icon + Book Consultation CTA */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+          {/* 1. SETTINGS ICON & DROPDOWN (Language, Install App, Quick Links) */}
+          <div style={{ position: 'relative' }} ref={settingsRef}>
+            <button
+              type="button"
+              onClick={() => {
+                setSettingsDropdownOpen(!settingsDropdownOpen);
+                setAccountDropdownOpen(false);
               }}
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: '50%',
+                backgroundColor: settingsDropdownOpen ? '#E5E5EA' : '#F5F5F7',
+                border: '1px solid #E5E5EA',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: settingsDropdownOpen ? '#1D1D1F' : '#515154',
+                transition: 'all 0.15s ease'
+              }}
+              title="Settings & Preferences"
+              aria-label="Settings"
             >
-              <Globe size={13} color="#6E6E73" style={{ marginLeft: 6, marginRight: 3 }} />
-              <button
-                type="button"
-                onClick={() => setLanguage('en')}
+              <SettingsIcon size={18} />
+            </button>
+
+            {settingsDropdownOpen && (
+              <div
                 style={{
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '4px 9px',
-                  borderRadius: 16,
-                  fontSize: 12,
-                  fontWeight: language === 'en' ? 700 : 500,
-                  backgroundColor: language === 'en' ? '#FFFFFF' : 'transparent',
-                  color: language === 'en' ? '#1D1D1F' : '#6E6E73',
-                  boxShadow: language === 'en' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                  transition: 'all 0.15s ease'
+                  position: 'absolute',
+                  top: 'calc(100% + 10px)',
+                  right: 0,
+                  width: 280,
+                  backgroundColor: '#FFFFFF',
+                  borderRadius: 18,
+                  padding: '16px',
+                  boxShadow: '0 16px 40px rgba(0, 0, 0, 0.12)',
+                  border: '1px solid #E5E5EA',
+                  animation: 'dropdownFade 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                  zIndex: 1100,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 14
                 }}
               >
-                EN
-              </button>
-              <button
-                type="button"
-                onClick={() => setLanguage('hi')}
-                style={{
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '4px 9px',
-                  borderRadius: 16,
-                  fontSize: 12,
-                  fontWeight: language === 'hi' ? 700 : 500,
-                  backgroundColor: language === 'hi' ? '#FFFFFF' : 'transparent',
-                  color: language === 'hi' ? '#1D1D1F' : '#6E6E73',
-                  boxShadow: language === 'hi' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                हिन्दी
-              </button>
-            </div>
+                {/* Language Switcher Section */}
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#86868B', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>
+                    <Globe size={13} color="#3A3A6E" />
+                    <span>Language / भाषा</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                    <button
+                      type="button"
+                      onClick={() => setLanguage('en')}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: 12,
+                        border: language === 'en' ? '1.5px solid #3A3A6E' : '1px solid #E5E5EA',
+                        backgroundColor: language === 'en' ? 'rgba(58, 58, 110, 0.08)' : '#F5F5F7',
+                        color: language === 'en' ? '#3A3A6E' : '#1D1D1F',
+                        fontSize: 13,
+                        fontWeight: language === 'en' ? 600 : 500,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6,
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      {language === 'en' && <Check size={14} color="#3A3A6E" />} English
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLanguage('hi')}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: 12,
+                        border: language === 'hi' ? '1.5px solid #3A3A6E' : '1px solid #E5E5EA',
+                        backgroundColor: language === 'hi' ? 'rgba(58, 58, 110, 0.08)' : '#F5F5F7',
+                        color: language === 'hi' ? '#3A3A6E' : '#1D1D1F',
+                        fontSize: 13,
+                        fontWeight: language === 'hi' ? 600 : 500,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6,
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      {language === 'hi' && <Check size={14} color="#3A3A6E" />} हिन्दी
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ height: 1, backgroundColor: '#E5E5EA' }} />
+
+                {/* Install App Section */}
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: '#86868B', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>
+                    Application
+                  </div>
+                  {deferredPrompt ? (
+                    <button
+                      onClick={() => {
+                        handleInstallClick();
+                        setSettingsDropdownOpen(false);
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        borderRadius: 12,
+                        backgroundColor: '#F5F5F7',
+                        border: '1px solid #E5E5EA',
+                        color: '#1D1D1F',
+                        fontSize: 13,
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        textAlign: 'left'
+                      }}
+                    >
+                      <Download size={16} color="#3A3A6E" />
+                      <div>
+                        <div style={{ fontWeight: 600 }}>Install Amit Astro App</div>
+                        <div style={{ fontSize: 11, color: '#86868B' }}>Fast home screen access</div>
+                      </div>
+                    </button>
+                  ) : (
+                    <div
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: 12,
+                        backgroundColor: '#F5F5F7',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        fontSize: 12.5,
+                        color: '#424245'
+                      }}
+                    >
+                      <Download size={15} color="#2FA84F" />
+                      <div>
+                        <div style={{ fontWeight: 600 }}>PWA Ready</div>
+                        <div style={{ fontSize: 11, color: '#86868B' }}>Add to Home Screen from browser menu</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ height: 1, backgroundColor: '#E5E5EA' }} />
+
+                {/* Support & Legal Quick Links */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <button
+                    onClick={() => {
+                      onNavigate('/faq');
+                      setSettingsDropdownOpen(false);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '8px 10px',
+                      borderRadius: 8,
+                      background: 'none',
+                      border: 'none',
+                      fontSize: 13,
+                      color: '#424245',
+                      cursor: 'pointer',
+                      textAlign: 'left'
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F5F5F7')}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                  >
+                    <HelpCircle size={15} color="#3A3A6E" /> Help Center & FAQs
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      onNavigate('/legal/privacy');
+                      setSettingsDropdownOpen(false);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '8px 10px',
+                      borderRadius: 8,
+                      background: 'none',
+                      border: 'none',
+                      fontSize: 13,
+                      color: '#424245',
+                      cursor: 'pointer',
+                      textAlign: 'left'
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F5F5F7')}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                  >
+                    <ShieldCheck size={15} color="#0284C7" /> Privacy & Legal Terms
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      onNavigate('/legal/ethics');
+                      setSettingsDropdownOpen(false);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '8px 10px',
+                      borderRadius: 8,
+                      background: 'none',
+                      border: 'none',
+                      fontSize: 13,
+                      color: '#424245',
+                      cursor: 'pointer',
+                      textAlign: 'left'
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F5F5F7')}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                  >
+                    <HeartHandshake size={15} color="#C9A24B" /> Astrological Ethical Charter
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* PWA Install Button if available */}
-          {deferredPrompt && (
+          {/* 2. PERSON / ACCOUNT ICON & DROPDOWN (Profile, Portal, Admin, Sign Out) */}
+          <div style={{ position: 'relative' }} ref={accountRef}>
             <button
-              onClick={handleInstallClick}
-              className="apple-btn-secondary install-btn"
-              style={{ padding: '7px 12px', fontSize: 12.5 }}
-              title="Install Amit Astro App"
+              type="button"
+              onClick={() => {
+                setAccountDropdownOpen(!accountDropdownOpen);
+                setSettingsDropdownOpen(false);
+              }}
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: '50%',
+                backgroundColor: accountDropdownOpen ? '#E5E5EA' : (isAuthenticated ? '#3A3A6E' : '#F5F5F7'),
+                border: isAuthenticated ? '1px solid #3A3A6E' : '1px solid #E5E5EA',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: isAuthenticated ? '#FFFFFF' : '#515154',
+                transition: 'all 0.15s ease',
+                position: 'relative'
+              }}
+              title="Account & Portal"
+              aria-label="Account"
             >
-              <Download size={14} /> {t('nav.install', 'Install')}
-            </button>
-          )}
-
-          {isAuthenticated ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {isAdmin ? (
-                <button
-                  onClick={() => onNavigate('/admin')}
-                  className="apple-badge-primary portal-badge"
-                  style={{ cursor: 'pointer', padding: '6px 12px', border: 'none' }}
-                >
-                  <ShieldCheck size={14} /> Admin
-                </button>
-              ) : (
-                <button
-                  onClick={() => onNavigate('/app')}
-                  className="apple-badge-gold portal-badge"
-                  style={{ cursor: 'pointer', padding: '6px 12px', border: 'none' }}
-                >
-                  <UserIcon size={14} /> Portal
-                </button>
+              <UserIcon size={18} />
+              {isAuthenticated && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    right: 0,
+                    width: 9,
+                    height: 9,
+                    borderRadius: '50%',
+                    backgroundColor: '#2FA84F',
+                    border: '1.5px solid #FFFFFF'
+                  }}
+                />
               )}
+            </button>
 
-              <button
-                onClick={logout}
-                className="signout-desktop-btn"
+            {accountDropdownOpen && (
+              <div
                 style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: 13,
-                  color: '#6E6E73',
-                  cursor: 'pointer',
-                  padding: '6px 6px'
+                  position: 'absolute',
+                  top: 'calc(100% + 10px)',
+                  right: 0,
+                  width: 290,
+                  backgroundColor: '#FFFFFF',
+                  borderRadius: 18,
+                  padding: '16px',
+                  boxShadow: '0 16px 40px rgba(0, 0, 0, 0.12)',
+                  border: '1px solid #E5E5EA',
+                  animation: 'dropdownFade 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                  zIndex: 1100,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 12
                 }}
               >
-                Sign Out
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => onOpenAuth('login')}
-              style={{
-                background: 'none',
-                border: 'none',
-                fontSize: 14,
-                fontWeight: 500,
-                color: '#1D1D1F',
-                cursor: 'pointer',
-                padding: '6px 10px'
-              }}
-            >
-              Sign In
-            </button>
-          )}
+                {isAuthenticated && user ? (
+                  <>
+                    {/* Signed-in User Info Header */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingBottom: 10, borderBottom: '1px solid #E5E5EA' }}>
+                      <div
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: '50%',
+                          backgroundColor: '#3A3A6E',
+                          color: '#FFFFFF',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 700,
+                          fontSize: 16,
+                          flexShrink: 0
+                        }}
+                      >
+                        {user.name ? user.name.charAt(0).toUpperCase() : <UserIcon size={20} />}
+                      </div>
+                      <div style={{ overflow: 'hidden' }}>
+                        <div style={{ fontWeight: 700, fontSize: 14.5, color: '#1D1D1F', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {user.name}
+                        </div>
+                        <div style={{ fontSize: 12, color: '#86868B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {user.email || user.phone}
+                        </div>
+                        <div style={{ marginTop: 3 }}>
+                          {isAdmin ? (
+                            <span className="apple-badge-primary" style={{ fontSize: 10, padding: '2px 7px' }}>
+                              <ShieldCheck size={11} /> Admin Astrologer
+                            </span>
+                          ) : (
+                            <span className="apple-badge-gold" style={{ fontSize: 10, padding: '2px 7px' }}>
+                              <Sparkles size={11} /> Seeker Member
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
 
-          {/* Primary Book CTA */}
+                    {/* Navigation Options */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                      {isAdmin && (
+                        <button
+                          onClick={() => {
+                            onNavigate('/admin');
+                            setAccountDropdownOpen(false);
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 10,
+                            padding: '9px 10px',
+                            borderRadius: 10,
+                            background: 'none',
+                            border: 'none',
+                            fontSize: 13.5,
+                            fontWeight: 600,
+                            color: '#3A3A6E',
+                            cursor: 'pointer',
+                            textAlign: 'left'
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F5F5F7')}
+                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                        >
+                          <ShieldCheck size={16} color="#3A3A6E" /> Astrologer Admin Panel
+                        </button>
+                      )}
+
+                      <button
+                        onClick={() => {
+                          onNavigate('/app');
+                          setAccountDropdownOpen(false);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 10,
+                          padding: '9px 10px',
+                          borderRadius: 10,
+                          background: 'none',
+                          border: 'none',
+                          fontSize: 13.5,
+                          fontWeight: 500,
+                          color: '#1D1D1F',
+                          cursor: 'pointer',
+                          textAlign: 'left'
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F5F5F7')}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                      >
+                        <Compass size={16} color="#3A3A6E" /> Customer Kundli Portal
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          onNavigate('/app');
+                          setAccountDropdownOpen(false);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 10,
+                          padding: '9px 10px',
+                          borderRadius: 10,
+                          background: 'none',
+                          border: 'none',
+                          fontSize: 13.5,
+                          fontWeight: 500,
+                          color: '#1D1D1F',
+                          cursor: 'pointer',
+                          textAlign: 'left'
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F5F5F7')}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                      >
+                        <Calendar size={16} color="#3A3A6E" /> Scheduled Slots & History
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          onNavigate('/app');
+                          setAccountDropdownOpen(false);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 10,
+                          padding: '9px 10px',
+                          borderRadius: 10,
+                          background: 'none',
+                          border: 'none',
+                          fontSize: 13.5,
+                          fontWeight: 500,
+                          color: '#1D1D1F',
+                          cursor: 'pointer',
+                          textAlign: 'left'
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F5F5F7')}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                      >
+                        <MessageCircle size={16} color="#2FA84F" /> 30-Day Astrologer Chat
+                      </button>
+                    </div>
+
+                    <div style={{ height: 1, backgroundColor: '#E5E5EA' }} />
+
+                    {/* Sign Out Button */}
+                    <button
+                      onClick={() => {
+                        logout();
+                        setAccountDropdownOpen(false);
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        padding: '9px 10px',
+                        borderRadius: 10,
+                        background: 'none',
+                        border: 'none',
+                        fontSize: 13.5,
+                        fontWeight: 500,
+                        color: '#E03131',
+                        cursor: 'pointer',
+                        textAlign: 'left'
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#FFF5F5')}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                    >
+                      <LogOut size={16} color="#E03131" /> Sign Out
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    {/* Unauthenticated State Header */}
+                    <div style={{ paddingBottom: 6 }}>
+                      <div style={{ fontWeight: 700, fontSize: 16, color: '#1D1D1F', marginBottom: 4 }}>
+                        Seeker Portal
+                      </div>
+                      <p style={{ fontSize: 13, color: '#6E6E73', margin: 0, lineHeight: 1.5 }}>
+                        Sign in to access your Janma Kundli charts, scheduled consultation calls, and private remedial chat with Amit.
+                      </p>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
+                      <button
+                        onClick={() => {
+                          setAccountDropdownOpen(false);
+                          onOpenAuth('login');
+                        }}
+                        className="apple-btn-primary"
+                        style={{ width: '100%', padding: '10px', fontSize: 13.5, justifyContent: 'center' }}
+                      >
+                        Sign In to Account
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setAccountDropdownOpen(false);
+                          onOpenAuth('signup');
+                        }}
+                        className="apple-btn-secondary"
+                        style={{ width: '100%', padding: '10px', fontSize: 13.5, justifyContent: 'center' }}
+                      >
+                        New Seeker? Register
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* 3. PRIMARY CTA: Book Consultation Button */}
           <button
             onClick={onOpenBooking}
             className="apple-btn-primary top-book-btn"
@@ -396,12 +839,9 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
         }
         @media (max-width: 768px) {
           .top-book-btn { display: none !important; }
-          .signout-desktop-btn { display: none !important; }
-          .install-btn { display: none !important; }
-          .desktop-lang-switcher { display: none !important; }
         }
         @keyframes dropdownFade {
-          from { opacity: 0; transform: translateY(4px); }
+          from { opacity: 0; transform: translateY(6px); }
           to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
