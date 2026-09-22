@@ -1,5 +1,5 @@
 import React from 'react';
-import { Compass, Calendar, Sparkles, Tag, Settings as SettingsIcon, User, ShieldCheck } from 'lucide-react';
+import { Compass, Calendar, BookOpen, Settings as SettingsIcon, User, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -7,7 +7,7 @@ interface AppleBottomNavProps {
   currentPath: string;
   onNavigate: (path: string) => void;
   onOpenBooking: () => void;
-  onOpenTrial: () => void;
+  onOpenTrial?: () => void;
   onOpenAuth: () => void;
   onOpenSettings: () => void;
 }
@@ -24,11 +24,8 @@ export const AppleBottomNav: React.FC<AppleBottomNavProps> = ({
   const { t } = useLanguage();
 
   const isHome = currentPath === '/';
-  const isPricing = currentPath === '/pricing';
+  const isArticles = currentPath.startsWith('/blog');
   const isPortal = currentPath.startsWith('/app') || currentPath.startsWith('/admin');
-
-  // 5-min trial is shown ONLY to new users or unauthenticated visitors
-  const showTrialCTA = !isAuthenticated || (!!user?.isNewCustomer && !user?.trialUsed);
 
   return (
     <nav
@@ -45,7 +42,7 @@ export const AppleBottomNav: React.FC<AppleBottomNavProps> = ({
         borderTop: '1px solid #E5E5EA',
         paddingTop: 8,
         paddingBottom: 'max(10px, env(safe-area-inset-bottom, 12px))',
-        display: 'none', // Shown only on screens <= 768px via CSS
+        display: 'none', // Shown on screens <= 1039px (phone & tablets) via CSS
         justifyContent: 'space-around',
         alignItems: 'center',
         boxShadow: '0 -2px 16px rgba(0, 0, 0, 0.04)'
@@ -74,69 +71,28 @@ export const AppleBottomNav: React.FC<AppleBottomNavProps> = ({
         </span>
       </button>
 
-      {/* 2. Free Trial Tab OR Plans Tab */}
-      {showTrialCTA ? (
-        <button
-          onClick={onOpenTrial}
-          className="nav-tab-btn"
-          style={{
-            background: 'none',
-            border: 'none',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 3,
-            cursor: 'pointer',
-            color: '#8E8E93',
-            position: 'relative',
-            flex: 1
-          }}
-        >
-          <div style={{ position: 'relative' }}>
-            <Sparkles size={21} color="#C9A24B" strokeWidth={1.8} />
-            <span
-              style={{
-                position: 'absolute',
-                top: -5,
-                right: -12,
-                backgroundColor: '#C9A24B',
-                color: '#FFFFFF',
-                fontSize: 8,
-                fontWeight: 700,
-                padding: '1px 3px',
-                borderRadius: 4,
-                textTransform: 'uppercase'
-              }}
-            >
-              Free
-            </span>
-          </div>
-          <span style={{ fontSize: 10.5, fontWeight: 500, color: '#C9A24B', letterSpacing: '-0.01em' }}>
-            {t('nav.trial', '5-Min Trial')}
-          </span>
-        </button>
-      ) : (
-        <button
-          onClick={() => onNavigate('/pricing')}
-          className="nav-tab-btn"
-          style={{
-            background: 'none',
-            border: 'none',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 3,
-            cursor: 'pointer',
-            color: isPricing ? '#3A3A6E' : '#8E8E93',
-            flex: 1
-          }}
-        >
-          <Tag size={21} strokeWidth={isPricing ? 2.2 : 1.7} />
-          <span style={{ fontSize: 10.5, fontWeight: isPricing ? 600 : 500, letterSpacing: '-0.01em' }}>
-            {t('nav.pricing', 'Plans')}
-          </span>
-        </button>
-      )}
+      {/* 2. Articles / Blog Tab */}
+      <button
+        onClick={() => onNavigate('/blog')}
+        className="nav-tab-btn"
+        style={{
+          background: 'none',
+          border: 'none',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 3,
+          cursor: 'pointer',
+          color: isArticles ? '#3A3A6E' : '#8E8E93',
+          transition: 'transform 0.15s ease, color 0.15s ease',
+          flex: 1
+        }}
+      >
+        <BookOpen size={21} strokeWidth={isArticles ? 2.2 : 1.7} />
+        <span style={{ fontSize: 10.5, fontWeight: isArticles ? 600 : 500, letterSpacing: '-0.01em' }}>
+          {t('nav.blog', 'Articles')}
+        </span>
+      </button>
 
       {/* 3. Consult / Book (Center Highlight CTA) */}
       <button
@@ -230,7 +186,7 @@ export const AppleBottomNav: React.FC<AppleBottomNavProps> = ({
       </button>
 
       <style>{`
-        @media (max-width: 768px) {
+        @media (max-width: 1039px) {
           .apple-bottom-nav {
             display: flex !important;
           }

@@ -344,8 +344,8 @@ body {
   }
 }
 
-/* Mobile & iPhone */
-@media (max-width: 768px) {
+/* Mobile, iPhone & Tablets */
+@media (max-width: 1039px) {
   .section-padding {
     padding: 48px 0;
   }

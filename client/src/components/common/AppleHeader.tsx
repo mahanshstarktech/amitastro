@@ -305,8 +305,11 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
           </button>
         </nav>
 
-        {/* VERY RIGHT: Settings Icon + Account/Person Icon + Book Consultation CTA */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+        {/* VERY RIGHT: Settings Icon + Account/Person Icon + Book Consultation CTA (Hidden on mobile & tabs) */}
+        <div 
+          className="desktop-header-controls"
+          style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}
+        >
           {/* 1. SETTINGS ICON & DROPDOWN (Language, Install App, Quick Links) */}
           <div style={{ position: 'relative' }} ref={settingsRef}>
             <button
@@ -838,12 +841,11 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
       <style>{`
         @media (min-width: 1040px) {
           .desktop-nav { display: flex !important; gap: clamp(14px, 1.8vw, 28px) !important; }
+          .desktop-header-controls { display: flex !important; }
         }
         @media (max-width: 1039px) {
           .desktop-nav { display: none !important; }
-        }
-        @media (max-width: 768px) {
-          .top-book-btn { display: none !important; }
+          .desktop-header-controls { display: none !important; }
         }
         @keyframes dropdownFade {
           from { opacity: 0; transform: translateY(6px); }
