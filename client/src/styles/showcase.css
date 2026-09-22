@@ -1,0 +1,824 @@
+/* ── YouTube & Google Reviews Showcase Styles (Amit Astro) ──────────────── */
+
+/* ==========================================================================
+   1. YOUTUBE SHOWCASE (Landscape & Portrait Shorts)
+   ========================================================================== */
+
+.yt-section {
+  position: relative;
+  overflow: hidden;
+  padding: 4.5rem 0 3.5rem;
+  background: #FBFBFD;
+}
+
+.yt-section--landscape {
+  border-top: 1px solid #E5E5EA;
+  padding-bottom: 2rem;
+}
+
+.yt-section--shorts {
+  padding-top: 2rem;
+  padding-bottom: 4.5rem;
+}
+
+/* === Section Header === */
+.yt-section-header {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 2rem 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+}
+
+.yt-heading-row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-bottom: 0.45rem;
+}
+
+.yt-heading {
+  font-size: 2.1rem;
+  font-weight: 700;
+  color: #1D1D1F;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin: 0;
+}
+
+.yt-subheading {
+  color: #6E6E73;
+  font-size: 0.95rem;
+  font-weight: 400;
+  margin: 0;
+}
+
+.yt-channel-name {
+  color: #1D1D1F;
+  font-weight: 600;
+}
+
+/* Subscribe / View Shorts button */
+.yt-subscribe-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.4rem;
+  border-radius: 9999px;
+  background: rgba(255, 0, 0, 0.08);
+  border: 1px solid rgba(255, 0, 0, 0.22);
+  color: #CC0000;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 200ms ease;
+  white-space: nowrap;
+}
+
+.yt-subscribe-btn:hover {
+  background: #CC0000;
+  color: #FFFFFF;
+  border-color: #CC0000;
+  box-shadow: 0 4px 14px rgba(204, 0, 0, 0.25);
+}
+
+.yt-subscribe-btn--shorts {
+  background: rgba(58, 58, 110, 0.08);
+  border-color: rgba(58, 58, 110, 0.2);
+  color: #3A3A6E;
+}
+
+.yt-subscribe-btn--shorts:hover {
+  background: #3A3A6E;
+  color: #FFFFFF;
+  border-color: #3A3A6E;
+  box-shadow: 0 4px 14px rgba(58, 58, 110, 0.25);
+}
+
+/* === Scrollable Row === */
+.yt-row {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  scroll-padding: 0;
+  cursor: grab;
+}
+
+.yt-row:active {
+  cursor: grabbing;
+}
+
+.yt-row--shorts {
+  overflow-y: hidden;
+  padding-top: 3.5rem;
+  padding-bottom: 3.5rem;
+  margin-top: -1rem;
+}
+
+.yt-row::-webkit-scrollbar {
+  display: none;
+}
+
+/* === Track === */
+.yt-track {
+  display: flex;
+  gap: 0.75rem;
+  width: max-content;
+  padding: 0 50vw;
+}
+
+.yt-track--shorts {
+  gap: 1.25rem;
+  padding: 0 50vw;
+  align-items: center;
+}
+
+/* === Cards (shared) === */
+.yt-snap-card {
+  display: block;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-drag: none;
+  text-decoration: none;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+}
+
+/* === Landscape Card (16:9) === */
+.yt-card--landscape {
+  width: clamp(440px, 68vw, 920px);
+  aspect-ratio: 16 / 9;
+  border-radius: 20px !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: #111;
+  transition: transform 280ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 280ms ease;
+}
+
+.yt-card--landscape:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.14);
+}
+
+/* Duration Pill */
+.yt-duration-pill {
+  position: absolute;
+  bottom: 14px;
+  right: 14px;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  color: #FFFFFF;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  z-index: 5;
+  letter-spacing: 0.02em;
+}
+
+/* === Portrait Card (Shorts - 9:16) === */
+.yt-card--portrait {
+  width: clamp(180px, 18vw, 280px);
+  aspect-ratio: 9 / 16;
+  border-radius: 20px !important;
+  display: block;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transform-origin: center center;
+  background: #161622;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 
+    0 10px 28px -4px rgba(0, 0, 0, 0.12),
+    0 4px 10px -2px rgba(0, 0, 0, 0.05);
+  transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 240ms ease, opacity 240ms ease;
+}
+
+/* Glass specular highlight */
+.yt-card--portrait::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.3) 0%,
+    rgba(255, 255, 255, 0.08) 35%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+
+.yt-card--portrait .yt-card__img {
+  border-radius: inherit;
+  transition: transform 380ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.yt-card--portrait:hover .yt-card__img {
+  transform: scale(1.04);
+}
+
+/* Frosted glass bottom title panel for Shorts */
+.yt-card--portrait .yt-card__overlay {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 1.5rem 1rem 1rem 1rem;
+  background: linear-gradient(
+    to top,
+    rgba(15, 15, 26, 0.95) 0%,
+    rgba(15, 15, 26, 0.7) 60%,
+    transparent 100%
+  );
+  border-bottom-left-radius: inherit;
+  border-bottom-right-radius: inherit;
+  z-index: 3;
+  opacity: 1;
+  pointer-events: none;
+}
+
+/* Active & hover elevation */
+.yt-card--portrait.yt-card--active {
+  z-index: 10;
+}
+
+.yt-card--portrait:hover {
+  z-index: 20;
+}
+
+/* === macOS Dock Parabolic Popping Effect === */
+@supports (animation-timeline: view(inline)) {
+  @keyframes shorts-dock-pop {
+    0%   { transform: scale(0.92) translateY(0);    opacity: 0.72; z-index: 1; }
+    20%  { transform: scale(0.92) translateY(0);    opacity: 0.72; z-index: 1; }
+    35%  { transform: scale(0.98) translateY(-2px); opacity: 0.86; z-index: 2; }
+    50%  { transform: scale(1.08) translateY(-6px); opacity: 1.00; z-index: 10; }
+    65%  { transform: scale(0.98) translateY(-2px); opacity: 0.86; z-index: 2; }
+    80%  { transform: scale(0.92) translateY(0);    opacity: 0.72; z-index: 1; }
+    100% { transform: scale(0.92) translateY(0);    opacity: 0.72; z-index: 1; }
+  }
+
+  .yt-track--shorts .yt-snap-card {
+    animation: shorts-dock-pop auto linear;
+    animation-timeline: view(inline);
+    scroll-snap-stop: normal;
+    will-change: transform, opacity;
+  }
+}
+
+@supports not (animation-timeline: view(inline)) {
+  .yt-track--shorts .yt-snap-card {
+    transform: scale(0.92) translateY(0);
+    opacity: 0.75;
+    transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease;
+    scroll-snap-stop: normal;
+    will-change: transform, opacity;
+  }
+  .yt-track--shorts .yt-snap-card.yt-card--active {
+    transform: scale(1.08) translateY(-6px);
+    opacity: 1;
+    z-index: 10;
+  }
+}
+
+/* Card image */
+.yt-card__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Play button (Landscape - classic YouTube red) */
+.yt-card__play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.85);
+  width: 68px;
+  height: 68px;
+  background: rgba(255, 0, 0, 0.92);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 240ms ease, transform 240ms ease;
+  pointer-events: none;
+  box-shadow: 0 6px 24px rgba(255, 0, 0, 0.45);
+  z-index: 4;
+}
+
+/* Frosted Glass Play Button for Shorts */
+.yt-card--portrait .yt-card__play {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  z-index: 4;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+
+.yt-card--portrait .yt-card__play svg {
+  fill: #CC0000;
+  margin-left: 2px;
+}
+
+.yt-card--portrait:hover .yt-card__play {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.yt-snap-card:hover .yt-card__play {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* Title overlay (Landscape) */
+.yt-card__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.88) 0%,
+    rgba(0, 0, 0, 0.2) 45%,
+    transparent 65%
+  );
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 1.75rem 2rem;
+  opacity: 0;
+  transition: opacity 280ms ease;
+  z-index: 3;
+}
+
+.yt-snap-card:hover .yt-card__overlay {
+  opacity: 1;
+}
+
+.yt-card__title {
+  color: #FFFFFF;
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 0 0 0.35rem 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.yt-card--landscape .yt-card__title { font-size: 1.15rem; }
+.yt-card--portrait  .yt-card__title { font-size: 0.82rem; }
+
+.yt-card__channel {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.78rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+/* === Dot Navigation === */
+.yt-dotnav-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding: 0 2rem;
+}
+
+.yt-dotnav-items {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.yt-dot {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+  overflow: hidden;
+  transition: width 280ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.yt-dot--active {
+  width: 42px;
+}
+
+.yt-dot__fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 0%;
+  background: #1D1D1F;
+  border-radius: inherit;
+}
+
+.yt-dotnav-playbtn {
+  background: none;
+  border: none;
+  color: #1D1D1F;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  opacity: 0.65;
+  transition: opacity 200ms ease;
+  line-height: 0;
+}
+
+.yt-dotnav-playbtn:hover {
+  opacity: 1;
+}
+
+.yt-spinner {
+  width: 44px;
+  height: 44px;
+  border: 3px solid #E5E5EA;
+  border-top-color: #CC0000;
+  border-radius: 50%;
+  animation: yt-spin 0.8s linear infinite;
+}
+
+@keyframes yt-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* === Responsive YouTube === */
+@media (max-width: 1024px) {
+  .yt-section-header {
+    padding: 0 1.5rem 1.75rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .yt-section {
+    padding: 3rem 0 2rem;
+  }
+  .yt-heading {
+    font-size: 1.55rem;
+  }
+  .yt-card--landscape {
+    width: clamp(300px, 86vw, 560px);
+    border-radius: 16px !important;
+  }
+  .yt-card--portrait {
+    width: clamp(140px, 38vw, 220px);
+    border-radius: 14px !important;
+  }
+}
+
+
+/* ==========================================================================
+   2. GOOGLE CUSTOMER REVIEWS SHOWCASE (Reflections from Seekers)
+   ========================================================================== */
+
+.g-reviews-section {
+  position: relative;
+  background: #F5F5F7;
+  padding: 90px 0 95px;
+  overflow: hidden;
+  border-top: 1px solid #E5E5EA;
+  border-bottom: 1px solid #E5E5EA;
+}
+
+.g-reviews-header-wrap {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 2rem 2.75rem;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.g-reviews-headline {
+  font-size: 2.3rem;
+  font-weight: 700;
+  color: #1D1D1F;
+  letter-spacing: -0.025em;
+  margin-top: 6px;
+  margin-bottom: 8px;
+}
+
+.g-reviews-rating-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  color: #6E6E73;
+}
+
+.g-reviews-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #FFFFFF;
+  padding: 6px 14px;
+  border-radius: 980px;
+  border: 1px solid #E5E5EA;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  font-weight: 600;
+  color: #1D1D1F;
+}
+
+.g-reviews-ctrls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.g-reviews-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 1px solid #E5E5EA;
+  color: #1D1D1F;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  transition: all 200ms ease;
+}
+
+.g-reviews-btn:hover {
+  background: #3A3A6E;
+  color: #FFFFFF;
+  border-color: #3A3A6E;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(58, 58, 110, 0.2);
+}
+
+/* Continuous Gliding Track Viewport */
+.g-reviews-viewport {
+  position: relative;
+  width: 100%;
+  cursor: grab;
+  user-select: none;
+}
+
+.g-reviews-viewport:active {
+  cursor: grabbing;
+}
+
+/* Soft gradient edge masks */
+.g-reviews-mask-left {
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: clamp(30px, 8vw, 120px);
+  background: linear-gradient(to right, #F5F5F7 0%, transparent 100%);
+  z-index: 10;
+}
+
+.g-reviews-mask-right {
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: clamp(30px, 8vw, 120px);
+  background: linear-gradient(to left, #F5F5F7 0%, transparent 100%);
+  z-index: 10;
+}
+
+.g-reviews-track {
+  display: flex;
+  align-items: stretch;
+  gap: 24px;
+  padding: 10px 24px;
+  width: max-content;
+  will-change: transform;
+}
+
+/* Individual Review Card */
+.g-review-card {
+  width: clamp(320px, 28vw, 420px);
+  background: #FFFFFF;
+  border-radius: 22px;
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid #E5E5EA;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  transition: transform 280ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 280ms ease, border-color 280ms ease;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.g-review-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.08);
+  border-color: rgba(201, 162, 75, 0.4);
+}
+
+.g-review-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.g-review-source-pill {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #6E6E73;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.g-review-stars-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.g-review-stars {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: #FBBC05;
+}
+
+.g-review-date {
+  font-size: 12px;
+  color: #86868B;
+  font-weight: 500;
+}
+
+.g-review-content {
+  font-size: 14.5px;
+  line-height: 1.62;
+  color: #1D1D1F;
+  margin: 0 0 20px;
+  font-style: italic;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  transition: all 200ms ease;
+}
+
+.g-review-card:hover .g-review-content {
+  -webkit-line-clamp: unset;
+}
+
+/* Card Bottom & Profile */
+.g-review-profile-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 18px;
+  border-top: 1px solid #F0F0F2;
+  gap: 12px;
+}
+
+.g-review-author {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.g-review-avatar-fallback {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  background: linear-gradient(135deg, #C9A24B, #E8C170);
+  color: #1D1D1F;
+  box-shadow: 0 2px 8px rgba(201, 162, 75, 0.25);
+}
+
+.g-review-author-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1D1D1F;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.g-review-local-guide-star {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(249, 171, 0, 0.15);
+  color: #D98E04;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.g-review-author-badge {
+  font-size: 11.5px;
+  color: #86868B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.g-review-helpful {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #86868B;
+  flex-shrink: 0;
+}
+
+/* Hover-revealed Details Pill */
+.g-review-hover-reveal {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 320ms ease, opacity 320ms ease, margin-top 320ms ease;
+}
+
+.g-review-card:hover .g-review-hover-reveal {
+  max-height: 70px;
+  opacity: 1;
+  margin-top: 14px;
+}
+
+.g-review-hover-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px dashed #E5E5EA;
+}
+
+.g-review-category-tag {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #3A3A6E;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.g-review-verified-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 980px;
+  background: #3A3A6E;
+  color: #FFFFFF;
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 180ms ease, background 180ms ease;
+}
+
+.g-review-verified-btn:hover {
+  background: #232347;
+  transform: scale(1.04);
+}

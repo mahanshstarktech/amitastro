@@ -7,6 +7,8 @@ import {
 import { apiRequest } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { YouTubeShowcase } from '../../components/home/YouTubeShowcase';
+import { CustomerReviewsShowcase } from '../../components/home/CustomerReviewsShowcase';
 
 interface HomePageProps {
   onOpenBooking: (pkgId?: string) => void;
@@ -90,30 +92,6 @@ export const HomePage: React.FC<HomePageProps> = ({
       num: '04',
       title: '1-on-1 Consultation',
       desc: 'Receive deep clarity, honest answers, and practical remedies tailored to your planetary periods.'
-    }
-  ];
-
-  const testimonials = [
-    {
-      name: 'Rajiv Mehra',
-      city: 'Mumbai',
-      quote: 'Amit ji’s breakdown of my Saturn Mahadasha removed all anxiety. His guidance is grounded, scientific, and remarkably serene — completely unlike the sensationalism on television.',
-      rating: 5,
-      service: 'Kundli & Dasha Consultation'
-    },
-    {
-      name: 'Dr. Ananya Sen',
-      city: 'Bengaluru',
-      quote: 'We consulted Amit ji for our clinic layout in Whitefield. The subtle Vastu corrections he recommended without any demolition brought remarkable positive shifts in patient footfall.',
-      rating: 5,
-      service: 'Commercial Vastu'
-    },
-    {
-      name: 'Siddharth & Priya',
-      city: 'London / New Delhi',
-      quote: 'Having the 7-day follow-up chat in the Premium package made all the difference. Amit ji answered all our marriage transit questions with supreme patience and warmth.',
-      rating: 5,
-      service: 'Premium Deep Consult'
     }
   ];
 
@@ -481,47 +459,11 @@ export const HomePage: React.FC<HomePageProps> = ({
         </section>
       )}
 
-      {/* TESTIMONIALS CAROUSEL (Section 4) */}
-      <section style={{ backgroundColor: '#F5F5F7', padding: '80px 0' }}>
-        <div className="container">
-          <div style={{ textAlign: 'center', marginBottom: 44 }}>
-            <span className="apple-badge-gold">Verified Client Experiences</span>
-            <h2 className="text-h1" style={{ marginTop: 8 }}>
-              Reflections from Seekers
-            </h2>
-          </div>
+      {/* YOUTUBE SHOWCASE (Landscape & Portrait Shorts) */}
+      <YouTubeShowcase />
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24 }}>
-            {testimonials.map((t) => (
-              <div
-                key={t.name}
-                className="apple-card"
-                style={{ padding: '30px 24px', backgroundColor: '#FFFFFF', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
-              >
-                <div>
-                  <div style={{ display: 'flex', gap: 4, marginBottom: 14 }}>
-                    {[...Array(t.rating)].map((_, i) => (
-                      <Star key={i} size={15} color="#C9A24B" fill="#C9A24B" />
-                    ))}
-                  </div>
-                  <p style={{ fontSize: 14.5, color: '#1D1D1F', fontStyle: 'italic', lineHeight: 1.6, marginBottom: 20 }}>
-                    "{t.quote}"
-                  </p>
-                </div>
-
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 15, color: '#1D1D1F' }}>
-                    {t.name}
-                  </div>
-                  <div style={{ fontSize: 12.5, color: '#6E6E73' }}>
-                    {t.city} · {t.service}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* GOOGLE CUSTOMER REVIEWS (Reflections from Seekers) */}
+      <CustomerReviewsShowcase />
 
       {/* PRICING TEASER WITH DECOY EFFECT (Section 4 & 13) */}
       <section className="section-padding">

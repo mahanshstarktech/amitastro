@@ -1,4 +1,6 @@
-/* Nakshaktram Global Resets & Foundation */
+@import './styles/showcase.css';
+
+/* Amit Astro Global Resets & Foundation */
 #root {
   width: 100%;
   min-height: 100vh;

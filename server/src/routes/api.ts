@@ -8,8 +8,12 @@ import * as chatCtrl from '../controllers/chatController';
 import * as trialCtrl from '../controllers/trialController';
 import * as blogCtrl from '../controllers/blogController';
 import * as adminCtrl from '../controllers/adminController';
+import * as youtubeCtrl from '../controllers/youtubeController';
 
 const router = Router();
+
+// YouTube Showcase
+router.get('/youtube', youtubeCtrl.getYoutubeVideos);
 
 // 1. Auth Routes
 router.post('/auth/send-otp', authCtrl.sendOtp);
