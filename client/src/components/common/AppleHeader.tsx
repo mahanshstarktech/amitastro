@@ -46,7 +46,12 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 15);
+      const y = window.scrollY;
+      setIsScrolled((prev) => {
+        if (!prev && y > 24) return true;
+        if (prev && y < 8) return false;
+        return prev;
+      });
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
 
@@ -101,14 +106,14 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
         position: 'sticky',
         top: 0,
         zIndex: 1000,
-        height: isScrolled ? 58 : 68,
-        transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+        height: 62,
+        transition: 'background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease',
         display: 'flex',
         alignItems: 'center',
-        backgroundColor: isScrolled ? 'rgba(255, 255, 255, 0.82)' : 'rgba(255, 255, 255, 0.74)',
+        backgroundColor: isScrolled ? 'rgba(255, 255, 255, 0.85)' : 'rgba(255, 255, 255, 0.74)',
         backdropFilter: 'blur(20px) saturate(180%)',
         WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-        borderBottom: '1px solid rgba(0, 0, 0, 0.07)',
+        borderBottom: isScrolled ? '1px solid rgba(0, 0, 0, 0.08)' : '1px solid rgba(0, 0, 0, 0.05)',
         boxShadow: isScrolled ? '0 4px 20px rgba(0, 0, 0, 0.03)' : '0 1px 0 rgba(0, 0, 0, 0.02)'
       }}
     >
@@ -819,7 +824,7 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
             onClick={onOpenBooking}
             className="apple-btn-primary top-book-btn"
             style={{
-              padding: isScrolled ? '7px 16px' : '9px 20px',
+              padding: '8px 18px',
               fontSize: 14,
               boxShadow: '0 4px 14px rgba(58, 58, 110, 0.2)',
               whiteSpace: 'nowrap'
