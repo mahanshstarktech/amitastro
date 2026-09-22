@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: nakshaktram-api
+    name: amitastro-api
     env: node
     plan: free
     rootDir: server

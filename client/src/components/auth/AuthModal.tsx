@@ -287,7 +287,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setIsLoading(true);
     try {
       if (asAdmin) {
-        await login('admin@nakshaktram.com', 'Nakshaktram@2026');
+        await login('admin@amitastro.com', 'AmitAstro@2026');
         showToast('Signed in as Astrologer Amit', 'success');
       } else {
         await login('priya.sharma@example.com', 'Customer@123');

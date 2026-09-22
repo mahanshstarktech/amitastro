@@ -34,7 +34,7 @@ app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 app.get('/health', (req: Request, res: Response) => {
   res.json({
     status: 'ok',
-    service: 'Nakshaktram API',
+    service: 'Amit Astro API',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development'
   });
@@ -87,7 +87,7 @@ initDatabase().then(() => {
   server.listen(PORT, () => {
     console.log(`
 ======================================================
-✨ Nakshaktram Backend Running on port ${PORT}
+✨ Amit Astro Backend Running on port ${PORT}
 ✨ Health Check: http://localhost:${PORT}/health
 ✨ API Base URL: http://localhost:${PORT}/api
 ✨ Socket.io Active for Realtime WhatsApp-style Chat

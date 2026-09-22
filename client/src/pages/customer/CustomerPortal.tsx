@@ -894,12 +894,12 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
             >
               <div style={{ textAlign: 'center' }}>
                 <img
-                  src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=nakshaktram@upi&pn=Amit%20Astro"
+                  src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=amitastro@upi&pn=Amit%20Astro"
                   alt="UPI QR Code"
                   style={{ width: 140, height: 140, borderRadius: 12, border: '1px solid #E5E5EA', backgroundColor: '#FFF' }}
                 />
                 <div style={{ fontSize: 13, fontWeight: 600, color: '#1D1D1F', marginTop: 8 }}>
-                  nakshaktram@upi
+                  amitastro@upi
                 </div>
                 <div style={{ fontSize: 12, color: '#6E6E73' }}>
                   Scan with GPay, PhonePe, Paytm, BHIM

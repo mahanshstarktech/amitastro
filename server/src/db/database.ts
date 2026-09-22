@@ -541,19 +541,22 @@ async function initSqliteSchema() {
 }
 
 async function seedInitialData() {
+  // Update legacy admin email to admin@amitastro.com
+  await runQuery("UPDATE users SET email = 'admin@amitastro.com', name = 'Amit' WHERE email = 'admin@nakshaktram.com'").catch(() => {});
+
   const adminExists = await getOne('SELECT id FROM users WHERE role = ?', ['admin']);
   if (!adminExists) {
-    console.log('Seeding initial Nakshaktram platform records...');
+    console.log('Seeding initial Amit Astro platform records...');
 
     const salt = await bcrypt.genSalt(10);
-    const adminPasswordHash = await bcrypt.hash('Nakshaktram@2026', salt);
+    const adminPasswordHash = await bcrypt.hash('AmitAstro@2026', salt);
     const customerPasswordHash = await bcrypt.hash('Customer@123', salt);
 
     // Admin Amit
     await runQuery(`
       INSERT INTO users (id, name, email, phone, password_hash, role, is_phone_verified, is_new_customer)
       VALUES (?, ?, ?, ?, ?, ?, 1, 0)
-    `, ['admin-amit-soni', 'Amit', 'admin@nakshaktram.com', '+919876543210', adminPasswordHash, 'admin']);
+    `, ['admin-amit', 'Amit', 'admin@amitastro.com', '+919876543210', adminPasswordHash, 'admin']);
 
     // Demo Customer (Priya Sharma)
     await runQuery(`

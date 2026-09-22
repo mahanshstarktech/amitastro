@@ -16,7 +16,7 @@ export async function sendRealSmsOtp(phone: string, code: string): Promise<{ suc
       const postData = new URLSearchParams({
         To: phone,
         From: twilioFrom,
-        Body: `Your Nakshaktram verification code is ${code}. Valid for 90 seconds.`
+        Body: `Your Amit Astro verification code is ${code}. Valid for 90 seconds.`
       }).toString();
 
       await makeHttpsRequest({
@@ -72,16 +72,16 @@ export async function sendRealEmailOtp(email: string, code: string): Promise<{ s
   const resendApiKey = process.env.RESEND_API_KEY;
   if (resendApiKey) {
     try {
-      const fromEmail = process.env.EMAIL_FROM || 'Nakshaktram <onboarding@resend.dev>';
+      const fromEmail = process.env.EMAIL_FROM || 'Amit Astro <onboarding@resend.dev>';
       const postData = JSON.stringify({
         from: fromEmail,
         to: [email],
-        subject: `${code} is your Nakshaktram verification code`,
+        subject: `${code} is your Amit Astro verification code`,
         html: `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; border: 1px solid #E5E5EA; borderRadius: 16px; backgroundColor: #FFFFFF;">
             <div style="text-align: center; margin-bottom: 20px;">
-              <h2 style="color: #3A3A6E; margin: 0; font-size: 22px;">Nakshaktram</h2>
-              <p style="color: #6E6E73; font-size: 13px; margin-top: 4px;">Vedic Astrology & Vastu Consultation</p>
+              <h2 style="color: #1D1D1F; margin: 0; font-size: 22px;">Amit Astro</h2>
+              <p style="color: #6E6E73; font-size: 13px; margin-top: 4px;">Vedic Astrology & Vastu Consultation by Amit</p>
             </div>
             <p style="color: #1D1D1F; font-size: 15px; line-height: 1.5;">Namaste,</p>
             <p style="color: #1D1D1F; font-size: 14px; line-height: 1.5;">Use the following 6-digit one-time code to verify your email and access your astrological portal:</p>
@@ -116,11 +116,11 @@ export async function sendRealEmailOtp(email: string, code: string): Promise<{ s
   const brevoApiKey = process.env.BREVO_API_KEY;
   if (brevoApiKey) {
     try {
-      const fromEmail = process.env.EMAIL_FROM || 'contact@nakshaktram.com';
+      const fromEmail = process.env.EMAIL_FROM || 'contact@amitastro.com';
       const postData = JSON.stringify({
-        sender: { name: 'Nakshaktram', email: fromEmail },
+        sender: { name: 'Amit Astro', email: fromEmail },
         to: [{ email }],
-        subject: `Your Nakshaktram verification code: ${code}`,
+        subject: `Your Amit Astro verification code: ${code}`,
         htmlContent: `<p>Your verification code is <strong>${code}</strong> (valid for 90 seconds).</p>`
       });
 
@@ -149,7 +149,7 @@ export async function sendRealEmailOtp(email: string, code: string): Promise<{ s
 }
 
 /**
- * Real Telegram Notification Service for Astrologer Amit Soni
+ * Real Telegram Notification Service for Astrologer Amit
  * Dispatches live booking requests and payment proofs straight to Amit's Telegram.
  */
 export async function sendTelegramAdminAlert(messageText: string): Promise<boolean> {
@@ -164,7 +164,7 @@ export async function sendTelegramAdminAlert(messageText: string): Promise<boole
   try {
     const postData = JSON.stringify({
       chat_id: chatId,
-      text: `✨ *Nakshaktram Alert*\n\n${messageText}`,
+      text: `✨ *Amit Astro Alert*\n\n${messageText}`,
       parse_mode: 'Markdown'
     });
 
@@ -178,7 +178,7 @@ export async function sendTelegramAdminAlert(messageText: string): Promise<boole
       }
     }, postData);
 
-    console.log('[Telegram Alert Sent Successfully to Amit Soni]');
+    console.log('[Telegram Alert Sent Successfully to Amit]');
     return true;
   } catch (err: any) {
     console.error('[Telegram Notification Error]:', err.message);
@@ -199,7 +199,7 @@ export function generateRealUpiIntent(data: {
 }): { intentUrl: string; qrUrl: string } {
   const { vpa, name, amount, transactionRef, notes } = data;
   const encodedName = encodeURIComponent(name);
-  const encodedNotes = encodeURIComponent(notes || 'Nakshaktram Consultation');
+  const encodedNotes = encodeURIComponent(notes || 'Amit Astro Consultation');
   
   // Standard NPCI UPI Intent Format
   const intentUrl = `upi://pay?pa=${vpa}&pn=${encodedName}&mc=0000&tr=${transactionRef}&tn=${encodedNotes}&am=${amount}&cu=INR`;

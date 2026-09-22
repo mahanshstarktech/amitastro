@@ -1,7 +1,7 @@
 {
-  "name": "nakshaktram-server",
+  "name": "amitastro-server",
   "version": "1.0.0",
-  "description": "Backend API & WebSockets for Nakshaktram Astrology Platform",
+  "description": "Backend API & WebSockets for Amit Astro Astrology Platform",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",

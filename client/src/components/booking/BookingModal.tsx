@@ -566,7 +566,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, backgroundColor: '#F5F5F7', borderRadius: 18, padding: '18px 20px', marginBottom: 20, border: '1px solid #E5E5EA' }}>
               <div style={{ textAlign: 'center', flex: '0 0 140px', margin: '0 auto' }}>
                 <img
-                  src={paymentConfig?.upi?.qrImage || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=${paymentConfig?.upi?.vpa || 'nakshaktram@upi'}&pn=Amit%20Astro&am=${currentPkg.price}`}
+                  src={paymentConfig?.upi?.qrImage || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=${paymentConfig?.upi?.vpa || 'amitastro@upi'}&pn=Amit%20Astro&am=${currentPkg.price}`}
                   alt="UPI QR Code"
                   style={{ width: 130, height: 130, borderRadius: 12, border: '1px solid #E5E5EA', backgroundColor: '#FFF' }}
                 />
@@ -577,7 +577,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               <div style={{ flex: 1, minWidth: 200, fontSize: 13, display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <div>
                   <div style={{ color: '#86868B', fontSize: 11, textTransform: 'uppercase' }}>UPI ID (VPA)</div>
-                  <strong style={{ color: '#1D1D1F', fontSize: 14 }}>{paymentConfig?.upi?.vpa || 'nakshaktram@upi'}</strong>
+                  <strong style={{ color: '#1D1D1F', fontSize: 14 }}>{paymentConfig?.upi?.vpa || 'amitastro@upi'}</strong>
                 </div>
                 <div>
                   <div style={{ color: '#86868B', fontSize: 11, textTransform: 'uppercase' }}>Bank Account</div>

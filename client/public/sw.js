@@ -1,8 +1,8 @@
-const CACHE_NAME = 'nakshaktram-pwa-v1';
+const CACHE_NAME = 'amitastro-pwa-v2';
 const PRECACHE_URLS = [
   '/',
-  '/index.html',
-  '/manifest.webmanifest'
+  'index.html',
+  'manifest.webmanifest'
 ];
 
 self.addEventListener('install', (event) => {
@@ -60,7 +60,7 @@ self.addEventListener('fetch', (event) => {
 // Push Notification Listener (Section 9)
 self.addEventListener('push', (event) => {
   const data = event.data ? event.data.json() : {};
-  const title = data.title || 'Nakshaktram Update';
+  const title = data.title || 'Amit Astro Update';
   const options = {
     body: data.body || 'You have an update regarding your consultation.',
     icon: '/icons/icon-192.png',

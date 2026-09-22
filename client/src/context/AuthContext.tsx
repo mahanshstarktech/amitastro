@@ -50,10 +50,26 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const TOKEN_KEY = 'amitastro_token';
+const LEGACY_TOKEN_KEY = 'nakshaktram_token';
+
+function getStoredToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY) || localStorage.getItem(LEGACY_TOKEN_KEY);
+}
+
+function setStoredToken(token: string) {
+  localStorage.setItem(TOKEN_KEY, token);
+}
+
+function clearStoredToken() {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(LEGACY_TOKEN_KEY);
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profiles, setProfiles] = useState<BirthProfile[]>([]);
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem('nakshaktram_token'));
+  const [token, setToken] = useState<string | null>(getStoredToken);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Load user profile if token exists
@@ -69,7 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(res.user);
       setProfiles(res.profiles || []);
     } catch {
-      localStorage.removeItem('nakshaktram_token');
+      clearStoredToken();
       setToken(null);
       setUser(null);
       setProfiles([]);
@@ -87,7 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       method: 'POST',
       body: JSON.stringify({ email, password })
     });
-    localStorage.setItem('nakshaktram_token', res.token);
+    setStoredToken(res.token);
     setToken(res.token);
     setUser(res.user);
     setProfiles(res.profiles || []);
@@ -98,7 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       method: 'POST',
       body: JSON.stringify(googleData)
     });
-    localStorage.setItem('nakshaktram_token', res.token);
+    setStoredToken(res.token);
     setToken(res.token);
     setUser(res.user);
     setProfiles(res.profiles || []);
@@ -128,7 +144,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       method: 'POST',
       body: JSON.stringify(data)
     });
-    localStorage.setItem('nakshaktram_token', res.token);
+    setStoredToken(res.token);
     setToken(res.token);
     setUser(res.user);
     setProfiles(res.profiles || []);
@@ -139,14 +155,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       method: 'POST',
       body: JSON.stringify(data)
     });
-    localStorage.setItem('nakshaktram_token', res.token);
+    setStoredToken(res.token);
     setToken(res.token);
     setUser(res.user);
     setProfiles(res.profiles || []);
   };
 
   const logout = () => {
-    localStorage.removeItem('nakshaktram_token');
+    clearStoredToken();
     setToken(null);
     setUser(null);
     setProfiles([]);

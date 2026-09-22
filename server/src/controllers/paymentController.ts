@@ -6,7 +6,7 @@ import { generateRealUpiIntent, sendTelegramAdminAlert } from '../services/realS
 
 export const getPaymentConfig = (req: any, res: Response) => {
   const amount = parseFloat(req.query.amount as string) || 1799;
-  const vpa = process.env.UPI_VPA || 'nakshaktram@upi';
+  const vpa = process.env.UPI_VPA || 'amitastro@upi';
   const name = process.env.UPI_NAME || 'Amit (Amit Astro Consultations)';
 
   const { intentUrl, qrUrl } = generateRealUpiIntent({
