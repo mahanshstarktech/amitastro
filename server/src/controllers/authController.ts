@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getOne, runQuery, getAll } from '../db/database';
 import { sendRealSmsOtp, sendRealEmailOtp } from '../services/realServices';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'nakshaktram_secret_jwt_key_2026';
+const JWT_SECRET = process.env.JWT_SECRET || 'amitastro_secret_jwt_key_2026';
 
 export const sendOtp = async (req: Request, res: Response) => {
   try {

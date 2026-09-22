@@ -21,7 +21,7 @@ if (isPostgres) {
   if (!fs.existsSync(DB_DIR)) {
     fs.mkdirSync(DB_DIR, { recursive: true });
   }
-  const DB_PATH = process.env.DATABASE_PATH || path.join(DB_DIR, 'nakshaktram.db');
+  const DB_PATH = process.env.DATABASE_PATH || path.join(DB_DIR, 'amitastro.db');
   sqliteDb = new sqlite3.Database(DB_PATH, (err) => {
     if (err) {
       console.error('Error opening SQLite database:', err.message);
@@ -755,13 +755,13 @@ The South-East is governed by the Fire element (*Agni*). Placing your cooking ar
     const sampleChatId = 'conv-priya';
     await runQuery(`
       INSERT INTO chat_conversations (id, customer_id, admin_id, is_locked, unread_admin_count, unread_customer_count)
-      VALUES (?, ?, 'admin-amit-soni', 0, 1, 0)
+      VALUES (?, ?, 'admin-amit', 0, 1, 0)
     `, [sampleChatId, 'cust-priya-sharma']);
 
     await runQuery(`
       INSERT INTO chat_messages (id, conversation_id, sender_type, sender_id, message_type, content, is_read)
       VALUES 
-        ('msg-1', ?, 'admin', 'admin-amit-soni', 'text', 'Namaste Priya ji! Welcome to Nakshaktram. I have received your birth details and request. Looking forward to our session.', 1),
+        ('msg-1', ?, 'admin', 'admin-amit', 'text', 'Namaste Priya ji! Welcome to Amit Astro. I have received your birth details and request. Looking forward to our session.', 1),
         ('msg-2', ?, 'customer', 'cust-priya-sharma', 'text', 'Namaste Amit ji, thank you so much! I have submitted the payment UTR as well. Should I prepare any specific questions beforehand?', 0)
     `, [sampleChatId, sampleChatId]);
 
