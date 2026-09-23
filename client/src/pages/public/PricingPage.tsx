@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Check, Star, Sparkles, Calendar, ShieldCheck, HelpCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useCountry } from '../../context/CountryContext';
+import { CountrySelectorModal } from '../../components/common/CountrySelectorModal';
 
 interface PricingPageProps {
   onOpenBooking: (pkgId?: string) => void;
@@ -11,6 +13,8 @@ interface PricingPageProps {
 export const PricingPage: React.FC<PricingPageProps> = ({ onOpenBooking, onOpenTrial }) => {
   const { isAuthenticated, user } = useAuth();
   const { t } = useLanguage();
+  const { countryInfo } = useCountry();
+  const [isCountryModalOpen, setIsCountryModalOpen] = useState(false);
   const showTrialCTA = !isAuthenticated || (!!user?.isNewCustomer && !user?.trialUsed);
 
   return (
@@ -18,8 +22,30 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenBooking, onOpenT
       {/* Header */}
       <section style={{ backgroundColor: '#F5F5F7', padding: '64px 0 48px', borderBottom: '1px solid #E5E5EA', textAlign: 'center' }}>
         <div className="container">
-          <span className="apple-badge-gold">Transparent, Fixed Investments</span>
-          <h1 className="text-display" style={{ fontSize: 44, marginTop: 10, marginBottom: 12 }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <span className="apple-badge-gold">Transparent, Fixed Investments</span>
+            <button
+              type="button"
+              onClick={() => setIsCountryModalOpen(true)}
+              style={{
+                background: '#FFFFFF',
+                border: '1px solid #E5E5EA',
+                borderRadius: 9999,
+                padding: '4px 12px',
+                fontSize: 12,
+                fontWeight: 600,
+                color: '#3A3A6E',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6
+              }}
+            >
+              <span>{countryInfo.flagEmoji}</span>
+              <span>{countryInfo.name} ({countryInfo.currency}) · Change</span>
+            </button>
+          </div>
+          <h1 className="text-display" style={{ fontSize: 44, marginTop: 4, marginBottom: 12 }}>
             {t('pricing.title', 'Consultation Packages')}
           </h1>
           <p className="text-body-large" style={{ maxWidth: 640, margin: '0 auto' }}>
@@ -53,7 +79,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenBooking, onOpenT
               </div>
 
               <div style={{ padding: '8px 12px', backgroundColor: '#F5F5F7', borderRadius: 8, fontSize: 12, color: '#6E6E73', marginBottom: 20 }}>
-                Cost/Min: <strong>₹0.00</strong> (1 per verified phone)
+                Cost/Min: <strong>Free</strong> (1 per verified phone)
               </div>
 
               <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13.5 }}>
@@ -79,7 +105,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenBooking, onOpenT
               </button>
             ) : (
               <button
-                onClick={() => onOpenBooking('pkg-focused')}
+                onClick={() => onOpenBooking('pkg-quick')}
                 className="apple-btn-secondary"
                 style={{ width: '100%', marginTop: 28, padding: 12, opacity: 0.85 }}
               >
@@ -96,14 +122,14 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenBooking, onOpenT
               </span>
               <h3 style={{ fontSize: 22, fontWeight: 700, margin: '8px 0 6px' }}>Quick Consult</h3>
               <div style={{ fontSize: 32, fontWeight: 700, color: '#1D1D1F', marginBottom: 4 }}>
-                ₹500
+                {countryInfo.prices.quick.formatted}
               </div>
-              <div style={{ fontSize: 13, color: '#6E6E73', marginBottom: 20 }}>
-                15-Minute Dedicated Call
+              <div style={{ fontSize: 13, color: '#6E6E73', marginBottom: 8 }}>
+                {countryInfo.prices.quick.label}
               </div>
 
               <div style={{ padding: '8px 12px', backgroundColor: '#F5F5F7', borderRadius: 8, fontSize: 12, color: '#6E6E73', marginBottom: 20 }}>
-                Cost/Min: <strong>₹33.33</strong>
+                Cost/Min: <strong>{countryInfo.prices.quick.costPerMin}</strong>
               </div>
 
               <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13.5 }}>
@@ -136,14 +162,14 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenBooking, onOpenT
               </span>
               <h3 style={{ fontSize: 22, fontWeight: 700, margin: '8px 0 6px' }}>Standard Consult</h3>
               <div style={{ fontSize: 32, fontWeight: 700, color: '#1D1D1F', marginBottom: 4 }}>
-                ₹999
+                {countryInfo.prices.standard.formatted}
               </div>
-              <div style={{ fontSize: 13, color: '#6E6E73', marginBottom: 20 }}>
-                30-Minute Comprehensive Call
+              <div style={{ fontSize: 13, color: '#6E6E73', marginBottom: 8 }}>
+                {countryInfo.prices.standard.label}
               </div>
 
               <div style={{ padding: '8px 12px', backgroundColor: '#F5F5F7', borderRadius: 8, fontSize: 12, color: '#6E6E73', marginBottom: 20 }}>
-                Cost/Min: <strong>₹33.30</strong>
+                Cost/Min: <strong>{countryInfo.prices.standard.costPerMin}</strong>
               </div>
 
               <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13.5 }}>
@@ -205,14 +231,14 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenBooking, onOpenT
               </span>
               <h3 style={{ fontSize: 24, fontWeight: 700, margin: '8px 0 6px' }}>Premium Deep Consult</h3>
               <div style={{ fontSize: 36, fontWeight: 700, color: '#1D1D1F', marginBottom: 4 }}>
-                ₹1,799
+                {countryInfo.prices.premium.formatted}
               </div>
-              <div style={{ fontSize: 13, color: '#2FA84F', fontWeight: 600, marginBottom: 20 }}>
-                45–60 Min Call + Remedies PDF
+              <div style={{ fontSize: 13, color: '#2FA84F', fontWeight: 600, marginBottom: 8 }}>
+                {countryInfo.prices.premium.label}
               </div>
 
               <div style={{ padding: '8px 12px', backgroundColor: 'rgba(47, 168, 79, 0.1)', borderRadius: 8, fontSize: 12, color: '#2FA84F', fontWeight: 600, marginBottom: 20 }}>
-                Cost/Min: Only ₹29.98 (Lowest & Best Value)
+                Cost/Min: <strong>{countryInfo.prices.premium.costPerMin}</strong>
               </div>
 
               <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 11, fontSize: 13.5 }}>
@@ -229,7 +255,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenBooking, onOpenT
                   <Check size={16} color="#2FA84F" /> Priority slot confirmation
                 </li>
                 <li style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Check size={16} color="#2FA84F" /> Family chart brief glance
+                  <Check size={16} color="#2FA84F" /> Spatial Vastu recommendations
                 </li>
               </ul>
             </div>
@@ -274,6 +300,11 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenBooking, onOpenT
           </div>
         </div>
       </div>
+
+      <CountrySelectorModal
+        isOpen={isCountryModalOpen}
+        onClose={() => setIsCountryModalOpen(false)}
+      />
     </div>
   );
 };

@@ -491,68 +491,190 @@ body {
   50% { opacity: 0.7; transform: scale(1.15); }
 }
 
+@media (max-width: 1024px) {
+  .hero-articles-cta {
+    display: none !important;
+  }
+}
+
 @media (max-width: 768px) {
   .hero-profile-card {
     flex-direction: column;
-    align-items: stretch;
-    padding: 16px 16px;
+    align-items: center;
+    padding: 18px 20px;
     gap: 14px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
   }
 
   .hero-profile-info {
     width: 100%;
-    gap: 12px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
   }
 
   .hero-profile-avatar {
-    width: 52px;
-    height: 52px;
+    width: 50px;
+    height: 50px;
     border-radius: 14px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   }
 
   .hero-profile-name {
-    font-size: 16.5px;
+    font-size: 16px;
+    font-weight: 700;
   }
 
   .hero-profile-tagline {
     font-size: 12.5px;
+    color: #6E6E73;
+    margin: 2px 0 3px;
+  }
+
+  .hero-profile-stars {
+    font-size: 12px;
   }
 
   .hero-profile-badge {
-    text-align: left;
+    text-align: center;
     width: 100%;
-    background: rgba(47, 168, 79, 0.08);
-    border: 1px solid rgba(47, 168, 79, 0.22);
-    border-radius: 12px;
-    padding: 10px 14px;
+    background: rgba(47, 168, 79, 0.06);
+    border: 1px solid rgba(47, 168, 79, 0.18);
+    border-radius: 980px;
+    padding: 6px 14px;
     flex-direction: row;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     gap: 8px;
   }
 
   .hero-profile-badge-title {
-    color: #248A3D;
-    font-size: 11px;
-    white-space: nowrap;
+    display: none;
   }
 
   .hero-profile-badge-slots {
-    font-size: 12.5px;
-    justify-content: flex-end;
-    color: #1D1D1F;
-    text-align: right;
+    font-size: 12px;
+    color: #1E7E34;
+    font-weight: 600;
+    justify-content: center;
   }
 }
 
 /* ==========================================================================
-   Trust Metrics Bar (Aligned & Responsive)
+   Trust Metrics Bar (Aligned & Responsive + Ambient Flag Watermark)
    ========================================================================== */
 .trust-metrics-section {
+  position: relative;
   background-color: #F5F5F7;
   border-top: 1px solid #E5E5EA;
   border-bottom: 1px solid #E5E5EA;
-  padding: 38px 0;
+  padding: 44px 0 42px;
+  overflow: hidden;
+}
+
+.trust-flag-ambient-container {
+  position: relative;
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.trust-flag-glow {
+  position: absolute;
+  top: -50px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 900px;
+  height: 260px;
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(46px);
+  opacity: 0.65;
+  transition: all 0.5s ease;
+}
+
+.trust-flag-watermark-wrap {
+  position: absolute;
+  top: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 320px;
+  height: 180px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.12;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 24px;
+  mask-image: radial-gradient(ellipse at center, rgba(0, 0, 0, 1) 20%, rgba(0, 0, 0, 0) 80%);
+  -webkit-mask-image: radial-gradient(ellipse at center, rgba(0, 0, 0, 1) 20%, rgba(0, 0, 0, 0) 80%);
+  transition: opacity 0.3s ease;
+}
+
+.trust-flag-watermark-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(0.5px) contrast(1.1);
+}
+
+.trust-flag-feather-overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, transparent 40%, #F5F5F7 95%);
+}
+
+.trust-flag-pill-wrap {
+  position: relative;
+  z-index: 1;
+}
+
+.country-indicator-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 980px;
+  font-size: 12.5px;
+  color: #1D1D1F;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.country-indicator-pill:hover {
+  background: #FFFFFF;
+  border-color: #3A3A6E;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(58, 58, 110, 0.1);
+}
+
+.country-pill-flag {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.country-pill-text {
+  color: #48484A;
+}
+
+.country-pill-action {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #3A3A6E;
+  padding-left: 6px;
+  border-left: 1px solid #E5E5EA;
 }
 
 .trust-metrics-grid {
@@ -1107,6 +1229,82 @@ body {
   .portal-desktop-sidebar {
     display: none !important;
   }
+}
+
+/* ==========================================================================
+   CONSULTATION PACKAGES: DUAL-MODE LAYOUT (Desktop Grid vs Mobile/Tab Shelf)
+   ========================================================================== */
+.packages-desktop-wrap {
+  display: block;
+}
+
+.packages-mobile-wrap {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .packages-desktop-wrap {
+    display: none !important;
+  }
+  .packages-mobile-wrap {
+    display: block !important;
+  }
+}
+
+.packages-desktop-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  max-width: 1120px;
+  margin: 0 auto;
+  align-items: stretch;
+}
+
+.packages-mobile-shelf-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.apple-packages-shelf {
+  display: flex;
+  gap: 18px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 12px 4px 28px;
+}
+
+.apple-packages-shelf::-webkit-scrollbar {
+  display: none;
+}
+
+.apple-package-card {
+  flex: 0 0 clamp(290px, 82vw, 360px);
+  scroll-snap-align: start;
+  background: #FFFFFF;
+  border: 1px solid #E5E5EA;
+  border-radius: 24px;
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  position: relative;
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+@media (hover: hover) and (min-width: 1025px) {
+  .apple-package-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.08);
+  }
+}
+
+.apple-package-popular {
+  border: 2px solid #C9A24B !important;
+  box-shadow: 0 12px 36px rgba(201, 162, 75, 0.15) !important;
 }
 
 

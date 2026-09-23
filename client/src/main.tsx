@@ -6,15 +6,18 @@ import { App } from './App';
 import { AuthProvider } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { LanguageProvider } from './context/LanguageContext';
+import { CountryProvider } from './context/CountryContext';
 
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <LanguageProvider>
-      <NotificationProvider>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
-      </NotificationProvider>
+      <CountryProvider>
+        <NotificationProvider>
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+        </NotificationProvider>
+      </CountryProvider>
     </LanguageProvider>
   </React.StrictMode>,
 );

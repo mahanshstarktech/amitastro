@@ -4,6 +4,7 @@ import confetti from 'canvas-confetti';
 import { apiRequest } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
+import { useCountry } from '../../context/CountryContext';
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -22,6 +23,23 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 }) => {
   const { user, profiles, addProfile, isAuthenticated } = useAuth();
   const { showToast } = useNotification();
+  const { countryInfo } = useCountry();
+
+  const getPackageFormattedPrice = (pkg: any) => {
+    if (!pkg) return '';
+    if (pkg.id === 'pkg-quick') return countryInfo.prices.quick.formatted;
+    if (pkg.id === 'pkg-standard') return countryInfo.prices.standard.formatted;
+    if (pkg.id === 'pkg-premium') return countryInfo.prices.premium.formatted;
+    return `${countryInfo.currencySymbol}${pkg.price}`;
+  };
+
+  const getPackageAmount = (pkg: any) => {
+    if (!pkg) return 0;
+    if (pkg.id === 'pkg-quick') return countryInfo.prices.quick.amount;
+    if (pkg.id === 'pkg-standard') return countryInfo.prices.standard.amount;
+    if (pkg.id === 'pkg-premium') return countryInfo.prices.premium.amount;
+    return pkg.price;
+  };
 
   const defaultDate = (() => {
     const d = new Date();
@@ -325,7 +343,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                           ) : null}
                           <div style={{ fontWeight: 600, fontSize: 13, color: '#1D1D1F' }}>{pkg.name}</div>
                           <div style={{ fontSize: 16, fontWeight: 700, color: '#3A3A6E', margin: '4px 0 2px' }}>
-                            ₹{pkg.price.toLocaleString('en-IN')}
+                            {getPackageFormattedPrice(pkg)}
                           </div>
                           <div style={{ fontSize: 11, color: '#6E6E73' }}>{pkg.duration_minutes} Min</div>
                           {pkg.followupDays > 0 && (
@@ -526,7 +544,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     </div>
                   </div>
                   <div style={{ fontWeight: 700, fontSize: 18, color: '#3A3A6E' }}>
-                    ₹{currentPkg.price.toLocaleString('en-IN')}
+                    {getPackageFormattedPrice(currentPkg)}
                   </div>
                 </div>
               )}
@@ -544,7 +562,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   ? 'Loading...'
                   : currentPkg.price === 0
                   ? 'Confirm Complimentary Trial Request'
-                  : `Proceed to Payment (₹${currentPkg.price.toLocaleString('en-IN')})`}
+                  : `Proceed to Payment (${getPackageFormattedPrice(currentPkg)})`}
               </button>
             </form>
           </div>
@@ -571,7 +589,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   style={{ width: 130, height: 130, borderRadius: 12, border: '1px solid #E5E5EA', backgroundColor: '#FFF' }}
                 />
                 <div style={{ fontSize: 11, color: '#6E6E73', marginTop: 4 }}>
-                  Amount: <strong>₹{currentPkg.price.toLocaleString('en-IN')}</strong>
+                  Amount: <strong>{getPackageFormattedPrice(currentPkg)}</strong>
                 </div>
               </div>
               <div style={{ flex: 1, minWidth: 200, fontSize: 13, display: 'flex', flexDirection: 'column', gap: 6 }}>
