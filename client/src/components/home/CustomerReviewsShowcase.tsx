@@ -366,7 +366,9 @@ export function CustomerReviewsShowcase(): React.JSX.Element {
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
         onMouseEnter={() => {
-          isHoveredRef.current = true;
+          if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(hover: hover)').matches) {
+            isHoveredRef.current = true;
+          }
         }}
         onMouseLeave={() => {
           isHoveredRef.current = false;

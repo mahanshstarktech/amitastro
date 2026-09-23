@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Sparkles, Calendar, ArrowRight, ShieldCheck, Star, Users, Award, 
-  Compass, CheckCircle2, ChevronRight, MessageSquare, Phone, BookOpen, 
-  HelpCircle, ChevronDown, Check
+  Compass, CheckCircle2, ChevronRight, ChevronLeft, MessageSquare, Phone, BookOpen, 
+  HelpCircle, ChevronDown, Check, Clock
 } from 'lucide-react';
 import { apiRequest } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
@@ -27,6 +27,14 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   const [featuredPosts, setFeaturedPosts] = useState<any[]>([]);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const shelfRef = useRef<HTMLDivElement>(null);
+
+  const scrollShelf = (direction: 'left' | 'right') => {
+    if (shelfRef.current) {
+      const scrollAmount = direction === 'left' ? -380 : 380;
+      shelfRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
 
   useEffect(() => {
     apiRequest<{ posts: any[] }>('/blog/posts?featured=true&limit=3')
@@ -76,22 +84,38 @@ export const HomePage: React.FC<HomePageProps> = ({
     {
       num: '01',
       title: 'Share Birth Details',
-      desc: 'Enter exact date, time, and city of birth in your private profile for accurate chart casting.'
+      desc: 'Enter exact date, time, and city of birth in your private profile for accurate chart casting.',
+      icon: Compass,
+      bg: 'rgba(58, 58, 110, 0.08)',
+      color: '#3A3A6E',
+      footerText: 'Birth Chart Rectification'
     },
     {
       num: '02',
       title: 'Select Preferred Slot',
-      desc: 'Pick your preferred consultation window in your local timezone across our 6-week rolling calendar.'
+      desc: 'Pick your preferred consultation window in your local timezone across our 6-week rolling calendar.',
+      icon: Clock,
+      bg: 'rgba(201, 162, 75, 0.12)',
+      color: '#B8860B',
+      footerText: 'Rolling 6-Week Calendar'
     },
     {
       num: '03',
       title: 'Convenient Confirmation',
-      desc: 'Amit confirms the session via in-app chat or WhatsApp with verified slot coordination.'
+      desc: 'Amit confirms the session via in-app chat or WhatsApp with verified slot coordination.',
+      icon: MessageSquare,
+      bg: 'rgba(47, 168, 79, 0.1)',
+      color: '#2FA84F',
+      footerText: 'Direct Slot Coordination'
     },
     {
       num: '04',
       title: '1-on-1 Consultation',
-      desc: 'Receive deep clarity, honest answers, and practical remedies tailored to your planetary periods.'
+      desc: 'Receive deep clarity, honest answers, and practical remedies tailored to your planetary periods.',
+      icon: Sparkles,
+      bg: 'rgba(88, 86, 214, 0.1)',
+      color: '#5856D6',
+      footerText: 'Scriptural & Practical Remedies'
     }
   ];
 
@@ -186,50 +210,23 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
 
           {/* Amit Hero Profile Card */}
-          <div
-            className="apple-card"
-            style={{
-              maxWidth: 720,
-              margin: '0 auto',
-              padding: '24px 28px',
-              display: 'flex',
-              flexWrap: 'wrap',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 20,
-              backgroundColor: 'rgba(255, 255, 255, 0.92)',
-              backdropFilter: 'blur(10px)'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, textAlign: 'left' }}>
-              <div
-                style={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: 20,
-                  backgroundColor: '#FFFFFF',
-                  border: '1px solid #E5E5EA',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: 8,
-                  boxShadow: '0 4px 14px rgba(0, 0, 0, 0.08)'
-                }}
-              >
+          <div className="hero-profile-card">
+            <div className="hero-profile-info">
+              <div className="hero-profile-avatar">
                 <img
                   src="/icons/logo-mark.png"
                   alt="Amit Astro"
                   style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                 />
               </div>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: 18, color: '#1D1D1F' }}>
+              <div className="hero-profile-details">
+                <div className="hero-profile-name">
                   {t('brand.astrologer_name', 'Amit')}
                 </div>
-                <div style={{ fontSize: 13.5, color: '#6E6E73' }}>
+                <div className="hero-profile-tagline">
                   {t('brand.tagline', 'Vedic Astrology & Vastu Consultation')}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                <div className="hero-profile-stars">
                   <Star size={14} color="#C9A24B" fill="#C9A24B" />
                   <span style={{ fontSize: 12.5, fontWeight: 600, color: '#1D1D1F' }}>4.9/5</span>
                   <span style={{ fontSize: 12, color: '#86868B' }}>(1,000+ Verified Consultations)</span>
@@ -237,61 +234,55 @@ export const HomePage: React.FC<HomePageProps> = ({
               </div>
             </div>
 
-            <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <div style={{ fontSize: 12, color: '#86868B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <div className="hero-profile-badge">
+              <div className="hero-profile-badge-title">
                 Availability Today
               </div>
-              <div style={{ fontSize: 13.5, color: '#2FA84F', fontWeight: 600 }}>
-                ● Slots Open (Morning & Night Windows)
+              <div className="hero-profile-badge-slots">
+                <span className="hero-status-dot" />
+                <span>Slots Open (Morning & Night Windows)</span>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* TRUST METRICS BAR (Section 4) */}
-      <section style={{ backgroundColor: '#F5F5F7', borderTop: '1px solid #E5E5EA', borderBottom: '1px solid #E5E5EA', padding: '36px 0' }}>
+      {/* TRUST METRICS BAR (Aligned & Fully Responsive) */}
+      <section className="trust-metrics-section">
         <div className="container">
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: 24,
-              textAlign: 'center'
-            }}
-          >
-            <div>
-              <div style={{ fontSize: 32, fontWeight: 700, color: '#1D1D1F', letterSpacing: '-0.02em' }}>
+          <div className="trust-metrics-grid">
+            <div className="trust-metric-tile">
+              <div className="trust-metric-val">
                 15+ Years
               </div>
-              <div style={{ fontSize: 13.5, color: '#6E6E73', marginTop: 4 }}>
+              <div className="trust-metric-label">
                 Classical Jyotish Experience
               </div>
             </div>
 
-            <div>
-              <div style={{ fontSize: 32, fontWeight: 700, color: '#1D1D1F', letterSpacing: '-0.02em' }}>
+            <div className="trust-metric-tile">
+              <div className="trust-metric-val">
                 1,000+
               </div>
-              <div style={{ fontSize: 13.5, color: '#6E6E73', marginTop: 4 }}>
+              <div className="trust-metric-label">
                 Satisfied Clients Globally
               </div>
             </div>
 
-            <div>
-              <div style={{ fontSize: 32, fontWeight: 700, color: '#1D1D1F', letterSpacing: '-0.02em' }}>
+            <div className="trust-metric-tile">
+              <div className="trust-metric-val">
                 100%
               </div>
-              <div style={{ fontSize: 13.5, color: '#6E6E73', marginTop: 4 }}>
+              <div className="trust-metric-label">
                 Confidential & Dispassionate
               </div>
             </div>
 
-            <div>
-              <div style={{ fontSize: 32, fontWeight: 700, color: '#1D1D1F', letterSpacing: '-0.02em' }}>
+            <div className="trust-metric-tile">
+              <div className="trust-metric-val">
                 Pan-India & Abroad
               </div>
-              <div style={{ fontSize: 13.5, color: '#6E6E73', marginTop: 4 }}>
+              <div className="trust-metric-label">
                 Trusted across 14+ Countries
               </div>
             </div>
@@ -365,37 +356,69 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-      {/* HOW IT WORKS 4-STEPS (Section 4) */}
-      <section style={{ backgroundColor: '#F5F5F7', padding: '80px 0' }}>
+      {/* HOW IT WORKS APPLE STORE SHELF (The Apple Store Difference Style) */}
+      <section className="apple-shelf-section" id="how-it-works">
         <div className="container">
-          <div style={{ textAlign: 'center', marginBottom: 48 }}>
-            <span className="apple-badge-gold">Seamless 4-Step Journey</span>
-            <h2 className="text-h1" style={{ marginTop: 8, marginBottom: 10 }}>
-              How Amit Astro Works
-            </h2>
-            <p className="text-body" style={{ fontSize: 16 }}>
-              From initial intent to deep astrological insight in four transparent steps.
-            </p>
+          <div className="apple-shelf-header-wrap">
+            <div>
+              <span className="apple-badge-gold" style={{ marginBottom: 12 }}>
+                The Amit Astro Experience
+              </span>
+              <h2 className="apple-shelf-headline">
+                How Amit Astro works.{' '}
+                <span className="apple-shelf-headline-sub">
+                  Even more reasons to consult with us.
+                </span>
+              </h2>
+            </div>
+
+            <div className="apple-shelf-ctrls">
+              <button
+                onClick={() => scrollShelf('left')}
+                className="apple-shelf-btn"
+                aria-label="Previous step"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <button
+                onClick={() => scrollShelf('right')}
+                className="apple-shelf-btn"
+                aria-label="Next step"
+              >
+                <ChevronRight size={20} />
+              </button>
+            </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20 }}>
-            {steps.map((st) => (
-              <div
-                key={st.num}
-                className="apple-card"
-                style={{ padding: '28px 24px', backgroundColor: '#FFFFFF' }}
-              >
-                <div style={{ fontSize: 32, fontWeight: 700, color: '#C9A24B', marginBottom: 12 }}>
-                  {st.num}
+          <div ref={shelfRef} className="apple-shelf-scroll">
+            {steps.map((st) => {
+              const IconComp = st.icon;
+              return (
+                <div key={st.num} className="apple-shelf-card">
+                  <div>
+                    <div className="apple-shelf-top">
+                      <div className="apple-shelf-icon" style={{ backgroundColor: st.bg, color: st.color }}>
+                        <IconComp size={22} />
+                      </div>
+                      <span className="apple-shelf-step-num">Step {st.num}</span>
+                    </div>
+
+                    <h3 className="apple-shelf-card-title">
+                      {st.title}
+                    </h3>
+
+                    <p className="apple-shelf-card-desc">
+                      {st.desc}
+                    </p>
+                  </div>
+
+                  <div className="apple-shelf-card-footer">
+                    <span>{st.footerText}</span>
+                    <ChevronRight size={14} />
+                  </div>
                 </div>
-                <h3 style={{ fontSize: 17, fontWeight: 600, color: '#1D1D1F', marginBottom: 8 }}>
-                  {st.title}
-                </h3>
-                <p style={{ fontSize: 14, color: '#6E6E73', lineHeight: 1.5 }}>
-                  {st.desc}
-                </p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>

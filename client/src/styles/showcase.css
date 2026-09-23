@@ -638,10 +638,16 @@
   flex-shrink: 0;
 }
 
-.g-review-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.08);
-  border-color: rgba(201, 162, 75, 0.4);
+@media (hover: hover) and (min-width: 769px) {
+  .g-review-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.08);
+    border-color: rgba(201, 162, 75, 0.4);
+  }
+
+  .g-review-card:hover .g-review-content {
+    -webkit-line-clamp: unset;
+  }
 }
 
 .g-review-card-top {
@@ -692,10 +698,6 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   transition: all 200ms ease;
-}
-
-.g-review-card:hover .g-review-content {
-  -webkit-line-clamp: unset;
 }
 
 /* Card Bottom & Profile */
@@ -780,10 +782,12 @@
   transition: max-height 320ms ease, opacity 320ms ease, margin-top 320ms ease;
 }
 
-.g-review-card:hover .g-review-hover-reveal {
-  max-height: 70px;
-  opacity: 1;
-  margin-top: 14px;
+@media (hover: hover) and (min-width: 769px) {
+  .g-review-card:hover .g-review-hover-reveal {
+    max-height: 70px;
+    opacity: 1;
+    margin-top: 14px;
+  }
 }
 
 .g-review-hover-inner {
@@ -821,4 +825,68 @@
 .g-review-verified-btn:hover {
   background: #232347;
   transform: scale(1.04);
+}
+
+/* === Mobile & Touch Device Rules (Zero Glitch / Continuous Smooth Glide) === */
+@media (max-width: 768px), (hover: none) {
+  .g-reviews-section {
+    padding: 60px 0 65px;
+  }
+
+  .g-reviews-header-wrap {
+    padding: 0 1.25rem 1.75rem;
+  }
+
+  .g-reviews-headline {
+    font-size: 1.75rem;
+  }
+
+  .g-reviews-track {
+    gap: 16px;
+    padding: 8px 16px;
+  }
+
+  .g-review-card {
+    width: clamp(280px, 82vw, 350px);
+    padding: 22px 18px;
+    border-radius: 18px;
+    transform: none !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04) !important;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  .g-review-card:hover,
+  .g-review-card:active,
+  .g-review-card:focus {
+    transform: none !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04) !important;
+    border-color: #E5E5EA !important;
+  }
+
+  .g-review-content {
+    font-size: 13.5px !important;
+    line-height: 1.55 !important;
+    margin: 0 0 16px !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 4 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+  }
+
+  .g-review-card:hover .g-review-content,
+  .g-review-card:active .g-review-content {
+    -webkit-line-clamp: 4 !important;
+    display: -webkit-box !important;
+  }
+
+  .g-review-hover-reveal,
+  .g-review-card:hover .g-review-hover-reveal,
+  .g-review-card:active .g-review-hover-reveal {
+    display: none !important;
+    max-height: 0 !important;
+    opacity: 0 !important;
+    margin-top: 0 !important;
+  }
 }
