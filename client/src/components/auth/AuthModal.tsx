@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, Phone, Mail, Lock, User as UserIcon, ShieldCheck, ArrowRight, CheckCircle2, Clock, Sparkles } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
-import { isFirebaseConfigured, sendFirebaseSms } from '../../services/firebase';
+import { isFirebaseConfigured, sendFirebaseSms, signInWithFirebaseGoogle } from '../../services/firebase';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -48,17 +48,39 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
-      // Free Google Identity integration:
-      // Works with real Google OAuth tokens or zero-config fast identity
-      const googleUser = {
-        email: email && email.includes('@') ? email.trim().toLowerCase() : `seeker.${Math.floor(1000 + Math.random() * 9000)}@gmail.com`,
-        name: name ? name.trim() : 'Google Seeker',
-        googleId: `gid-${Date.now()}`
-      };
-      await loginWithGoogle(googleUser);
-      showToast('Successfully signed in with Google!', 'success');
-      onClose();
-      if (onSuccess) onSuccess();
+      if (isFirebaseConfigured()) {
+        try {
+          const googleData = await signInWithFirebaseGoogle();
+          await loginWithGoogle(googleData);
+          showToast(`Welcome ${googleData.name}! Signed in with Google.`, 'success');
+          onClose();
+          if (onSuccess) onSuccess();
+          return;
+        } catch (fbErr: any) {
+          if (fbErr.code === 'auth/unauthorized-domain') {
+            showToast(`Firebase authorized domain missing: Please add "${window.location.hostname}" to Firebase Auth Console settings, or sign in using your email and password below.`, 'warning');
+            return;
+          } else if (fbErr.code === 'auth/popup-closed-by-user') {
+            return;
+          }
+          console.warn('[Firebase Google Sign-In]:', fbErr.message);
+        }
+      }
+
+      // Fallback: If user has typed their email
+      if (email && email.includes('@')) {
+        const googleUser = {
+          email: email.trim().toLowerCase(),
+          name: name ? name.trim() : email.split('@')[0],
+          googleId: `gid-${Date.now()}`
+        };
+        await loginWithGoogle(googleUser);
+        showToast('Successfully signed in with Google!', 'success');
+        onClose();
+        if (onSuccess) onSuccess();
+      } else {
+        showToast('Please type your Google email in the email field to proceed.', 'info');
+      }
     } catch (err: any) {
       showToast(err.message || 'Google sign in failed', 'error');
     } finally {
@@ -282,26 +304,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  // Demo 1-click logins
-  const handleQuickDemoLogin = async (asAdmin: boolean) => {
-    setIsLoading(true);
-    try {
-      if (asAdmin) {
-        await login('admin@amitastro.com', 'AmitAstro@2026');
-        showToast('Signed in as Astrologer Amit', 'success');
-      } else {
-        await login('priya.sharma@example.com', 'Customer@123');
-        showToast('Signed in as Demo Customer (Priya Sharma)', 'success');
-      }
-      onClose();
-      if (onSuccess) onSuccess();
-    } catch (err: any) {
-      showToast(err.message, 'error');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <div
       style={{
@@ -461,31 +463,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 {isLoading ? 'Signing In...' : 'Sign In'}
               </button>
             </form>
-
-            <div style={{ margin: '16px 0 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ flex: 1, height: 1, backgroundColor: '#E5E5EA' }} />
-              <span style={{ fontSize: 11.5, color: '#A1A1A6' }}>or instant demo</span>
-              <div style={{ flex: 1, height: 1, backgroundColor: '#E5E5EA' }} />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin(false)}
-                className="apple-btn-secondary"
-                style={{ fontSize: 12, padding: '7px 10px' }}
-              >
-                Demo Customer
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin(true)}
-                className="apple-btn-secondary"
-                style={{ fontSize: 12, padding: '7px 10px', color: '#3A3A6E', borderColor: '#3A3A6E' }}
-              >
-                Demo Astrologer
-              </button>
-            </div>
 
             <div style={{ marginTop: 18, textAlign: 'center', fontSize: 13, color: '#6E6E73' }}>
               Don't have an account?{' '}

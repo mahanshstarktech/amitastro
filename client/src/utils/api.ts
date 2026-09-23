@@ -43,20 +43,22 @@ export async function apiRequest<T = any>(
 
   let response: Response;
 
-  if (endpoint.startsWith('http') || !isProd || envApi) {
+  if (endpoint.startsWith('http') || envApi) {
     response = await executeOnBase(activeBase);
   } else {
-    // Try candidate bases in order if needed
+    // Try candidate bases in order with automatic fallback
     try {
       response = await executeOnBase(activeBase);
-      // If Render 404 (service renamed or not found), try fallbacks
       if (response.status === 404 && activeBase !== PROD_CANDIDATES[PROD_CANDIDATES.length - 1]) {
         throw new Error('Candidate 404');
       }
-    } catch {
+    } catch (primaryErr) {
+      const candidatesToTry = isProd
+        ? PROD_CANDIDATES.filter((c) => c !== activeBase)
+        : [PROD_CANDIDATES[0], ...PROD_CANDIDATES.slice(1)];
+
       let foundResponse: Response | null = null;
-      for (const candidate of PROD_CANDIDATES) {
-        if (candidate === activeBase) continue;
+      for (const candidate of candidatesToTry) {
         try {
           const testRes = await executeOnBase(candidate);
           if (testRes.status !== 404 || candidate === PROD_CANDIDATES[PROD_CANDIDATES.length - 1]) {
@@ -68,8 +70,9 @@ export async function apiRequest<T = any>(
           // Continue to next candidate
         }
       }
+
       if (!foundResponse) {
-        throw new Error('Unable to connect to Amit Astro backend API. Please check your internet connection.');
+        throw new Error('Unable to connect to Amit Astro backend API. Please check your network connection.');
       }
       response = foundResponse;
     }

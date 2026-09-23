@@ -35,5 +35,7 @@ Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
-*.sln
-*.sw?
+# Media & Screen Recordings
+*.mov
+*.mp4
+*.webm

@@ -54,6 +54,14 @@ export const HomePage: React.FC<HomePageProps> = ({
     }
   };
 
+  const essaysShelfRef = useRef<HTMLDivElement>(null);
+  const scrollEssaysShelf = (direction: 'left' | 'right') => {
+    if (essaysShelfRef.current) {
+      const scrollAmount = direction === 'left' ? -320 : 320;
+      essaysShelfRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
+
   useEffect(() => {
     apiRequest<{ posts: any[] }>('/blog/posts?featured=true&limit=3')
       .then((res) => setFeaturedPosts(res.posts || []))
@@ -493,60 +501,121 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-      {/* FEATURED BLOG POSTS (Section 4 & 5) */}
+      {/* FEATURED BLOG POSTS (Essays & Astrological Guidance) */}
       {featuredPosts && featuredPosts.length > 0 && (
         <section className="section-padding">
           <div className="container">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 40, flexWrap: 'wrap', gap: 16 }}>
+            <div className="apple-shelf-header-wrap" style={{ marginBottom: 32 }}>
               <div>
                 <span className="apple-badge-primary">Vedic Knowledge Base</span>
-                <h2 className="text-h1" style={{ marginTop: 8 }}>
+                <h2 className="apple-shelf-headline" style={{ marginTop: 8 }}>
                   Essays & Astrological Guidance
                 </h2>
               </div>
-              <button
-                onClick={() => onNavigate('/blog')}
-                className="apple-btn-secondary"
-                style={{ fontSize: 14 }}
-              >
-                View All Articles <ArrowRight size={14} />
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <button
+                  onClick={() => onNavigate('/blog')}
+                  className="apple-btn-secondary"
+                  style={{ fontSize: 13.5, padding: '8px 16px' }}
+                >
+                  View All Articles <ArrowRight size={14} />
+                </button>
+                <div className="apple-shelf-ctrls essays-mobile-ctrls">
+                  <button
+                    onClick={() => scrollEssaysShelf('left')}
+                    className="apple-shelf-btn"
+                    aria-label="Previous essay"
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+                  <button
+                    onClick={() => scrollEssaysShelf('right')}
+                    className="apple-shelf-btn"
+                    aria-label="Next essay"
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24 }}>
-              {featuredPosts.map((post) => (
-                <div
-                  key={post.id}
-                  className="apple-card"
-                  style={{ overflow: 'hidden', cursor: 'pointer' }}
-                  onClick={() => onNavigate(`/blog/post/${post.slug}`)}
-                >
-                  <img
-                    src={post.hero_image_url}
-                    alt={post.title}
-                    style={{ width: '100%', height: 200, objectFit: 'cover' }}
-                  />
-                  <div style={{ padding: '22px 20px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                      <span className="apple-badge-gold" style={{ fontSize: 11 }}>
-                        {post.category_name}
-                      </span>
-                      <span style={{ fontSize: 12, color: '#86868B' }}>
-                        {post.reading_time_min} min read
-                      </span>
-                    </div>
-                    <h3 style={{ fontSize: 18, fontWeight: 600, color: '#1D1D1F', marginBottom: 8, lineHeight: 1.35 }}>
-                      {post.title}
-                    </h3>
-                    <p style={{ fontSize: 13.5, color: '#6E6E73', lineHeight: 1.5, marginBottom: 16 }}>
-                      {post.excerpt}
-                    </p>
-                    <div style={{ fontSize: 13, color: '#3A3A6E', fontWeight: 600 }}>
-                      Read Article →
+            {/* Desktop Grid View */}
+            <div className="essays-desktop-wrap">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24 }}>
+                {featuredPosts.map((post) => (
+                  <div
+                    key={post.id}
+                    className="apple-card essay-card-item"
+                    style={{ overflow: 'hidden', cursor: 'pointer' }}
+                    onClick={() => onNavigate(`/blog/post/${post.slug}`)}
+                  >
+                    <img
+                      src={post.hero_image_url}
+                      alt={post.title}
+                      style={{ width: '100%', height: 200, objectFit: 'cover' }}
+                    />
+                    <div style={{ padding: '22px 20px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <span className="apple-badge-gold" style={{ fontSize: 11 }}>
+                          {post.category_name}
+                        </span>
+                        <span style={{ fontSize: 12, color: '#86868B' }}>
+                          {post.reading_time_min} min read
+                        </span>
+                      </div>
+                      <h3 style={{ fontSize: 18, fontWeight: 600, color: '#1D1D1F', marginBottom: 8, lineHeight: 1.35 }}>
+                        {post.title}
+                      </h3>
+                      <p style={{ fontSize: 13.5, color: '#6E6E73', lineHeight: 1.5, marginBottom: 16 }}>
+                        {post.excerpt}
+                      </p>
+                      <div style={{ fontSize: 13, color: '#3A3A6E', fontWeight: 600 }}>
+                        Read Article →
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+            </div>
+
+            {/* Mobile & Tablet Apple-style Scroll Shelf */}
+            <div className="essays-mobile-wrap">
+              <div ref={essaysShelfRef} className="apple-essays-shelf">
+                {featuredPosts.map((post) => (
+                  <div
+                    key={post.id}
+                    className="apple-card apple-essay-shelf-card"
+                    onClick={() => onNavigate(`/blog/post/${post.slug}`)}
+                  >
+                    <img
+                      src={post.hero_image_url}
+                      alt={post.title}
+                      style={{ width: '100%', height: 170, objectFit: 'cover' }}
+                    />
+                    <div style={{ padding: '18px 16px', display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                          <span className="apple-badge-gold" style={{ fontSize: 10.5 }}>
+                            {post.category_name}
+                          </span>
+                          <span style={{ fontSize: 11.5, color: '#86868B' }}>
+                            {post.reading_time_min} min read
+                          </span>
+                        </div>
+                        <h3 style={{ fontSize: 16.5, fontWeight: 600, color: '#1D1D1F', marginBottom: 6, lineHeight: 1.35 }}>
+                          {post.title}
+                        </h3>
+                        <p style={{ fontSize: 13, color: '#6E6E73', lineHeight: 1.45, marginBottom: 14 }}>
+                          {post.excerpt}
+                        </p>
+                      </div>
+                      <div style={{ fontSize: 13, color: '#3A3A6E', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        Read Article <ArrowRight size={13} />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </section>

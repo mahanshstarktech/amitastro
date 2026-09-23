@@ -7,6 +7,16 @@ import { sendRealSmsOtp, sendRealEmailOtp } from '../services/realServices';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'amitastro_secret_jwt_key_2026';
 
+export function isConfiguredAdminEmail(email?: string): boolean {
+  if (!email) return false;
+  const envAdminEmails = (process.env.ADMIN_EMAILS || 'admin@amitastro.com')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  return envAdminEmails.includes(email.trim().toLowerCase());
+}
+
+
 export const sendOtp = async (req: Request, res: Response) => {
   try {
     const { phone, email, channel } = req.body;
@@ -95,18 +105,19 @@ export const verifyOtp = async (req: Request, res: Response) => {
       : await getOne<any>('SELECT * FROM users WHERE phone = ?', [target]);
 
     if (!user) {
-      // Create new customer account
+      // Create new customer account (or admin if email is in ADMIN_EMAILS)
       const userId = `usr-${uuidv4().substring(0, 8)}`;
       const userEmail = isEmail ? target : email ? email.trim().toLowerCase() : `${target.replace(/[^0-9]/g, '')}@amitastro.user`;
       const userPhone = isEmail ? (phone ? phone.trim() : `email-${uuidv4().substring(0, 8)}`) : target;
       const userName = name ? name.trim() : isEmail ? target.split('@')[0] : 'Amit Astro Seeker';
       const dummyPassword = password || uuidv4();
       const hash = await bcrypt.hash(dummyPassword, 10);
+      const role = isConfiguredAdminEmail(userEmail) ? 'admin' : 'customer';
 
       await runQuery(`
         INSERT INTO users (id, name, email, phone, password_hash, role, is_phone_verified, is_new_customer)
-        VALUES (?, ?, ?, ?, ?, 'customer', 1, 1)
-      `, [userId, userName, userEmail, userPhone, hash]);
+        VALUES (?, ?, ?, ?, ?, ?, 1, 1)
+      `, [userId, userName, userEmail, userPhone, hash, role]);
 
       // Create CRM metadata
       await runQuery(`
@@ -116,8 +127,10 @@ export const verifyOtp = async (req: Request, res: Response) => {
 
       user = await getOne<any>('SELECT * FROM users WHERE id = ?', [userId]);
     } else {
-      // Mark verified
-      await runQuery('UPDATE users SET is_phone_verified = 1 WHERE id = ?', [user.id]);
+      // Mark verified & promote if configured
+      const role = (user.role === 'admin' || isConfiguredAdminEmail(user.email)) ? 'admin' : 'customer';
+      await runQuery('UPDATE users SET is_phone_verified = 1, role = ? WHERE id = ?', [role, user.id]);
+      user.role = role;
     }
 
     const token = jwt.sign(
@@ -238,11 +251,12 @@ export const verifyDualOtp = async (req: Request, res: Response) => {
       const userName = name ? name.trim() : cleanEmail.split('@')[0];
       const dummyPassword = password || uuidv4();
       const hash = await bcrypt.hash(dummyPassword, 10);
+      const role = isConfiguredAdminEmail(cleanEmail) ? 'admin' : 'customer';
 
       await runQuery(`
         INSERT INTO users (id, name, email, phone, password_hash, role, is_phone_verified, is_email_verified, is_new_customer)
-        VALUES (?, ?, ?, ?, ?, 'customer', 1, 1, 1)
-      `, [userId, userName, cleanEmail, cleanPhone, hash]);
+        VALUES (?, ?, ?, ?, ?, ?, 1, 1, 1)
+      `, [userId, userName, cleanEmail, cleanPhone, hash, role]);
 
       await runQuery(`
         INSERT INTO customer_crm_meta (user_id, tags_json, internal_notes)
@@ -251,11 +265,13 @@ export const verifyDualOtp = async (req: Request, res: Response) => {
 
       user = await getOne<any>('SELECT * FROM users WHERE id = ?', [userId]);
     } else {
+      const role = (user.role === 'admin' || isConfiguredAdminEmail(cleanEmail)) ? 'admin' : 'customer';
       await runQuery(`
         UPDATE users 
-        SET is_phone_verified = 1, is_email_verified = 1, phone = ?, email = ?
+        SET is_phone_verified = 1, is_email_verified = 1, phone = ?, email = ?, role = ?
         WHERE id = ?
-      `, [cleanPhone, cleanEmail, user.id]);
+      `, [cleanPhone, cleanEmail, role, user.id]);
+      user.role = role;
     }
 
     const token = jwt.sign(
@@ -303,11 +319,12 @@ export const googleAuth = async (req: Request, res: Response) => {
       const userName = name ? name.trim() : cleanEmail.split('@')[0];
       const dummyPhone = `google-${uuidv4().substring(0, 8)}`;
       const hash = await bcrypt.hash(uuidv4(), 10);
+      const role = isConfiguredAdminEmail(cleanEmail) ? 'admin' : 'customer';
 
       await runQuery(`
         INSERT INTO users (id, name, email, phone, password_hash, role, is_phone_verified, is_new_customer)
-        VALUES (?, ?, ?, ?, ?, 'customer', 1, 1)
-      `, [userId, userName, cleanEmail, dummyPhone, hash]);
+        VALUES (?, ?, ?, ?, ?, ?, 1, 1)
+      `, [userId, userName, cleanEmail, dummyPhone, hash, role]);
 
       await runQuery(`
         INSERT INTO customer_crm_meta (user_id, tags_json, internal_notes)
@@ -315,6 +332,9 @@ export const googleAuth = async (req: Request, res: Response) => {
       `, [userId]);
 
       user = await getOne<any>('SELECT * FROM users WHERE id = ?', [userId]);
+    } else if (user.role !== 'admin' && isConfiguredAdminEmail(cleanEmail)) {
+      await runQuery("UPDATE users SET role = 'admin' WHERE id = ?", [user.id]);
+      user.role = 'admin';
     }
 
     const token = jwt.sign(
@@ -370,6 +390,11 @@ export const login = async (req: Request, res: Response) => {
 
     if (!isMatch) {
       return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    if (user.role !== 'admin' && isConfiguredAdminEmail(user.email)) {
+      await runQuery("UPDATE users SET role = 'admin' WHERE id = ?", [user.id]);
+      user.role = 'admin';
     }
 
     const token = jwt.sign(

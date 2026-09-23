@@ -4,6 +4,8 @@ import {
   type Auth,
   RecaptchaVerifier,
   signInWithPhoneNumber,
+  signInWithPopup,
+  GoogleAuthProvider,
   type ConfirmationResult
 } from 'firebase/auth';
 
@@ -83,3 +85,29 @@ export async function sendFirebaseSms(phoneNumber: string, containerId: string =
 
   return await signInWithPhoneNumber(auth, formattedPhone, verifier);
 }
+
+/**
+ * Initiates authentic Google OAuth popup via Firebase
+ */
+export async function signInWithFirebaseGoogle(): Promise<{ email: string; name: string; googleId: string; photoURL?: string }> {
+  if (!auth) {
+    throw new Error('Firebase Auth is not initialized. Please ensure Firebase configuration is valid.');
+  }
+
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+  const result = await signInWithPopup(auth, provider);
+  const user = result.user;
+
+  if (!user.email) {
+    throw new Error('Google sign-in completed, but no verified email address was returned.');
+  }
+
+  return {
+    email: user.email.toLowerCase().trim(),
+    name: user.displayName || user.email.split('@')[0],
+    googleId: user.uid,
+    photoURL: user.photoURL || undefined
+  };
+}
+
