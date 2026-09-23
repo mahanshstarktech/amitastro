@@ -48,38 +48,40 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
-      if (isFirebaseConfigured()) {
-        try {
-          const googleData = await signInWithFirebaseGoogle();
-          await loginWithGoogle(googleData);
-          showToast(`Welcome ${googleData.name}! Signed in with Google.`, 'success');
-          onClose();
-          if (onSuccess) onSuccess();
-          return;
-        } catch (fbErr: any) {
-          if (fbErr.code === 'auth/unauthorized-domain') {
-            showToast(`Firebase authorized domain missing: Please add "${window.location.hostname}" to Firebase Auth Console settings, or sign in using your email and password below.`, 'warning');
-            return;
-          } else if (fbErr.code === 'auth/popup-closed-by-user') {
-            return;
-          }
-          console.warn('[Firebase Google Sign-In]:', fbErr.message);
-        }
+      if (!isFirebaseConfigured()) {
+        showToast('Google authentication is not yet configured for this domain.', 'warning');
+        return;
       }
 
-      // Fallback: If user has typed their email
-      if (email && email.includes('@')) {
-        const googleUser = {
-          email: email.trim().toLowerCase(),
-          name: name ? name.trim() : email.split('@')[0],
-          googleId: `gid-${Date.now()}`
-        };
-        await loginWithGoogle(googleUser);
-        showToast('Successfully signed in with Google!', 'success');
-        onClose();
-        if (onSuccess) onSuccess();
-      } else {
-        showToast('Please type your Google email in the email field to proceed.', 'info');
+      try {
+        const googleData = await signInWithFirebaseGoogle();
+        const res = await loginWithGoogle(googleData);
+        showToast(`Welcome ${googleData.name}! Signed in with Google.`, 'success');
+
+        // If new seeker without a birth chart profile yet, prompt for birth details
+        if (!res.profiles || res.profiles.length === 0) {
+          setProfileName(googleData.name || '');
+          setMode('profile');
+        } else {
+          onClose();
+          if (onSuccess) onSuccess();
+        }
+      } catch (fbErr: any) {
+        if (fbErr.code === 'auth/operation-not-allowed') {
+          showToast('Google Sign-In needs to be enabled in Firebase Console: Authentication > Sign-in method > Google (switch to Enable).', 'warning');
+          return;
+        } else if (fbErr.code === 'auth/unauthorized-domain') {
+          showToast(`Domain not authorized: Please add "${window.location.hostname}" to Firebase Console > Authentication > Settings > Authorized domains.`, 'warning');
+          return;
+        } else if (fbErr.code === 'auth/popup-closed-by-user') {
+          // User intentionally closed the Google popup window
+          return;
+        } else if (fbErr.code === 'auth/popup-blocked') {
+          showToast('Google sign-in popup was blocked by browser. Please allow popups for this site.', 'warning');
+          return;
+        }
+        console.warn('[Firebase Google Sign-In]:', fbErr);
+        showToast(fbErr.message || 'Google sign in could not be completed.', 'error');
       }
     } catch (err: any) {
       showToast(err.message || 'Google sign in failed', 'error');

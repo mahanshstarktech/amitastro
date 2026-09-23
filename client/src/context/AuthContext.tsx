@@ -7,6 +7,7 @@ export interface User {
   email: string;
   phone: string;
   role: 'customer' | 'admin';
+  photoURL?: string;
   isPhoneVerified: boolean;
   isNewCustomer: boolean;
   trialUsed: boolean;
@@ -36,7 +37,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isAdmin: boolean;
   login: (email: string, password: string) => Promise<void>;
-  loginWithGoogle: (data: { email: string; name: string; googleId?: string }) => Promise<void>;
+  loginWithGoogle: (data: { email: string; name: string; googleId?: string; photoURL?: string; dob?: string }) => Promise<{ token: string; user: User; profiles: BirthProfile[] }>;
   sendOtp: (destination: string, channel?: 'phone' | 'email') => Promise<{ simulatedCode?: string; cooldownSeconds: number; channel?: string }>;
   sendDualOtp: (phone: string, email: string) => Promise<{ phoneSimulatedCode?: string; emailSimulatedCode?: string; cooldownSeconds: number }>;
   verifyOtp: (data: { phone?: string; email?: string; code: string; name?: string; password?: string }) => Promise<void>;
@@ -109,7 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setProfiles(res.profiles || []);
   };
 
-  const loginWithGoogle = async (googleData: { email: string; name: string; googleId?: string }) => {
+  const loginWithGoogle = async (googleData: { email: string; name: string; googleId?: string; photoURL?: string; dob?: string }) => {
     const res = await apiRequest<{ token: string; user: User; profiles: BirthProfile[] }>('/auth/google', {
       method: 'POST',
       body: JSON.stringify(googleData)
@@ -118,6 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(res.token);
     setUser(res.user);
     setProfiles(res.profiles || []);
+    return res;
   };
 
   const sendOtp = async (destination: string, channel?: 'phone' | 'email') => {

@@ -611,7 +611,15 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
               title="Account & Portal"
               aria-label="Account"
             >
-              <UserIcon size={18} />
+              {isAuthenticated && user?.photoURL ? (
+                <img
+                  src={user.photoURL}
+                  alt={user.name}
+                  style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }}
+                />
+              ) : (
+                <UserIcon size={18} />
+              )}
               {isAuthenticated && (
                 <div
                   style={{
@@ -651,23 +659,38 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
                   <>
                     {/* Signed-in User Info Header */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingBottom: 10, borderBottom: '1px solid #E5E5EA' }}>
-                      <div
-                        style={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: '50%',
-                          backgroundColor: '#3A3A6E',
-                          color: '#FFFFFF',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontWeight: 700,
-                          fontSize: 16,
-                          flexShrink: 0
-                        }}
-                      >
-                        {user.name ? user.name.charAt(0).toUpperCase() : <UserIcon size={20} />}
-                      </div>
+                      {user.photoURL ? (
+                        <img
+                          src={user.photoURL}
+                          alt={user.name}
+                          style={{
+                            width: 42,
+                            height: 42,
+                            borderRadius: '50%',
+                            objectFit: 'cover',
+                            border: '1.5px solid #E5E5EA',
+                            flexShrink: 0
+                          }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: '50%',
+                            backgroundColor: '#3A3A6E',
+                            color: '#FFFFFF',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 700,
+                            fontSize: 16,
+                            flexShrink: 0
+                          }}
+                        >
+                          {user.name ? user.name.charAt(0).toUpperCase() : <UserIcon size={20} />}
+                        </div>
+                      )}
                       <div style={{ overflow: 'hidden' }}>
                         <div style={{ fontWeight: 700, fontSize: 14.5, color: '#1D1D1F', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {user.name}

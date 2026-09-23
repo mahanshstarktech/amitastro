@@ -306,7 +306,7 @@ export const verifyDualOtp = async (req: Request, res: Response) => {
 
 export const googleAuth = async (req: Request, res: Response) => {
   try {
-    const { email, name, googleId } = req.body;
+    const { email, name, googleId, photoURL, dob } = req.body;
     if (!email) {
       return res.status(400).json({ error: 'Google email is required' });
     }
@@ -322,19 +322,34 @@ export const googleAuth = async (req: Request, res: Response) => {
       const role = isConfiguredAdminEmail(cleanEmail) ? 'admin' : 'customer';
 
       await runQuery(`
-        INSERT INTO users (id, name, email, phone, password_hash, role, is_phone_verified, is_new_customer)
-        VALUES (?, ?, ?, ?, ?, ?, 1, 1)
+        INSERT INTO users (id, name, email, phone, password_hash, role, is_phone_verified, is_email_verified, is_new_customer)
+        VALUES (?, ?, ?, ?, ?, ?, 1, 1, 1)
       `, [userId, userName, cleanEmail, dummyPhone, hash, role]);
 
       await runQuery(`
         INSERT INTO customer_crm_meta (user_id, tags_json, internal_notes)
-        VALUES (?, '["Google Auth", "New Client"]', '')
-      `, [userId]);
+        VALUES (?, ?, ?)
+      `, [userId, JSON.stringify(['Google Auth', photoURL ? 'Has Google Avatar' : 'No Avatar']), photoURL ? `Avatar: ${photoURL}` : '']);
+
+      if (dob) {
+        const bpId = `bp-${uuidv4().substring(0, 8)}`;
+        await runQuery(`
+          INSERT INTO birth_profiles (id, user_id, relation, full_name, dob, tob, tob_uncertain, pob)
+          VALUES (?, ?, 'self', ?, ?, '12:00', 0, 'New Delhi, India')
+        `, [bpId, userId, userName, dob]);
+      }
 
       user = await getOne<any>('SELECT * FROM users WHERE id = ?', [userId]);
-    } else if (user.role !== 'admin' && isConfiguredAdminEmail(cleanEmail)) {
-      await runQuery("UPDATE users SET role = 'admin' WHERE id = ?", [user.id]);
-      user.role = 'admin';
+    } else {
+      // Update name or avatar note if user exists and new info provided
+      if (name && (!user.name || user.name.includes('@'))) {
+        await runQuery('UPDATE users SET name = ? WHERE id = ?', [name.trim(), user.id]);
+        user.name = name.trim();
+      }
+      if (user.role !== 'admin' && isConfiguredAdminEmail(cleanEmail)) {
+        await runQuery("UPDATE users SET role = 'admin' WHERE id = ?", [user.id]);
+        user.role = 'admin';
+      }
     }
 
     const token = jwt.sign(
@@ -354,6 +369,7 @@ export const googleAuth = async (req: Request, res: Response) => {
         email: user.email,
         phone: user.phone,
         role: user.role,
+        photoURL: photoURL || undefined,
         isPhoneVerified: !!user.is_phone_verified,
         isNewCustomer: user.is_new_customer !== 0,
         trialUsed: !!user.trial_used,

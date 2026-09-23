@@ -17,6 +17,36 @@ interface HomePageProps {
   onNavigate: (path: string) => void;
 }
 
+const DEFAULT_FEATURED_POSTS = [
+  {
+    id: 'post-1',
+    slug: 'understanding-mahadasha-and-antardasha',
+    title: 'Demystifying Mahadasha & Antardasha: How Planetary Periods Shape Your Life',
+    excerpt: 'Vedic astrology views human life through rhythmic planetary rulers known as Dashas. Discover how Mahadashas unveil your past karma and unfolding potentials.',
+    category_name: 'Kundli & Horoscope',
+    hero_image_url: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1200&q=80',
+    reading_time_min: 6
+  },
+  {
+    id: 'post-2',
+    slug: 'home-vastu-essential-principles-for-peace',
+    title: 'The Sacred Geometry of Home: 5 Vastu Principles for Prosperity & Harmony',
+    excerpt: 'Your physical living environment is an energetic amplifier. Learn the foundational Vastu directions that balance the five primordial elements (Pancha Bhoota).',
+    category_name: 'Vastu Shastra',
+    hero_image_url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80',
+    reading_time_min: 5
+  },
+  {
+    id: 'post-3',
+    slug: 'saturn-sade-sati-survival-guide',
+    title: 'Navigating Saturn Sade Sati: Transforming Karmic Pressure into Personal Mastery',
+    excerpt: 'Demystifying Shani’s 7.5-year transit. Learn how classical remedies, discipline, and emotional balance turn perceived struggle into your greatest spiritual elevation.',
+    category_name: 'Planetary Transits',
+    hero_image_url: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80',
+    reading_time_min: 7
+  }
+];
+
 export const HomePage: React.FC<HomePageProps> = ({
   onOpenBooking,
   onOpenTrial,
@@ -27,7 +57,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   const { countryInfo } = useCountry();
   const showTrialCTA = !isAuthenticated || (!!user?.isNewCustomer && !user?.trialUsed);
 
-  const [featuredPosts, setFeaturedPosts] = useState<any[]>([]);
+  const [featuredPosts, setFeaturedPosts] = useState<any[]>(DEFAULT_FEATURED_POSTS);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const shelfRef = useRef<HTMLDivElement>(null);
   const servicesShelfRef = useRef<HTMLDivElement>(null);
@@ -64,7 +94,11 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   useEffect(() => {
     apiRequest<{ posts: any[] }>('/blog/posts?featured=true&limit=3')
-      .then((res) => setFeaturedPosts(res.posts || []))
+      .then((res) => {
+        if (res.posts && res.posts.length > 0) {
+          setFeaturedPosts(res.posts);
+        }
+      })
       .catch(() => {});
   }, []);
 
@@ -502,124 +536,127 @@ export const HomePage: React.FC<HomePageProps> = ({
       </section>
 
       {/* FEATURED BLOG POSTS (Essays & Astrological Guidance) */}
-      {featuredPosts && featuredPosts.length > 0 && (
-        <section className="section-padding">
-          <div className="container">
-            <div className="apple-shelf-header-wrap" style={{ marginBottom: 32 }}>
-              <div>
-                <span className="apple-badge-primary">Vedic Knowledge Base</span>
-                <h2 className="apple-shelf-headline" style={{ marginTop: 8 }}>
-                  Essays & Astrological Guidance
-                </h2>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <button
-                  onClick={() => onNavigate('/blog')}
-                  className="apple-btn-secondary"
-                  style={{ fontSize: 13.5, padding: '8px 16px' }}
-                >
-                  View All Articles <ArrowRight size={14} />
-                </button>
-                <div className="apple-shelf-ctrls essays-mobile-ctrls">
+      {(() => {
+        const postsToRender = (featuredPosts && featuredPosts.length > 0) ? featuredPosts : DEFAULT_FEATURED_POSTS;
+        return (
+          <section className="section-padding">
+            <div className="container">
+              <div className="apple-shelf-header-wrap" style={{ marginBottom: 32 }}>
+                <div>
+                  <span className="apple-badge-primary">Vedic Knowledge Base</span>
+                  <h2 className="apple-shelf-headline" style={{ marginTop: 8 }}>
+                    Essays & Astrological Guidance
+                  </h2>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <button
-                    onClick={() => scrollEssaysShelf('left')}
-                    className="apple-shelf-btn"
-                    aria-label="Previous essay"
+                    onClick={() => onNavigate('/blog')}
+                    className="apple-btn-secondary"
+                    style={{ fontSize: 13.5, padding: '8px 16px' }}
                   >
-                    <ChevronLeft size={20} />
+                    View All Articles <ArrowRight size={14} />
                   </button>
-                  <button
-                    onClick={() => scrollEssaysShelf('right')}
-                    className="apple-shelf-btn"
-                    aria-label="Next essay"
-                  >
-                    <ChevronRight size={20} />
-                  </button>
+                  <div className="apple-shelf-ctrls essays-mobile-ctrls">
+                    <button
+                      onClick={() => scrollEssaysShelf('left')}
+                      className="apple-shelf-btn"
+                      aria-label="Previous essay"
+                    >
+                      <ChevronLeft size={20} />
+                    </button>
+                    <button
+                      onClick={() => scrollEssaysShelf('right')}
+                      className="apple-shelf-btn"
+                      aria-label="Next essay"
+                    >
+                      <ChevronRight size={20} />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Desktop Grid View */}
-            <div className="essays-desktop-wrap">
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24 }}>
-                {featuredPosts.map((post) => (
-                  <div
-                    key={post.id}
-                    className="apple-card essay-card-item"
-                    style={{ overflow: 'hidden', cursor: 'pointer' }}
-                    onClick={() => onNavigate(`/blog/post/${post.slug}`)}
-                  >
-                    <img
-                      src={post.hero_image_url}
-                      alt={post.title}
-                      style={{ width: '100%', height: 200, objectFit: 'cover' }}
-                    />
-                    <div style={{ padding: '22px 20px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                        <span className="apple-badge-gold" style={{ fontSize: 11 }}>
-                          {post.category_name}
-                        </span>
-                        <span style={{ fontSize: 12, color: '#86868B' }}>
-                          {post.reading_time_min} min read
-                        </span>
-                      </div>
-                      <h3 style={{ fontSize: 18, fontWeight: 600, color: '#1D1D1F', marginBottom: 8, lineHeight: 1.35 }}>
-                        {post.title}
-                      </h3>
-                      <p style={{ fontSize: 13.5, color: '#6E6E73', lineHeight: 1.5, marginBottom: 16 }}>
-                        {post.excerpt}
-                      </p>
-                      <div style={{ fontSize: 13, color: '#3A3A6E', fontWeight: 600 }}>
-                        Read Article →
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Mobile & Tablet Apple-style Scroll Shelf */}
-            <div className="essays-mobile-wrap">
-              <div ref={essaysShelfRef} className="apple-essays-shelf">
-                {featuredPosts.map((post) => (
-                  <div
-                    key={post.id}
-                    className="apple-card apple-essay-shelf-card"
-                    onClick={() => onNavigate(`/blog/post/${post.slug}`)}
-                  >
-                    <img
-                      src={post.hero_image_url}
-                      alt={post.title}
-                      style={{ width: '100%', height: 170, objectFit: 'cover' }}
-                    />
-                    <div style={{ padding: '18px 16px', display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
-                      <div>
+              {/* Desktop Grid View */}
+              <div className="essays-desktop-wrap">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24 }}>
+                  {postsToRender.map((post) => (
+                    <div
+                      key={post.id}
+                      className="apple-card essay-card-item"
+                      style={{ overflow: 'hidden', cursor: 'pointer' }}
+                      onClick={() => onNavigate(`/blog/post/${post.slug}`)}
+                    >
+                      <img
+                        src={post.hero_image_url}
+                        alt={post.title}
+                        style={{ width: '100%', height: 200, objectFit: 'cover' }}
+                      />
+                      <div style={{ padding: '22px 20px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                          <span className="apple-badge-gold" style={{ fontSize: 10.5 }}>
+                          <span className="apple-badge-gold" style={{ fontSize: 11 }}>
                             {post.category_name}
                           </span>
-                          <span style={{ fontSize: 11.5, color: '#86868B' }}>
+                          <span style={{ fontSize: 12, color: '#86868B' }}>
                             {post.reading_time_min} min read
                           </span>
                         </div>
-                        <h3 style={{ fontSize: 16.5, fontWeight: 600, color: '#1D1D1F', marginBottom: 6, lineHeight: 1.35 }}>
+                        <h3 style={{ fontSize: 18, fontWeight: 600, color: '#1D1D1F', marginBottom: 8, lineHeight: 1.35 }}>
                           {post.title}
                         </h3>
-                        <p style={{ fontSize: 13, color: '#6E6E73', lineHeight: 1.45, marginBottom: 14 }}>
+                        <p style={{ fontSize: 13.5, color: '#6E6E73', lineHeight: 1.5, marginBottom: 16 }}>
                           {post.excerpt}
                         </p>
-                      </div>
-                      <div style={{ fontSize: 13, color: '#3A3A6E', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-                        Read Article <ArrowRight size={13} />
+                        <div style={{ fontSize: 13, color: '#3A3A6E', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                          Read Article <ArrowRight size={13} />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+              </div>
+
+              {/* Mobile & Tablet Apple-style Scroll Shelf */}
+              <div className="essays-mobile-wrap">
+                <div ref={essaysShelfRef} className="apple-essays-shelf">
+                  {postsToRender.map((post) => (
+                    <div
+                      key={post.id}
+                      className="apple-card apple-essay-shelf-card"
+                      onClick={() => onNavigate(`/blog/post/${post.slug}`)}
+                    >
+                      <img
+                        src={post.hero_image_url}
+                        alt={post.title}
+                        style={{ width: '100%', height: 170, objectFit: 'cover' }}
+                      />
+                      <div style={{ padding: '18px 16px', display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                            <span className="apple-badge-gold" style={{ fontSize: 10.5 }}>
+                              {post.category_name}
+                            </span>
+                            <span style={{ fontSize: 11.5, color: '#86868B' }}>
+                              {post.reading_time_min} min read
+                            </span>
+                          </div>
+                          <h3 style={{ fontSize: 16.5, fontWeight: 600, color: '#1D1D1F', marginBottom: 6, lineHeight: 1.35 }}>
+                            {post.title}
+                          </h3>
+                          <p style={{ fontSize: 13, color: '#6E6E73', lineHeight: 1.45, marginBottom: 14 }}>
+                            {post.excerpt}
+                          </p>
+                        </div>
+                        <div style={{ fontSize: 13, color: '#3A3A6E', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                          Read Article <ArrowRight size={13} />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        </section>
-      )}
+          </section>
+        );
+      })()}
 
       {/* YOUTUBE SHOWCASE (Landscape & Portrait Shorts) */}
       <YouTubeShowcase />
