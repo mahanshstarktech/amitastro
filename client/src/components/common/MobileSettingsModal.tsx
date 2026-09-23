@@ -2,6 +2,7 @@ import React from 'react';
 import { X, Globe, Check, ShieldCheck, User as UserIcon, Sparkles, HelpCircle, FileText, Scale, HeartHandshake, ChevronRight } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
+import { useCountry } from '../../context/CountryContext';
 
 interface MobileSettingsModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export const MobileSettingsModal: React.FC<MobileSettingsModalProps> = ({
 }) => {
   const { language, setLanguage, t } = useLanguage();
   const { user, isAuthenticated } = useAuth();
+  const { country, countryInfo, setCountry, availableCountries } = useCountry();
 
   if (!isOpen) return null;
 
@@ -196,6 +198,72 @@ export const MobileSettingsModal: React.FC<MobileSettingsModalProps> = ({
                 </div>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Section: Country & Currency (Under Settings) */}
+        <div style={{ marginBottom: 26 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#8E8E93', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Country & Currency (देश एवं मुद्रा)
+            </div>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#3A3A6E', backgroundColor: 'rgba(58, 58, 110, 0.08)', padding: '2px 8px', borderRadius: 9999 }}>
+              {countryInfo.currency} Active
+            </span>
+          </div>
+          <p style={{ fontSize: 12.5, color: '#6E6E73', marginTop: 0, marginBottom: 12 }}>
+            Adapts consultation packages and payment methods to your region
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8 }}>
+            {availableCountries.map((c) => {
+              const isSelected = country === c.code;
+              return (
+                <div
+                  key={c.code}
+                  onClick={() => setCountry(c.code)}
+                  style={{
+                    padding: '11px 14px',
+                    borderRadius: 14,
+                    border: isSelected ? '2px solid #3A3A6E' : '1px solid #E5E5EA',
+                    backgroundColor: isSelected ? 'rgba(58, 58, 110, 0.06)' : '#FBFBFD',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 22, lineHeight: 1 }}>{c.flagEmoji}</span>
+                    <div>
+                      <div style={{ fontSize: 13.5, fontWeight: isSelected ? 700 : 500, color: '#1D1D1F' }}>
+                        {c.name}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#8E8E93' }}>
+                        {c.currency} ({c.currencySymbol.trim()})
+                      </div>
+                    </div>
+                  </div>
+                  {isSelected && (
+                    <div
+                      style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: '50%',
+                        backgroundColor: '#3A3A6E',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#FFFFFF'
+                      }}
+                    >
+                      <Check size={12} strokeWidth={2.5} />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
 

@@ -3,7 +3,6 @@ import { Check, Star, Sparkles, Calendar, ShieldCheck, HelpCircle } from 'lucide
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useCountry } from '../../context/CountryContext';
-import { CountrySelectorModal } from '../../components/common/CountrySelectorModal';
 
 interface PricingPageProps {
   onOpenBooking: (pkgId?: string) => void;
@@ -14,7 +13,6 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenBooking, onOpenT
   const { isAuthenticated, user } = useAuth();
   const { t } = useLanguage();
   const { countryInfo } = useCountry();
-  const [isCountryModalOpen, setIsCountryModalOpen] = useState(false);
   const showTrialCTA = !isAuthenticated || (!!user?.isNewCustomer && !user?.trialUsed);
 
   return (
@@ -24,26 +22,6 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenBooking, onOpenT
         <div className="container">
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
             <span className="apple-badge-gold">Transparent, Fixed Investments</span>
-            <button
-              type="button"
-              onClick={() => setIsCountryModalOpen(true)}
-              style={{
-                background: '#FFFFFF',
-                border: '1px solid #E5E5EA',
-                borderRadius: 9999,
-                padding: '4px 12px',
-                fontSize: 12,
-                fontWeight: 600,
-                color: '#3A3A6E',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6
-              }}
-            >
-              <span>{countryInfo.flagEmoji}</span>
-              <span>{countryInfo.name} ({countryInfo.currency}) · Change</span>
-            </button>
           </div>
           <h1 className="text-display" style={{ fontSize: 44, marginTop: 4, marginBottom: 12 }}>
             {t('pricing.title', 'Consultation Packages')}
@@ -300,11 +278,6 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenBooking, onOpenT
           </div>
         </div>
       </div>
-
-      <CountrySelectorModal
-        isOpen={isCountryModalOpen}
-        onClose={() => setIsCountryModalOpen(false)}
-      />
     </div>
   );
 };

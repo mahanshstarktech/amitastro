@@ -25,8 +25,8 @@ export interface CountryInfo {
   currency: string;
   currencySymbol: string;
   flagEmoji: string;
+  flagImage: string; // Path to 3D waving satin silk flag
   flagColors: [string, string, string]; // Top, middle, bottom for ambient glow
-  flagSvgUrl?: string;
   prices: CountryPackagePrices;
 }
 
@@ -37,6 +37,7 @@ export const COUNTRIES: Record<string, CountryInfo> = {
     currency: 'INR',
     currencySymbol: '₹',
     flagEmoji: '🇮🇳',
+    flagImage: '/flags/in.jpg',
     flagColors: ['#FF9933', '#FFFFFF', '#138808'],
     prices: {
       quick: {
@@ -59,30 +60,31 @@ export const COUNTRIES: Record<string, CountryInfo> = {
       }
     }
   },
-  AE: {
-    code: 'AE',
-    name: 'Dubai / UAE',
-    currency: 'AED',
-    currencySymbol: 'AED ',
-    flagEmoji: '🇦🇪',
-    flagColors: ['#00732F', '#FFFFFF', '#000000'],
+  DE: {
+    code: 'DE',
+    name: 'Germany',
+    currency: 'EUR',
+    currencySymbol: '€',
+    flagEmoji: '🇩🇪',
+    flagImage: '/flags/de.jpg',
+    flagColors: ['#000000', '#FF0000', '#FFCC00'],
     prices: {
       quick: {
-        amount: 100,
-        formatted: '100 AED',
-        costPerMin: '6.67 AED/min',
-        label: '15-Minute Dedicated Call'
+        amount: 55,
+        formatted: '€55',
+        costPerMin: '€3.67/min',
+        label: '15-Minute Direct Consultation'
       },
       standard: {
-        amount: 250,
-        formatted: '250 AED',
-        costPerMin: '8.33 AED/min',
+        amount: 115,
+        formatted: '€115',
+        costPerMin: '€3.83/min',
         label: '30-Minute Comprehensive Call'
       },
       premium: {
-        amount: 500,
-        formatted: '500 AED',
-        costPerMin: '8.33 AED/min',
+        amount: 219,
+        formatted: '€219',
+        costPerMin: '€3.65/min',
         label: '45–60 min in-depth call'
       }
     }
@@ -93,6 +95,7 @@ export const COUNTRIES: Record<string, CountryInfo> = {
     currency: 'GBP',
     currencySymbol: '£',
     flagEmoji: '🇬🇧',
+    flagImage: '/flags/gb.jpg',
     flagColors: ['#012169', '#FFFFFF', '#C8102E'],
     prices: {
       quick: {
@@ -115,12 +118,42 @@ export const COUNTRIES: Record<string, CountryInfo> = {
       }
     }
   },
+  AE: {
+    code: 'AE',
+    name: 'Dubai / UAE',
+    currency: 'AED',
+    currencySymbol: 'AED ',
+    flagEmoji: '🇦🇪',
+    flagImage: '/flags/ae.jpg',
+    flagColors: ['#00732F', '#FFFFFF', '#000000'],
+    prices: {
+      quick: {
+        amount: 100,
+        formatted: '100 AED',
+        costPerMin: '6.67 AED/min',
+        label: '15-Minute Dedicated Call'
+      },
+      standard: {
+        amount: 250,
+        formatted: '250 AED',
+        costPerMin: '8.33 AED/min',
+        label: '30-Minute Comprehensive Call'
+      },
+      premium: {
+        amount: 500,
+        formatted: '500 AED',
+        costPerMin: '8.33 AED/min',
+        label: '45–60 min in-depth call'
+      }
+    }
+  },
   US: {
     code: 'US',
     name: 'United States',
     currency: 'USD',
     currencySymbol: '$',
     flagEmoji: '🇺🇸',
+    flagImage: '/flags/us.jpg',
     flagColors: ['#B22234', '#FFFFFF', '#3C3B6E'],
     prices: {
       quick: {
@@ -149,6 +182,7 @@ export const COUNTRIES: Record<string, CountryInfo> = {
     currency: 'AUD',
     currencySymbol: 'A$',
     flagEmoji: '🇦🇺',
+    flagImage: '/flags/au.jpg',
     flagColors: ['#00008B', '#FFFFFF', '#FF0000'],
     prices: {
       quick: {
@@ -177,6 +211,7 @@ export const COUNTRIES: Record<string, CountryInfo> = {
     currency: 'CAD',
     currencySymbol: 'C$',
     flagEmoji: '🇨🇦',
+    flagImage: '/flags/ca.jpg',
     flagColors: ['#FF0000', '#FFFFFF', '#FF0000'],
     prices: {
       quick: {
@@ -205,6 +240,7 @@ export const COUNTRIES: Record<string, CountryInfo> = {
     currency: 'EUR',
     currencySymbol: '€',
     flagEmoji: '🇪🇺',
+    flagImage: '/flags/eu.jpg',
     flagColors: ['#003399', '#FFCC00', '#003399'],
     prices: {
       quick: {
@@ -233,6 +269,7 @@ export const COUNTRIES: Record<string, CountryInfo> = {
     currency: 'RUB',
     currencySymbol: '₽',
     flagEmoji: '🇷🇺',
+    flagImage: '/flags/ru.jpg',
     flagColors: ['#FFFFFF', '#0039A6', '#D52B1E'],
     prices: {
       quick: {
@@ -278,17 +315,22 @@ export function detectRealCountry(): string {
       return 'IN';
     }
 
-    // 2. DUBAI / UAE: Dubai, Muscat, Abu_Dhabi
+    // 2. GERMANY: Berlin, Busingen, Germany
+    if (lowerTz.includes('berlin') || lowerTz.includes('busingen') || lowerTz.includes('germany')) {
+      return 'DE';
+    }
+
+    // 3. DUBAI / UAE: Dubai, Muscat, Abu_Dhabi
     if (lowerTz.includes('dubai') || lowerTz.includes('muscat') || lowerTz.includes('abu_dhabi')) {
       return 'AE';
     }
 
-    // 3. UNITED KINGDOM: London, Belfast, Isle_of_Man, Jersey, Guernsey
+    // 4. UNITED KINGDOM: London, Belfast, Isle_of_Man, Jersey, Guernsey
     if (lowerTz.includes('london') || lowerTz.includes('belfast') || lowerTz.includes('isle_of_man') || lowerTz.includes('jersey') || lowerTz.includes('guernsey')) {
       return 'GB';
     }
 
-    // 4. UNITED STATES: America/* except Toronto, Montreal, Vancouver, etc.
+    // 5. UNITED STATES: America/* except Toronto, Montreal, Vancouver, etc.
     if (
       lowerTz.includes('new_york') || lowerTz.includes('chicago') || lowerTz.includes('los_angeles') ||
       lowerTz.includes('denver') || lowerTz.includes('phoenix') || lowerTz.includes('detroit') ||
@@ -299,7 +341,7 @@ export function detectRealCountry(): string {
       return 'US';
     }
 
-    // 5. AUSTRALIA: Sydney, Melbourne, Brisbane, Perth, Adelaide, Hobart, Darwin
+    // 6. AUSTRALIA: Sydney, Melbourne, Brisbane, Perth, Adelaide, Hobart, Darwin
     if (
       lowerTz.includes('sydney') || lowerTz.includes('melbourne') || lowerTz.includes('brisbane') ||
       lowerTz.includes('perth') || lowerTz.includes('adelaide') || lowerTz.includes('hobart') ||
@@ -308,7 +350,7 @@ export function detectRealCountry(): string {
       return 'AU';
     }
 
-    // 6. CANADA: Toronto, Vancouver, Montreal, Edmonton, Winnipeg, Halifax, St_Johns
+    // 7. CANADA: Toronto, Vancouver, Montreal, Edmonton, Winnipeg, Halifax, St_Johns
     if (
       lowerTz.includes('toronto') || lowerTz.includes('vancouver') || lowerTz.includes('montreal') ||
       lowerTz.includes('edmonton') || lowerTz.includes('winnipeg') || lowerTz.includes('halifax') ||
@@ -317,7 +359,7 @@ export function detectRealCountry(): string {
       return 'CA';
     }
 
-    // 7. RUSSIA: Moscow, Samara, Yekaterinburg, Omsk, Krasnoyarsk, Irkutsk, Vladivostok
+    // 8. RUSSIA: Moscow, Samara, Yekaterinburg, Omsk, Krasnoyarsk, Irkutsk, Vladivostok
     if (
       lowerTz.includes('moscow') || lowerTz.includes('samara') || lowerTz.includes('yekaterinburg') ||
       lowerTz.includes('omsk') || lowerTz.includes('krasnoyarsk') || lowerTz.includes('irkutsk') ||
@@ -326,9 +368,9 @@ export function detectRealCountry(): string {
       return 'RU';
     }
 
-    // 8. EUROPE: Berlin, Paris, Madrid, Rome, Amsterdam, Brussels, Vienna, Zurich, Stockholm, Warsaw
+    // 9. EUROPE: Paris, Madrid, Rome, Amsterdam, Brussels, Vienna, Zurich, Stockholm, Warsaw
     if (
-      lowerTz.includes('berlin') || lowerTz.includes('paris') || lowerTz.includes('madrid') ||
+      lowerTz.includes('paris') || lowerTz.includes('madrid') ||
       lowerTz.includes('rome') || lowerTz.includes('amsterdam') || lowerTz.includes('brussels') ||
       lowerTz.includes('vienna') || lowerTz.includes('zurich') || lowerTz.includes('stockholm') ||
       lowerTz.includes('warsaw') || lowerTz.includes('prague') || lowerTz.includes('copenhagen') ||
@@ -343,12 +385,13 @@ export function detectRealCountry(): string {
       const langs = navigator.languages || [navigator.language || ''];
       const langStr = langs.join(',').toLowerCase();
       if (langStr.includes('-in') || langStr.includes('hi')) return 'IN';
+      if (langStr.includes('-de') || langStr.startsWith('de')) return 'DE';
       if (langStr.includes('-ae') || langStr.includes('ar')) return 'AE';
       if (langStr.includes('-gb')) return 'GB';
       if (langStr.includes('-au')) return 'AU';
       if (langStr.includes('-ca')) return 'CA';
       if (langStr.includes('-ru')) return 'RU';
-      if (langStr.includes('-de') || langStr.includes('-fr') || langStr.includes('-it') || langStr.includes('-es')) return 'EU';
+      if (langStr.includes('-fr') || langStr.includes('-it') || langStr.includes('-es')) return 'EU';
       if (langStr.includes('-us')) return 'US';
     }
   } catch {

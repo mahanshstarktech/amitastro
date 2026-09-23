@@ -563,118 +563,85 @@ body {
 }
 
 /* ==========================================================================
-   Trust Metrics Bar (Aligned & Responsive + Ambient Flag Watermark)
+   Hero Section Flag Watermark (Darkest on left, fading completely to right)
    ========================================================================== */
-.trust-metrics-section {
+.hero-flag-section {
   position: relative;
-  background-color: #F5F5F7;
-  border-top: 1px solid #E5E5EA;
-  border-bottom: 1px solid #E5E5EA;
-  padding: 44px 0 42px;
   overflow: hidden;
+  padding-top: 72px;
+  padding-bottom: 88px;
 }
 
-.trust-flag-ambient-container {
-  position: relative;
-  margin-bottom: 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.trust-flag-glow {
+.hero-flag-watermark-layer {
   position: absolute;
-  top: -50px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-  max-width: 900px;
-  height: 260px;
-  pointer-events: none;
-  z-index: 0;
-  filter: blur(46px);
-  opacity: 0.65;
-  transition: all 0.5s ease;
-}
-
-.trust-flag-watermark-wrap {
-  position: absolute;
-  top: -24px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 320px;
-  height: 180px;
-  pointer-events: none;
-  z-index: 0;
-  opacity: 0.12;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  border-radius: 24px;
-  mask-image: radial-gradient(ellipse at center, rgba(0, 0, 0, 1) 20%, rgba(0, 0, 0, 0) 80%);
-  -webkit-mask-image: radial-gradient(ellipse at center, rgba(0, 0, 0, 1) 20%, rgba(0, 0, 0, 0) 80%);
-  transition: opacity 0.3s ease;
-}
-
-.trust-flag-watermark-img {
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  filter: blur(0.5px) contrast(1.1);
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+  /* Darkest on the left side and fades completely towards the right */
+  mask-image: linear-gradient(to right, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.28) 22%, rgba(0, 0, 0, 0.08) 50%, transparent 75%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.28) 22%, rgba(0, 0, 0, 0.08) 50%, transparent 75%, transparent 100%);
 }
 
-.trust-flag-feather-overlay {
+.hero-flag-watermark-img {
   position: absolute;
-  inset: 0;
-  background: radial-gradient(circle, transparent 40%, #F5F5F7 95%);
+  top: 50%;
+  left: -2%;
+  transform: translateY(-50%);
+  width: auto;
+  min-width: 65%;
+  max-width: 90%;
+  height: 130%;
+  object-fit: cover;
+  object-position: left center;
+  opacity: 0.38;
+  filter: saturate(1.2) contrast(1.08);
+  mix-blend-mode: multiply;
+  transition: opacity 0.5s ease;
 }
 
-.trust-flag-pill-wrap {
+@media (max-width: 768px) {
+  .hero-flag-watermark-layer {
+    mask-image: linear-gradient(to right, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.18) 35%, rgba(0, 0, 0, 0.04) 65%, transparent 85%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.18) 35%, rgba(0, 0, 0, 0.04) 65%, transparent 85%, transparent 100%);
+  }
+  .hero-flag-watermark-img {
+    min-width: 100%;
+    max-width: 130%;
+    opacity: 0.32;
+  }
+}
+
+.hero-flag-ambient-glow {
+  position: absolute;
+  top: 20px;
+  left: -80px;
+  width: 480px;
+  height: 480px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(80px);
+  opacity: 0.25;
+  transition: background 0.6s ease;
+}
+
+.hero-content-relative {
   position: relative;
   z-index: 1;
 }
 
-.country-indicator-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 14px;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 980px;
-  font-size: 12.5px;
-  color: #1D1D1F;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.country-indicator-pill:hover {
-  background: #FFFFFF;
-  border-color: #3A3A6E;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(58, 58, 110, 0.1);
-}
-
-.country-pill-flag {
-  font-size: 16px;
-  line-height: 1;
-}
-
-.country-pill-text {
-  color: #48484A;
-}
-
-.country-pill-action {
-  font-size: 11.5px;
-  font-weight: 600;
-  color: #3A3A6E;
-  padding-left: 6px;
-  border-left: 1px solid #E5E5EA;
+/* ==========================================================================
+   Trust Metrics Bar (Aligned & Responsive)
+   ========================================================================== */
+.trust-metrics-section {
+  background-color: #F5F5F7;
+  border-top: 1px solid #E5E5EA;
+  border-bottom: 1px solid #E5E5EA;
+  padding: 38px 0;
 }
 
 .trust-metrics-grid {

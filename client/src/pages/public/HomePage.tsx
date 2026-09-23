@@ -10,8 +10,6 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useCountry } from '../../context/CountryContext';
 import { YouTubeShowcase } from '../../components/home/YouTubeShowcase';
 import { CustomerReviewsShowcase } from '../../components/home/CustomerReviewsShowcase';
-import { CountryFlagWatermark } from '../../components/common/CountryFlagWatermark';
-import { CountrySelectorModal } from '../../components/common/CountrySelectorModal';
 
 interface HomePageProps {
   onOpenBooking: (pkgId?: string) => void;
@@ -27,7 +25,6 @@ export const HomePage: React.FC<HomePageProps> = ({
   const { isAuthenticated, user } = useAuth();
   const { t } = useLanguage();
   const { countryInfo } = useCountry();
-  const [isCountryModalOpen, setIsCountryModalOpen] = useState(false);
   const showTrialCTA = !isAuthenticated || (!!user?.isNewCustomer && !user?.trialUsed);
 
   const [featuredPosts, setFeaturedPosts] = useState<any[]>([]);
@@ -165,9 +162,25 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   return (
     <div className="constellation-bg" style={{ minHeight: '100vh' }}>
-      {/* HERO SECTION */}
-      <section className="section-padding" style={{ paddingTop: 72, paddingBottom: 88 }}>
-        <div className="container" style={{ textAlign: 'center' }}>
+      {/* HERO SECTION WITH WATERMARK FLAG EFFECT */}
+      <section className="section-padding hero-flag-section">
+        {/* Waving Satin Silk Flag Watermark (Darkest on left, fading completely towards right) */}
+        <div className="hero-flag-watermark-layer" aria-hidden="true">
+          <img
+            src={countryInfo.flagImage}
+            alt=""
+            className="hero-flag-watermark-img"
+          />
+        </div>
+        <div
+          className="hero-flag-ambient-glow"
+          style={{
+            background: `radial-gradient(circle, ${countryInfo.flagColors[0]}33 0%, ${countryInfo.flagColors[1]}15 45%, ${countryInfo.flagColors[2]}20 80%, transparent 100%)`
+          }}
+          aria-hidden="true"
+        />
+
+        <div className="container hero-content-relative" style={{ textAlign: 'center' }}>
           {/* Headline */}
           <h1
             className="text-display"
@@ -266,15 +279,9 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-      {/* TRUST METRICS BAR (Aligned & Fully Responsive + Ambient Flag Watermark) */}
+      {/* TRUST METRICS BAR (Aligned & Fully Responsive) */}
       <section className="trust-metrics-section">
         <div className="container">
-          {/* Faded Flag Effect & Country Indicator */}
-          <CountryFlagWatermark
-            countryInfo={countryInfo}
-            onOpenSelector={() => setIsCountryModalOpen(true)}
-          />
-
           <div className="trust-metrics-grid">
             <div className="trust-metric-tile">
               <div className="trust-metric-val">
@@ -558,26 +565,6 @@ export const HomePage: React.FC<HomePageProps> = ({
             <div>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                 <span className="apple-badge-gold">Transparent Tiers</span>
-                <button
-                  type="button"
-                  onClick={() => setIsCountryModalOpen(true)}
-                  style={{
-                    background: 'none',
-                    border: '1px solid #E5E5EA',
-                    borderRadius: 9999,
-                    padding: '3px 10px',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: '#3A3A6E',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6
-                  }}
-                >
-                  <span>{countryInfo.flagEmoji}</span>
-                  <span>{countryInfo.name} ({countryInfo.currency}) · Change</span>
-                </button>
               </div>
               <h2 className="text-h1" style={{ margin: '4px 0 8px' }}>
                 Consultation Packages
@@ -977,12 +964,6 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
         </div>
       </section>
-
-      {/* Country Selector Modal */}
-      <CountrySelectorModal
-        isOpen={isCountryModalOpen}
-        onClose={() => setIsCountryModalOpen(false)}
-      />
     </div>
   );
 };

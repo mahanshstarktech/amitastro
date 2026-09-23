@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useCountry } from '../../context/CountryContext';
 
 interface AppleHeaderProps {
   onOpenAuth: (mode?: 'login' | 'signup') => void;
@@ -35,6 +36,7 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
 }) => {
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
   const { language, setLanguage, t } = useLanguage();
+  const { country, countryInfo, setCountry, availableCountries } = useCountry();
   const [isScrolled, setIsScrolled] = useState(false);
   const [blogDropdownOpen, setBlogDropdownOpen] = useState(false);
   const [accountDropdownOpen, setAccountDropdownOpen] = useState(false);
@@ -356,6 +358,45 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
                   gap: 14
                 }}
               >
+                {/* Country & Currency Section */}
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11.5, fontWeight: 600, color: '#86868B', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 13 }}>{countryInfo.flagEmoji}</span>
+                      <span>Country & Currency</span>
+                    </div>
+                    <span style={{ fontSize: 11, color: '#3A3A6E', fontWeight: 700 }}>{countryInfo.currency}</span>
+                  </div>
+                  <select
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: 12,
+                      border: '1px solid #E5E5EA',
+                      backgroundColor: '#F5F5F7',
+                      color: '#1D1D1F',
+                      fontSize: 13,
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      outline: 'none',
+                      appearance: 'none',
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236E6E73' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E")`,
+                      backgroundRepeat: 'no-repeat',
+                      backgroundPosition: 'calc(100% - 12px) center'
+                    }}
+                  >
+                    {availableCountries.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.flagEmoji} {c.name} ({c.currency})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={{ height: 1, backgroundColor: '#E5E5EA' }} />
+
                 {/* Language Switcher Section */}
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#86868B', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>
