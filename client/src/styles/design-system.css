@@ -806,3 +806,307 @@ body {
     display: none;
   }
 }
+
+/* ==========================================================================
+   HOW AMIT ASTRO WORKS: DUAL-MODE LAYOUT (Desktop Grid vs Mobile Shelf)
+   ========================================================================== */
+.how-it-works-desktop {
+  display: block;
+}
+
+.how-it-works-mobile {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .how-it-works-desktop {
+    display: none !important;
+  }
+  .how-it-works-mobile {
+    display: block !important;
+  }
+}
+
+.how-it-works-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.how-it-works-card {
+  background: #FFFFFF;
+  border: 1px solid #E5E5EA;
+  border-radius: 20px;
+  padding: 32px 26px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.how-it-works-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.07);
+}
+
+.how-it-works-step-num {
+  font-size: 32px;
+  font-weight: 700;
+  color: #C9A24B;
+  line-height: 1;
+  margin-bottom: 14px;
+}
+
+.how-it-works-card-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1D1D1F;
+  margin-bottom: 8px;
+  letter-spacing: -0.015em;
+}
+
+.how-it-works-card-desc {
+  font-size: 14px;
+  color: #6E6E73;
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* ==========================================================================
+   AUTHENTIC VEDIC CONSULTATIONS: APPLE STORE SHELF & CAROUSEL
+   ========================================================================== */
+.apple-services-shelf {
+  display: flex;
+  gap: 22px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 8px 4px 24px;
+}
+
+.apple-services-shelf::-webkit-scrollbar {
+  display: none;
+}
+
+.apple-service-card {
+  flex: 0 0 clamp(290px, 28vw, 360px);
+  scroll-snap-align: start;
+  background: #FFFFFF;
+  border: 1px solid #E5E5EA;
+  border-radius: 22px;
+  padding: 30px 26px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+  min-height: 310px;
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal), border-color var(--transition-normal);
+  cursor: pointer;
+  user-select: none;
+}
+
+.apple-service-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.08);
+  border-color: #D1D1D6;
+}
+
+@media (max-width: 768px) {
+  .apple-service-card {
+    flex: 0 0 clamp(270px, 80vw, 330px);
+    padding: 24px 20px;
+    border-radius: 18px;
+    min-height: 280px;
+  }
+}
+
+/* ==========================================================================
+   COLLAPSIBLE SIDEBAR & SLIDING DRAWER SYSTEM (PanelLeft)
+   ========================================================================== */
+.panel-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #FFFFFF;
+  border: 1px solid #E5E5EA;
+  color: #1D1D1F;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+.panel-toggle-btn:hover {
+  background: #F5F5F7;
+  border-color: #D1D1D6;
+  color: #3A3A6E;
+}
+
+.panel-toggle-btn.active {
+  background: #3A3A6E;
+  color: #FFFFFF;
+  border-color: #3A3A6E;
+}
+
+.portal-layout {
+  display: flex;
+  min-height: calc(100vh - 64px);
+  position: relative;
+  width: 100%;
+}
+
+.portal-sidebar-desktop {
+  width: 280px;
+  flex-shrink: 0;
+  background: #FFFFFF;
+  border-right: 1px solid #E5E5EA;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: sticky;
+  top: 58px;
+  height: calc(100vh - 58px);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.portal-sidebar-desktop.collapsed {
+  width: 68px;
+}
+
+.portal-content-area {
+  flex: 1;
+  min-width: 0;
+  padding: 32px 36px 64px;
+}
+
+@media (max-width: 1024px) {
+  .portal-sidebar-desktop {
+    display: none !important;
+  }
+  .portal-content-area {
+    padding: 20px 16px 48px;
+  }
+}
+
+/* Mobile sliding drawer */
+.mobile-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 1050;
+  animation: drawerFadeIn 0.2s ease-out;
+}
+
+.mobile-drawer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: min(340px, 86vw);
+  background: #FFFFFF;
+  z-index: 1060;
+  box-shadow: 8px 0 32px rgba(0, 0, 0, 0.16);
+  display: flex;
+  flex-direction: column;
+  animation: drawerSlideInLeft 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes drawerSlideInLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes drawerFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Sidebar navigation item button */
+.sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: #48484A;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: left;
+}
+
+.sidebar-nav-item:hover {
+  background: #F5F5F7;
+  color: #1D1D1F;
+}
+
+.sidebar-nav-item.active {
+  background: rgba(58, 58, 110, 0.08);
+  color: #3A3A6E;
+  font-weight: 600;
+}
+
+.sidebar-nav-item-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-nav-item-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  background: #E5E5EA;
+  color: #6E6E73;
+  flex-shrink: 0;
+}
+
+.sidebar-nav-item.active .sidebar-nav-item-badge {
+  background: #3A3A6E;
+  color: #FFFFFF;
+}
+
+/* Page-specific responsive visibility */
+@media (min-width: 1025px) {
+  .legal-mobile-bar,
+  .blog-mobile-bar,
+  .portal-mobile-bar {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  .legal-desktop-sidebar,
+  .blog-desktop-sidebar,
+  .portal-desktop-sidebar {
+    display: none !important;
+  }
+}
+
+

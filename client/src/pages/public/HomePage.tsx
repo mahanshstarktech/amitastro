@@ -28,11 +28,19 @@ export const HomePage: React.FC<HomePageProps> = ({
   const [featuredPosts, setFeaturedPosts] = useState<any[]>([]);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const shelfRef = useRef<HTMLDivElement>(null);
+  const servicesShelfRef = useRef<HTMLDivElement>(null);
 
   const scrollShelf = (direction: 'left' | 'right') => {
     if (shelfRef.current) {
       const scrollAmount = direction === 'left' ? -380 : 380;
       shelfRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
+
+  const scrollServicesShelf = (direction: 'left' | 'right') => {
+    if (servicesShelfRef.current) {
+      const scrollAmount = direction === 'left' ? -360 : 360;
+      servicesShelfRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
   };
 
@@ -290,41 +298,53 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-      {/* SERVICES OVERVIEW (Section 4) */}
-      <section className="section-padding">
+      {/* AUTHENTIC VEDIC CONSULTATIONS APPLE STORE SHELF */}
+      <section className="section-padding" style={{ paddingBottom: 64 }}>
         <div className="container">
-          <div style={{ textAlign: 'center', marginBottom: 54 }}>
-            <span className="apple-badge-primary">Dedicated Disciplines</span>
-            <h2 className="text-h1" style={{ marginTop: 8, marginBottom: 12 }}>
-              Authentic Vedic Consultations
-            </h2>
-            <p className="text-body-large" style={{ maxWidth: 600, margin: '0 auto' }}>
-              Each session is rooted in sacred texts, mathematical planetary positions, and compassionate listening.
-            </p>
+          <div className="apple-shelf-header-wrap" style={{ marginBottom: 32 }}>
+            <div>
+              <span className="apple-badge-primary">Dedicated Disciplines</span>
+              <h2 className="apple-shelf-headline" style={{ marginTop: 8 }}>
+                Authentic Vedic Consultations.{' '}
+                <span className="apple-shelf-headline-sub">
+                  Rooted in sacred texts & compassionate guidance.
+                </span>
+              </h2>
+            </div>
+
+            <div className="apple-shelf-ctrls">
+              <button
+                onClick={() => scrollServicesShelf('left')}
+                className="apple-shelf-btn"
+                aria-label="Previous consultation"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <button
+                onClick={() => scrollServicesShelf('right')}
+                className="apple-shelf-btn"
+                aria-label="Next consultation"
+              >
+                <ChevronRight size={20} />
+              </button>
+            </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
+          <div ref={servicesShelfRef} className="apple-services-shelf">
             {services.map((s) => {
               const IconComp = s.icon;
               return (
                 <div
                   key={s.title}
-                  className="apple-card"
-                  style={{
-                    padding: '30px 26px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    cursor: 'pointer'
-                  }}
+                  className="apple-service-card"
                   onClick={() => onNavigate(s.link)}
                 >
                   <div>
                     <div
                       style={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: 12,
+                        width: 46,
+                        height: 46,
+                        borderRadius: 14,
                         backgroundColor: 'rgba(58, 58, 110, 0.08)',
                         display: 'flex',
                         alignItems: 'center',
@@ -335,18 +355,18 @@ export const HomePage: React.FC<HomePageProps> = ({
                     >
                       <IconComp size={22} />
                     </div>
-                    <span className="apple-badge-gold" style={{ marginBottom: 10 }}>
+                    <span className="apple-badge-gold" style={{ marginBottom: 12 }}>
                       {s.tag}
                     </span>
-                    <h3 className="text-h3" style={{ fontSize: 19, margin: '8px 0 10px' }}>
+                    <h3 className="text-h3" style={{ fontSize: 20, margin: '8px 0 10px', lineHeight: 1.3 }}>
                       {s.title}
                     </h3>
-                    <p className="text-body" style={{ fontSize: 14.5, lineHeight: 1.6 }}>
+                    <p className="text-body" style={{ fontSize: 14.5, lineHeight: 1.55, color: '#6E6E73' }}>
                       {s.desc}
                     </p>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#3A3A6E', fontSize: 13.5, fontWeight: 600, marginTop: 20 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#3A3A6E', fontSize: 13.5, fontWeight: 600, marginTop: 24, paddingTop: 14, borderTop: '1px solid #F5F5F7' }}>
                     Learn More & Book <ChevronRight size={15} />
                   </div>
                 </div>
@@ -356,69 +376,95 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-      {/* HOW IT WORKS APPLE STORE SHELF (The Apple Store Difference Style) */}
+      {/* HOW AMIT ASTRO WORKS: DUAL-MODE (Desktop 4-Col Grid vs Mobile Apple Carousel) */}
       <section className="apple-shelf-section" id="how-it-works">
         <div className="container">
-          <div className="apple-shelf-header-wrap">
-            <div>
-              <span className="apple-badge-gold" style={{ marginBottom: 12 }}>
-                The Amit Astro Experience
-              </span>
-              <h2 className="apple-shelf-headline">
-                How Amit Astro works.{' '}
-                <span className="apple-shelf-headline-sub">
-                  Even more reasons to consult with us.
-                </span>
+          {/* Desktop 4-Card Side-by-Side View */}
+          <div className="how-it-works-desktop">
+            <div style={{ textAlign: 'center', marginBottom: 48 }}>
+              <span className="apple-badge-gold">Seamless 4-Step Journey</span>
+              <h2 className="text-h1" style={{ marginTop: 8, marginBottom: 10 }}>
+                How Amit Astro Works
               </h2>
+              <p className="text-body" style={{ fontSize: 16, maxWidth: 640, margin: '0 auto' }}>
+                From initial intent to deep astrological insight in four transparent, reassuring steps.
+              </p>
             </div>
 
-            <div className="apple-shelf-ctrls">
-              <button
-                onClick={() => scrollShelf('left')}
-                className="apple-shelf-btn"
-                aria-label="Previous step"
-              >
-                <ChevronLeft size={20} />
-              </button>
-              <button
-                onClick={() => scrollShelf('right')}
-                className="apple-shelf-btn"
-                aria-label="Next step"
-              >
-                <ChevronRight size={20} />
-              </button>
+            <div className="how-it-works-grid">
+              {steps.map((st) => (
+                <div key={st.num} className="how-it-works-card">
+                  <div className="how-it-works-step-num">{st.num}</div>
+                  <h3 className="how-it-works-card-title">{st.title}</h3>
+                  <p className="how-it-works-card-desc">{st.desc}</p>
+                </div>
+              ))}
             </div>
           </div>
 
-          <div ref={shelfRef} className="apple-shelf-scroll">
-            {steps.map((st) => {
-              const IconComp = st.icon;
-              return (
-                <div key={st.num} className="apple-shelf-card">
-                  <div>
-                    <div className="apple-shelf-top">
-                      <div className="apple-shelf-icon" style={{ backgroundColor: st.bg, color: st.color }}>
-                        <IconComp size={22} />
+          {/* Mobile & Tablet Apple Store Shelf View */}
+          <div className="how-it-works-mobile">
+            <div className="apple-shelf-header-wrap">
+              <div>
+                <span className="apple-badge-gold" style={{ marginBottom: 12 }}>
+                  The Amit Astro Experience
+                </span>
+                <h2 className="apple-shelf-headline">
+                  How Amit Astro works.{' '}
+                  <span className="apple-shelf-headline-sub">
+                    Even more reasons to consult with us.
+                  </span>
+                </h2>
+              </div>
+
+              <div className="apple-shelf-ctrls">
+                <button
+                  onClick={() => scrollShelf('left')}
+                  className="apple-shelf-btn"
+                  aria-label="Previous step"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <button
+                  onClick={() => scrollShelf('right')}
+                  className="apple-shelf-btn"
+                  aria-label="Next step"
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </div>
+            </div>
+
+            <div ref={shelfRef} className="apple-shelf-scroll">
+              {steps.map((st) => {
+                const IconComp = st.icon;
+                return (
+                  <div key={st.num} className="apple-shelf-card">
+                    <div>
+                      <div className="apple-shelf-top">
+                        <div className="apple-shelf-icon" style={{ backgroundColor: st.bg, color: st.color }}>
+                          <IconComp size={22} />
+                        </div>
+                        <span className="apple-shelf-step-num">Step {st.num}</span>
                       </div>
-                      <span className="apple-shelf-step-num">Step {st.num}</span>
+
+                      <h3 className="apple-shelf-card-title">
+                        {st.title}
+                      </h3>
+
+                      <p className="apple-shelf-card-desc">
+                        {st.desc}
+                      </p>
                     </div>
 
-                    <h3 className="apple-shelf-card-title">
-                      {st.title}
-                    </h3>
-
-                    <p className="apple-shelf-card-desc">
-                      {st.desc}
-                    </p>
+                    <div className="apple-shelf-card-footer">
+                      <span>{st.footerText}</span>
+                      <ChevronRight size={14} />
+                    </div>
                   </div>
-
-                  <div className="apple-shelf-card-footer">
-                    <span>{st.footerText}</span>
-                    <ChevronRight size={14} />
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
       </section>

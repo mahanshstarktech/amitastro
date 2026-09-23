@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Users, Calendar, MessageSquare, CreditCard, BookOpen, Settings, BarChart2, 
   Send, ShieldCheck, CheckCircle2, XCircle, Clock, Search, Phone, Plus, Trash2, 
-  Edit3, ArrowRight, Eye, RefreshCw, AlertTriangle, Copy, Check, ChevronDown, ChevronUp, Sparkles, Filter, X
+  Edit3, ArrowRight, Eye, RefreshCw, AlertTriangle, Copy, Check, ChevronDown, ChevronUp, Sparkles, Filter, X, PanelLeft
 } from 'lucide-react';
 import { apiRequest } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
@@ -15,6 +15,8 @@ export const AdminPortal: React.FC = () => {
   const [activeTab, setActiveTab] = useState<
     'dashboard' | 'customers' | 'appointments' | 'chat' | 'payments' | 'blog' | 'broadcast' | 'analytics' | 'settings'
   >('dashboard');
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const [metrics, setMetrics] = useState<any>(null);
   const [appointments, setAppointments] = useState<any[]>([]);
@@ -378,6 +380,25 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
     }
   };
 
+  const adminTabs = [
+    { id: 'dashboard' as const, label: 'Dashboard', icon: BarChart2 },
+    { id: 'appointments' as const, label: 'Slot & Requests', icon: Calendar, badge: metrics?.pendingRequests },
+    { id: 'chat' as const, label: 'Unified Inbox', icon: MessageSquare, badge: metrics?.unreadChats },
+    { id: 'payments' as const, label: 'Payment Queue', icon: CreditCard, badge: metrics?.pendingPayments },
+    { id: 'customers' as const, label: 'CRM & Birth Charts', icon: Users },
+    { id: 'blog' as const, label: 'Blog CMS', icon: BookOpen },
+    { id: 'broadcast' as const, label: 'Broadcasts', icon: Send },
+    { id: 'analytics' as const, label: 'Analytics', icon: BarChart2 },
+    { id: 'settings' as const, label: 'Availability & Hours', icon: Settings }
+  ];
+
+  const currentAdminTab = adminTabs.find((t) => t.id === activeTab) || adminTabs[0];
+
+  const handleSelectAdminTab = (tabId: typeof activeTab) => {
+    setActiveTab(tabId);
+    setMobileDrawerOpen(false);
+  };
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#F5F5F7', display: 'flex', flexDirection: 'column' }}>
       {/* Admin Top Header */}
@@ -415,57 +436,219 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
         </div>
       </header>
 
-      {/* Admin Navigation Bar */}
-      <div style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid #E5E5EA' }}>
-        <div className="container" style={{ display: 'flex', gap: 20, overflowX: 'auto', padding: '0 24px' }}>
-          {[
-            { id: 'dashboard', label: 'Dashboard', icon: BarChart2 },
-            { id: 'appointments', label: 'Slot & Requests', icon: Calendar, badge: metrics?.pendingRequests },
-            { id: 'chat', label: 'Unified Inbox', icon: MessageSquare, badge: metrics?.unreadChats },
-            { id: 'payments', label: 'Payment Queue', icon: CreditCard, badge: metrics?.pendingPayments },
-            { id: 'customers', label: 'CRM & Birth Charts', icon: Users },
-            { id: 'blog', label: 'Blog CMS', icon: BookOpen },
-            { id: 'broadcast', label: 'Broadcasts', icon: Send },
-            { id: 'analytics', label: 'Analytics', icon: BarChart2 },
-            { id: 'settings', label: 'Availability & Hours', icon: Settings }
-          ].map((t) => {
-            const Icon = t.icon;
-            const active = activeTab === t.id;
-            return (
-              <button
-                key={t.id}
-                onClick={() => setActiveTab(t.id as any)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  borderBottom: active ? '2px solid #3A3A6E' : '2px solid transparent',
-                  padding: '16px 4px',
-                  color: active ? '#1D1D1F' : '#6E6E73',
-                  fontWeight: active ? 600 : 400,
-                  fontSize: 14,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                <Icon size={16} color={active ? '#3A3A6E' : '#86868B'} />
-                {t.label}
-                {t.badge !== undefined && t.badge > 0 && (
-                  <span style={{ backgroundColor: '#D64545', color: '#FFF', fontSize: 10.5, fontWeight: 700, padding: '2px 6px', borderRadius: 9999 }}>
-                    {t.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+      {/* Mobile Sticky Control Bar with PanelLeft button */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '12px 16px',
+          backgroundColor: '#FFFFFF',
+          borderBottom: '1px solid #E5E5EA',
+          position: 'sticky',
+          top: 0,
+          zIndex: 90
+        }}
+        className="portal-mobile-bar"
+      >
+        <button
+          onClick={() => setMobileDrawerOpen(true)}
+          className="panel-toggle-btn"
+          aria-label="Open admin navigation drawer"
+        >
+          <PanelLeft size={18} color="#3A3A6E" />
+          <span>Admin Menu</span>
+        </button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#6E6E73' }}>
+          <span style={{ fontWeight: 600, color: '#1D1D1F' }}>
+            {currentAdminTab.label}
+          </span>
+          {currentAdminTab.badge !== undefined && currentAdminTab.badge > 0 && (
+            <span style={{ backgroundColor: '#D64545', color: '#FFF', fontSize: 10.5, fontWeight: 700, padding: '2px 7px', borderRadius: 9999 }}>
+              {currentAdminTab.badge}
+            </span>
+          )}
         </div>
       </div>
 
-      {/* ADMIN BODY CONTAINER */}
-      <div className="container" style={{ marginTop: 28, paddingBottom: 80 }}>
-        {/* 1. DASHBOARD METRICS */}
+      {/* Mobile Sliding Drawer with Frosted Backdrop */}
+      {mobileDrawerOpen && (
+        <>
+          <div
+            className="mobile-drawer-backdrop"
+            onClick={() => setMobileDrawerOpen(false)}
+          />
+          <div className="mobile-drawer">
+            <div
+              style={{
+                padding: '20px 18px',
+                borderBottom: '1px solid #E5E5EA',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                backgroundColor: '#1D1D1F',
+                color: '#FFFFFF'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <PanelLeft size={20} color="#C9A24B" />
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 16, color: '#FFFFFF' }}>
+                    Command Center
+                  </div>
+                  <div style={{ fontSize: 12, color: '#A1A1A6' }}>
+                    Astrologer Admin
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setMobileDrawerOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: 6,
+                  cursor: 'pointer',
+                  borderRadius: 8,
+                  color: '#A1A1A6',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+                aria-label="Close drawer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ padding: '16px 12px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {adminTabs.map((item) => {
+                const Icon = item.icon;
+                const active = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleSelectAdminTab(item.id)}
+                    className={`sidebar-nav-item ${active ? 'active' : ''}`}
+                  >
+                    <div className="sidebar-nav-item-content">
+                      <Icon size={18} color={active ? '#3A3A6E' : '#6E6E73'} />
+                      <span>{item.label}</span>
+                    </div>
+                    {item.badge !== undefined && item.badge > 0 && (
+                      <span style={{ backgroundColor: '#D64545', color: '#FFF', fontSize: 10.5, fontWeight: 700, padding: '2px 7px', borderRadius: 9999 }}>
+                        {item.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div style={{ padding: 16, borderTop: '1px solid #E5E5EA', backgroundColor: '#FBFBFD', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <button
+                onClick={() => (window.location.href = '/')}
+                style={{ background: 'none', border: 'none', color: '#3A3A6E', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+              >
+                Public Site
+              </button>
+              <button
+                onClick={logout}
+                style={{ background: 'none', border: 'none', color: '#D64545', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Main Layout Container (Desktop Sidebar + Admin Body) */}
+      <div className="container" style={{ maxWidth: 1440, marginTop: 24, paddingBottom: 80 }}>
+        <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+          {/* Desktop Left Sidebar */}
+          <aside
+            style={{
+              width: sidebarCollapsed ? 72 : 280,
+              flexShrink: 0,
+              backgroundColor: '#FFFFFF',
+              border: '1px solid #E5E5EA',
+              borderRadius: 20,
+              padding: sidebarCollapsed ? '16px 10px' : '20px 16px',
+              boxShadow: '0 2px 12px rgba(0, 0, 0, 0.03)',
+              position: 'sticky',
+              top: 24,
+              transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
+            }}
+            className="portal-desktop-sidebar"
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: sidebarCollapsed ? 'center' : 'space-between',
+                marginBottom: 16,
+                paddingBottom: 12,
+                borderBottom: '1px solid #E5E5EA'
+              }}
+            >
+              {!sidebarCollapsed && (
+                <span style={{ fontWeight: 700, fontSize: 15, color: '#1D1D1F', letterSpacing: '-0.01em' }}>
+                  Admin Modules
+                </span>
+              )}
+              <button
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 6,
+                  borderRadius: 8,
+                  color: '#3A3A6E',
+                  display: 'flex',
+                  alignItems: 'center',
+                  transition: 'background 0.15s ease'
+                }}
+                title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              >
+                <PanelLeft size={19} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {adminTabs.map((item) => {
+                const Icon = item.icon;
+                const active = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleSelectAdminTab(item.id)}
+                    className={`sidebar-nav-item ${active ? 'active' : ''}`}
+                    title={sidebarCollapsed ? item.label : undefined}
+                    style={{
+                      justifyContent: sidebarCollapsed ? 'center' : 'space-between',
+                      padding: sidebarCollapsed ? '12px' : '10px 12px'
+                    }}
+                  >
+                    <div className="sidebar-nav-item-content">
+                      <Icon size={18} color={active ? '#3A3A6E' : '#6E6E73'} />
+                      {!sidebarCollapsed && <span>{item.label}</span>}
+                    </div>
+                    {!sidebarCollapsed && item.badge !== undefined && item.badge > 0 && (
+                      <span style={{ backgroundColor: '#D64545', color: '#FFF', fontSize: 10.5, fontWeight: 700, padding: '2px 7px', borderRadius: 9999 }}>
+                        {item.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </aside>
+
+          {/* Right Main Content Area */}
+          <main style={{ flex: 1, minWidth: 0 }}>
+            {/* 1. DASHBOARD METRICS */}
         {activeTab === 'dashboard' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
@@ -1538,6 +1721,8 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
             </div>
           </div>
         )}
+          </main>
+        </div>
       </div>
 
       {/* Admin Follow-up Consultation Thread Modal */}

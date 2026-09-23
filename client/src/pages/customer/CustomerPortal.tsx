@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Calendar, MessageSquare, User, CreditCard, Clock, Plus, Trash2, Edit3, 
   CheckCircle2, AlertCircle, ArrowRight, ShieldCheck, Sparkles, Send, Paperclip, X,
-  Settings, Globe, Check
+  Settings, Globe, Check, PanelLeft
 } from 'lucide-react';
 import { useAuth, type BirthProfile } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
@@ -25,6 +25,8 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
   const { language, setLanguage, t } = useLanguage();
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'appointments' | 'chat' | 'profile' | 'payments' | 'settings'>(initialTab);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [conversation, setConversation] = useState<any>(null);
@@ -147,6 +149,22 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
     }
   };
 
+  const navTabs = [
+    { id: 'dashboard' as const, label: 'Overview', icon: Sparkles },
+    { id: 'appointments' as const, label: 'My Appointments', icon: Calendar, badge: appointments.length },
+    { id: 'chat' as const, label: 'Consultation Chat', icon: MessageSquare },
+    { id: 'profile' as const, label: 'Birth Profiles (Family)', icon: User, badge: profiles.length },
+    { id: 'payments' as const, label: 'Payments & UPI', icon: CreditCard },
+    { id: 'settings' as const, label: t('nav.settings', 'Settings'), icon: Settings }
+  ];
+
+  const currentTab = navTabs.find((t) => t.id === activeTab) || navTabs[0];
+
+  const handleSelectTab = (tabId: typeof activeTab) => {
+    setActiveTab(tabId);
+    setMobileDrawerOpen(false);
+  };
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#FBFBFD', paddingBottom: 80 }}>
       {/* Top Welcome Bar */}
@@ -186,63 +204,203 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
         </div>
       </div>
 
-      {/* Tabs Navigation Bar */}
-      <div style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid #E5E5EA' }}>
-        <div className="container" style={{ display: 'flex', gap: 24, overflowX: 'auto', padding: '0 24px' }}>
-          {[
-            { id: 'dashboard', label: 'Overview', icon: Sparkles },
-            { id: 'appointments', label: 'My Appointments', icon: Calendar, badge: appointments.length },
-            { id: 'chat', label: 'Consultation Chat', icon: MessageSquare },
-            { id: 'profile', label: 'Birth Profiles (Family)', icon: User, badge: profiles.length },
-            { id: 'payments', label: 'Payments & UPI', icon: CreditCard },
-            { id: 'settings', label: t('nav.settings', 'Settings'), icon: Settings }
-          ].map((t) => {
-            const Icon = t.icon;
-            const active = activeTab === t.id;
-            return (
-              <button
-                key={t.id}
-                onClick={() => setActiveTab(t.id as any)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  borderBottom: active ? '2px solid #3A3A6E' : '2px solid transparent',
-                  padding: '16px 4px',
-                  color: active ? '#1D1D1F' : '#6E6E73',
-                  fontWeight: active ? 600 : 400,
-                  fontSize: 14,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                <Icon size={16} color={active ? '#3A3A6E' : '#86868B'} />
-                {t.label}
-                {t.badge !== undefined && t.badge > 0 && (
-                  <span
-                    style={{
-                      backgroundColor: active ? '#3A3A6E' : '#E5E5EA',
-                      color: active ? '#FFF' : '#1D1D1F',
-                      fontSize: 11,
-                      fontWeight: 700,
-                      padding: '2px 6px',
-                      borderRadius: 9999
-                    }}
-                  >
-                    {t.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+      {/* Mobile Sticky Control Bar with PanelLeft button */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '12px 16px',
+          backgroundColor: '#FFFFFF',
+          borderBottom: '1px solid #E5E5EA',
+          position: 'sticky',
+          top: 58,
+          zIndex: 90
+        }}
+        className="portal-mobile-bar"
+      >
+        <button
+          onClick={() => setMobileDrawerOpen(true)}
+          className="panel-toggle-btn"
+          aria-label="Open portal navigation drawer"
+        >
+          <PanelLeft size={18} color="#3A3A6E" />
+          <span>Portal Menu</span>
+        </button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#6E6E73' }}>
+          <span style={{ fontWeight: 600, color: '#1D1D1F' }}>
+            {currentTab.label}
+          </span>
+          {currentTab.badge !== undefined && currentTab.badge > 0 && (
+            <span className="apple-badge-gold" style={{ fontSize: 11, padding: '2px 7px' }}>
+              {currentTab.badge}
+            </span>
+          )}
         </div>
       </div>
 
-      {/* TAB CONTENT CONTAINER */}
-      <div className="container" style={{ marginTop: 36 }}>
-        {/* 1. OVERVIEW DASHBOARD */}
+      {/* Mobile Sliding Drawer with Frosted Backdrop */}
+      {mobileDrawerOpen && (
+        <>
+          <div
+            className="mobile-drawer-backdrop"
+            onClick={() => setMobileDrawerOpen(false)}
+          />
+          <div className="mobile-drawer">
+            <div
+              style={{
+                padding: '20px 18px',
+                borderBottom: '1px solid #E5E5EA',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                backgroundColor: '#F5F5F7'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <PanelLeft size={20} color="#3A3A6E" />
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 16, color: '#1D1D1F' }}>
+                    Seeker Portal
+                  </div>
+                  <div style={{ fontSize: 12, color: '#86868B' }}>
+                    {user?.name || 'Client Workspace'}
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setMobileDrawerOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: 6,
+                  cursor: 'pointer',
+                  borderRadius: 8,
+                  color: '#6E6E73',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+                aria-label="Close drawer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ padding: '16px 12px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {navTabs.map((item) => {
+                const Icon = item.icon;
+                const active = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleSelectTab(item.id)}
+                    className={`sidebar-nav-item ${active ? 'active' : ''}`}
+                  >
+                    <div className="sidebar-nav-item-content">
+                      <Icon size={18} color={active ? '#3A3A6E' : '#6E6E73'} />
+                      <span>{item.label}</span>
+                    </div>
+                    {item.badge !== undefined && item.badge > 0 && (
+                      <span className="sidebar-nav-item-badge">{item.badge}</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div style={{ padding: 16, borderTop: '1px solid #E5E5EA', backgroundColor: '#FBFBFD', fontSize: 12, color: '#86868B', textAlign: 'center' }}>
+              Verified Mobile: {user?.phone}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Main Layout Container (Desktop Sidebar + Tab Content) */}
+      <div className="container" style={{ maxWidth: 1380, marginTop: 32 }}>
+        <div style={{ display: 'flex', gap: 28, alignItems: 'flex-start' }}>
+          {/* Desktop Left Sidebar */}
+          <aside
+            style={{
+              width: sidebarCollapsed ? 72 : 280,
+              flexShrink: 0,
+              backgroundColor: '#FFFFFF',
+              border: '1px solid #E5E5EA',
+              borderRadius: 20,
+              padding: sidebarCollapsed ? '16px 10px' : '20px 16px',
+              boxShadow: '0 2px 12px rgba(0, 0, 0, 0.03)',
+              position: 'sticky',
+              top: 76,
+              transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
+            }}
+            className="portal-desktop-sidebar"
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: sidebarCollapsed ? 'center' : 'space-between',
+                marginBottom: 16,
+                paddingBottom: 12,
+                borderBottom: '1px solid #E5E5EA'
+              }}
+            >
+              {!sidebarCollapsed && (
+                <span style={{ fontWeight: 700, fontSize: 15, color: '#1D1D1F', letterSpacing: '-0.01em' }}>
+                  Navigation
+                </span>
+              )}
+              <button
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 6,
+                  borderRadius: 8,
+                  color: '#3A3A6E',
+                  display: 'flex',
+                  alignItems: 'center',
+                  transition: 'background 0.15s ease'
+                }}
+                title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              >
+                <PanelLeft size={19} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {navTabs.map((item) => {
+                const Icon = item.icon;
+                const active = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleSelectTab(item.id)}
+                    className={`sidebar-nav-item ${active ? 'active' : ''}`}
+                    title={sidebarCollapsed ? item.label : undefined}
+                    style={{
+                      justifyContent: sidebarCollapsed ? 'center' : 'space-between',
+                      padding: sidebarCollapsed ? '12px' : '10px 12px'
+                    }}
+                  >
+                    <div className="sidebar-nav-item-content">
+                      <Icon size={18} color={active ? '#3A3A6E' : '#6E6E73'} />
+                      {!sidebarCollapsed && <span>{item.label}</span>}
+                    </div>
+                    {!sidebarCollapsed && item.badge !== undefined && item.badge > 0 && (
+                      <span className="sidebar-nav-item-badge">{item.badge}</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </aside>
+
+          {/* Right Main Content Area */}
+          <main style={{ flex: 1, minWidth: 0 }}>
+            {/* 1. OVERVIEW DASHBOARD */}
         {activeTab === 'dashboard' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
             {/* Quick Cards Grid */}
@@ -1064,6 +1222,8 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
             </div>
           </div>
         )}
+          </main>
+        </div>
       </div>
 
       {/* Dedicated Follow-up Consultation Thread Modal */}

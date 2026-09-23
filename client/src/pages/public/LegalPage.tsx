@@ -14,7 +14,9 @@ import {
   Clock, 
   CheckCircle2, 
   ArrowRight,
-  ExternalLink
+  ExternalLink,
+  PanelLeft,
+  X
 } from 'lucide-react';
 
 export type LegalTab = 
@@ -34,6 +36,8 @@ interface LegalPageProps {
 
 export const LegalPage: React.FC<LegalPageProps> = ({ initialTab = 'privacy', onNavigate }) => {
   const [tab, setTab] = useState<LegalTab>(initialTab);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Sync state if initialTab prop changes
   useEffect(() => {
@@ -44,6 +48,7 @@ export const LegalPage: React.FC<LegalPageProps> = ({ initialTab = 'privacy', on
 
   const handleTabChange = (newTab: LegalTab) => {
     setTab(newTab);
+    setMobileDrawerOpen(false);
     const newPath = `/legal/${newTab === 'refund' ? 'refund-policy' : newTab}`;
     if (onNavigate) {
       onNavigate(newPath);
@@ -63,84 +68,228 @@ export const LegalPage: React.FC<LegalPageProps> = ({ initialTab = 'privacy', on
     { id: 'cookies' as LegalTab, label: 'Cookie Policy', icon: Cookie, badge: 'Storage' },
   ];
 
+  const activeTabConfig = tabsConfig.find((t) => t.id === tab);
+
   return (
     <div style={{ minHeight: '100vh', paddingBottom: 96, backgroundColor: '#FAFAFC' }}>
       {/* Header Banner */}
-      <section style={{ backgroundColor: '#F5F5F7', padding: '64px 0 44px', borderBottom: '1px solid #E5E5EA', textAlign: 'center' }}>
+      <section style={{ backgroundColor: '#F5F5F7', padding: '52px 0 36px', borderBottom: '1px solid #E5E5EA', textAlign: 'center' }}>
         <div className="container">
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }} className="apple-badge-primary">
             <ShieldCheck size={14} color="#3A3A6E" />
             <span>Official Legal & Regulatory Compliance Portal</span>
           </div>
-          <h1 className="text-display" style={{ fontSize: 38, marginTop: 12, marginBottom: 8, letterSpacing: '-0.02em' }}>
+          <h1 className="text-display" style={{ fontSize: 36, marginTop: 12, marginBottom: 8, letterSpacing: '-0.02em' }}>
             Trust, Legal & Compliance
           </h1>
-          <p className="text-body-large" style={{ maxWidth: 660, margin: '0 auto', color: '#6E6E73', fontSize: 16 }}>
+          <p className="text-body-large" style={{ maxWidth: 660, margin: '0 auto', color: '#6E6E73', fontSize: 15.5 }}>
             Transparent policies, rigorous data privacy standards under India’s DPDP Act, and ethical commitments established by Amit Astro.
           </p>
-          <div style={{ marginTop: 16, fontSize: 13, color: '#86868B' }}>
+          <div style={{ marginTop: 14, fontSize: 13, color: '#86868B' }}>
             Last Revised: September 2026 · Governing Jurisdiction: New Delhi, India
           </div>
         </div>
       </section>
 
-      <div className="container" style={{ maxWidth: 1040, marginTop: 40 }}>
-        {/* Horizontal Scrollable Tabs */}
-        <div 
-          style={{ 
-            display: 'flex', 
-            gap: 8, 
-            overflowX: 'auto', 
-            paddingBottom: 14, 
-            marginBottom: 32,
-            scrollbarWidth: 'thin',
-            WebkitOverflowScrolling: 'touch'
-          }}
+      {/* Mobile Control Bar with PanelLeft button */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '12px 16px',
+          backgroundColor: '#FFFFFF',
+          borderBottom: '1px solid #E5E5EA',
+          position: 'sticky',
+          top: 58,
+          zIndex: 90
+        }}
+        className="legal-mobile-bar"
+      >
+        <button
+          onClick={() => setMobileDrawerOpen(true)}
+          className="panel-toggle-btn"
+          aria-label="Open legal policies drawer"
         >
-          {tabsConfig.map((item) => {
-            const Icon = item.icon;
-            const active = tab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleTabChange(item.id)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  padding: '10px 18px',
-                  borderRadius: 9999,
-                  border: active ? '1px solid #3A3A6E' : '1px solid #E5E5EA',
-                  backgroundColor: active ? '#3A3A6E' : '#FFFFFF',
-                  color: active ? '#FFFFFF' : '#1D1D1F',
-                  fontSize: 13.5,
-                  fontWeight: active ? 600 : 500,
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  boxShadow: active ? '0 2px 8px rgba(58, 58, 110, 0.2)' : '0 1px 3px rgba(0,0,0,0.02)',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <Icon size={16} color={active ? '#FFFFFF' : '#6E6E73'} />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
+          <PanelLeft size={18} color="#3A3A6E" />
+          <span>Policies Menu</span>
+        </button>
 
-        {/* Content Card */}
-        <div 
-          className="apple-card" 
-          style={{ 
-            padding: '48px 40px', 
-            backgroundColor: '#FFFFFF',
-            borderRadius: 24,
-            boxShadow: '0 4px 24px rgba(0, 0, 0, 0.04)',
-            border: '1px solid #E5E5EA'
-          }}
-        >
-          {/* TAB 1: PRIVACY POLICY */}
-          {tab === 'privacy' && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#6E6E73' }}>
+          <span style={{ fontWeight: 600, color: '#1D1D1F' }}>
+            {activeTabConfig?.label}
+          </span>
+        </div>
+      </div>
+
+      {/* Mobile Sliding Drawer with Frosted Glass Backdrop */}
+      {mobileDrawerOpen && (
+        <>
+          <div
+            className="mobile-drawer-backdrop"
+            onClick={() => setMobileDrawerOpen(false)}
+          />
+          <div className="mobile-drawer">
+            <div
+              style={{
+                padding: '20px 18px',
+                borderBottom: '1px solid #E5E5EA',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                backgroundColor: '#F5F5F7'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <PanelLeft size={20} color="#3A3A6E" />
+                <span style={{ fontWeight: 700, fontSize: 16, color: '#1D1D1F' }}>
+                  Legal & Policies
+                </span>
+              </div>
+              <button
+                onClick={() => setMobileDrawerOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: 6,
+                  cursor: 'pointer',
+                  borderRadius: 8,
+                  color: '#6E6E73',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+                aria-label="Close drawer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ padding: '16px 12px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {tabsConfig.map((item) => {
+                const Icon = item.icon;
+                const active = tab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleTabChange(item.id)}
+                    className={`sidebar-nav-item ${active ? 'active' : ''}`}
+                  >
+                    <div className="sidebar-nav-item-content">
+                      <Icon size={18} color={active ? '#3A3A6E' : '#6E6E73'} />
+                      <span>{item.label}</span>
+                    </div>
+                    {item.badge && (
+                      <span className="sidebar-nav-item-badge">{item.badge}</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div style={{ padding: 16, borderTop: '1px solid #E5E5EA', backgroundColor: '#FBFBFD', fontSize: 12, color: '#86868B', textAlign: 'center' }}>
+              Governing Jurisdiction: New Delhi, India
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Main Layout (Desktop Sidebar + Main Content) */}
+      <div className="container" style={{ maxWidth: 1280, marginTop: 32 }}>
+        <div style={{ display: 'flex', gap: 28, alignItems: 'flex-start' }}>
+          {/* Desktop Left Sidebar */}
+          <aside
+            style={{
+              width: sidebarCollapsed ? 72 : 300,
+              flexShrink: 0,
+              backgroundColor: '#FFFFFF',
+              border: '1px solid #E5E5EA',
+              borderRadius: 20,
+              padding: sidebarCollapsed ? '16px 10px' : '20px 16px',
+              boxShadow: '0 2px 12px rgba(0, 0, 0, 0.03)',
+              position: 'sticky',
+              top: 76,
+              transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
+            }}
+            className="legal-desktop-sidebar"
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: sidebarCollapsed ? 'center' : 'space-between',
+                marginBottom: 16,
+                paddingBottom: 12,
+                borderBottom: '1px solid #E5E5EA'
+              }}
+            >
+              {!sidebarCollapsed && (
+                <span style={{ fontWeight: 700, fontSize: 15, color: '#1D1D1F', letterSpacing: '-0.01em' }}>
+                  Compliance Policies
+                </span>
+              )}
+              <button
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 6,
+                  borderRadius: 8,
+                  color: '#3A3A6E',
+                  display: 'flex',
+                  alignItems: 'center',
+                  transition: 'background 0.15s ease'
+                }}
+                title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              >
+                <PanelLeft size={19} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {tabsConfig.map((item) => {
+                const Icon = item.icon;
+                const active = tab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleTabChange(item.id)}
+                    className={`sidebar-nav-item ${active ? 'active' : ''}`}
+                    title={sidebarCollapsed ? item.label : undefined}
+                    style={{
+                      justifyContent: sidebarCollapsed ? 'center' : 'space-between',
+                      padding: sidebarCollapsed ? '12px' : '10px 12px'
+                    }}
+                  >
+                    <div className="sidebar-nav-item-content">
+                      <Icon size={18} color={active ? '#3A3A6E' : '#6E6E73'} />
+                      {!sidebarCollapsed && <span>{item.label}</span>}
+                    </div>
+                    {!sidebarCollapsed && item.badge && (
+                      <span className="sidebar-nav-item-badge">{item.badge}</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </aside>
+
+          {/* Right Main Content Area */}
+          <main style={{ flex: 1, minWidth: 0 }}>
+            {/* Content Card */}
+            <div 
+              className="apple-card" 
+              style={{ 
+                padding: '48px 40px', 
+                backgroundColor: '#FFFFFF',
+                borderRadius: 24,
+                boxShadow: '0 4px 24px rgba(0, 0, 0, 0.04)',
+                border: '1px solid #E5E5EA'
+              }}
+            >
+              {/* TAB 1: PRIVACY POLICY */}
+              {tab === 'privacy' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24, color: '#1D1D1F', lineHeight: 1.75 }}>
               <div style={{ borderBottom: '1px solid #E5E5EA', paddingBottom: 20 }}>
                 <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#3A3A6E' }}>
@@ -711,7 +860,9 @@ export const LegalPage: React.FC<LegalPageProps> = ({ initialTab = 'privacy', on
             </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
+  </div>
+</div>
   );
 };
