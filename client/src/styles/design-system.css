@@ -354,9 +354,9 @@ body {
   .container {
     padding: 0 16px;
   }
-  /* Ensure content clears iOS bottom tab bar */
+  /* Clean mobile main container padding without bottom nav bar */
   main {
-    padding-bottom: calc(76px + env(safe-area-inset-bottom, 20px));
+    padding-bottom: 24px;
   }
 }
 
@@ -1578,14 +1578,16 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 1050;
+  height: calc(100vh - 62px);
+  height: calc(100dvh - 62px);
+  z-index: 10002;
   background: #FFFFFF;
   display: flex;
   flex-direction: column;
   transform: translateY(-8px);
   opacity: 0;
   visibility: hidden;
-  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.28s ease, visibility 0.32s;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease, visibility 0.3s;
   will-change: transform, opacity;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -1598,7 +1600,7 @@ body {
 }
 
 .apple-curtain-content {
-  padding: 24px clamp(20px, 6vw, 36px) 120px;
+  padding: 20px clamp(18px, 5vw, 36px) 60px;
   display: flex;
   flex-direction: column;
   min-height: 100%;
@@ -1608,8 +1610,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24px;
-  padding-bottom: 14px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
   border-bottom: 1px solid #F0F0F2;
 }
 
@@ -1636,7 +1638,7 @@ body {
 }
 
 .apple-curtain-container.open .apple-curtain-item-row {
-  animation: appleCurtainItemReveal 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: appleCurtainItemReveal 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes appleCurtainItemReveal {
@@ -1671,12 +1673,19 @@ body {
 
 .apple-curtain-footer-note {
   margin-top: auto;
-  padding-top: 32px;
+  padding-top: 28px;
   font-size: 13px;
   color: #86868B;
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+@media (min-width: 1040px) {
+  .apple-curtain-container,
+  .apple-expanding-search-wrap {
+    display: none !important;
+  }
 }
 
 

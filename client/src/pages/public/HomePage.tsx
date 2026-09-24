@@ -365,7 +365,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       </section>
 
       {/* AUTHENTIC VEDIC CONSULTATIONS APPLE STORE SHELF */}
-      <section className="section-padding" style={{ paddingBottom: 64 }}>
+      <section className="section-padding" id="disciplines" style={{ paddingBottom: 64 }}>
         <div className="container">
           <div className="apple-shelf-header-wrap" style={{ marginBottom: 32 }}>
             <div>
@@ -539,7 +539,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       {(() => {
         const postsToRender = (featuredPosts && featuredPosts.length > 0) ? featuredPosts : DEFAULT_FEATURED_POSTS;
         return (
-          <section className="section-padding">
+          <section className="section-padding" id="articles">
             <div className="container">
               <div className="apple-shelf-header-wrap" style={{ marginBottom: 32 }}>
                 <div>
@@ -665,7 +665,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       <CustomerReviewsShowcase />
 
       {/* PRICING TEASER WITH DUAL-MODE LAYOUT (Desktop Grid vs Mobile Shelf) */}
-      <section className="section-padding">
+      <section className="section-padding" id="packages">
         <div className="container">
           <div className="apple-shelf-header-wrap" style={{ marginBottom: 36 }}>
             <div>
@@ -1023,7 +1023,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       </section>
 
       {/* FAQ ACCORDION (Section 4) */}
-      <section style={{ backgroundColor: '#F5F5F7', padding: '80px 0' }}>
+      <section id="faq" style={{ backgroundColor: '#F5F5F7', padding: '80px 0' }}>
         <div className="container" style={{ maxWidth: 840 }}>
           <div style={{ textAlign: 'center', marginBottom: 44 }}>
             <span className="apple-badge-primary">Transparent Answers</span>

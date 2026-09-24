@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Sparkles, 
   Calendar, 
@@ -17,7 +18,8 @@ import {
   MessageCircle,
   ExternalLink,
   Search,
-  X
+  X,
+  Phone
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -27,6 +29,8 @@ import { useHeaderActions } from '../../context/HeaderActionsContext';
 interface AppleHeaderProps {
   onOpenAuth: (mode?: 'login' | 'signup') => void;
   onOpenBooking: () => void;
+  onOpenTrial?: () => void;
+  onOpenSettings?: () => void;
   currentPage?: string;
   onNavigate: (path: string) => void;
 }
@@ -34,6 +38,8 @@ interface AppleHeaderProps {
 export const AppleHeader: React.FC<AppleHeaderProps> = ({
   onOpenAuth,
   onOpenBooking,
+  onOpenTrial,
+  onOpenSettings,
   currentPage = 'home',
   onNavigate
 }) => {
@@ -45,6 +51,12 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
   const [accountDropdownOpen, setAccountDropdownOpen] = useState(false);
   const [settingsDropdownOpen, setSettingsDropdownOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [mounted, setMounted] = useState(false);
+  const [globalSearchQuery, setGlobalSearchQuery] = useState('');
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const {
     config,
@@ -143,7 +155,8 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
   ];
 
   return (
-    <header
+    <>
+      <header
       style={{
         position: 'sticky',
         top: 0,
@@ -941,26 +954,43 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
           </button>
         </div>
 
-        {/* Mobile & Tablet Header Controls (Search & Apple 2-Bar Morphing Menu Button) */}
+        {/* Mobile & Tablet Header Controls (Search, Account & Apple 2-Bar Morphing Menu Button) */}
         <div 
           className="apple-mobile-header-actions"
           style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}
         >
-          {config?.hasSearch && (
-            <button
-              type="button"
-              onClick={() => {
-                setSearchExpanded(!isSearchExpanded);
-                if (isOptionsDrawerOpen) setOptionsDrawerOpen(false);
-              }}
-              className={`apple-header-icon-btn ${isSearchExpanded ? 'active' : ''}`}
-              title={isSearchExpanded ? 'Close search' : 'Search'}
-              aria-label="Toggle search"
-            >
-              <Search size={18} />
-            </button>
-          )}
+          {/* Universal Search Button */}
+          <button
+            type="button"
+            onClick={() => {
+              setSearchExpanded(!isSearchExpanded);
+              if (isOptionsDrawerOpen) setOptionsDrawerOpen(false);
+            }}
+            className={`apple-header-icon-btn ${isSearchExpanded ? 'active' : ''}`}
+            title={isSearchExpanded ? 'Close search' : 'Search'}
+            aria-label="Toggle search"
+          >
+            <Search size={18} />
+          </button>
 
+          {/* Account / Portal Icon Button */}
+          <button
+            type="button"
+            onClick={() => {
+              if (isAuthenticated) {
+                onNavigate(isAdmin ? '/admin' : '/app');
+              } else {
+                onOpenAuth('login');
+              }
+            }}
+            className="apple-header-icon-btn"
+            title={isAuthenticated ? (isAdmin ? 'Admin Panel' : 'Customer Portal') : 'Sign In'}
+            aria-label="Account"
+          >
+            <UserIcon size={18} />
+          </button>
+
+          {/* Apple 2-Bar Morphing Menu Button */}
           <button
             type="button"
             onClick={() => {
@@ -974,141 +1004,6 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
             <span className="apple-menu-bar top-bar" />
             <span className="apple-menu-bar bottom-bar" />
           </button>
-        </div>
-      </div>
-
-      {/* Apple Expanding Search Bar Overlay */}
-      <div className={`apple-expanding-search-wrap ${isSearchExpanded ? 'expanded' : ''}`}>
-        <div className="apple-search-input-box">
-          <Search size={17} className="apple-search-field-icon" />
-          <input
-            ref={searchInputRef}
-            type="text"
-            className="apple-search-field"
-            value={config?.searchQuery || ''}
-            onChange={(e) => config?.onSearchChange?.(e.target.value)}
-            placeholder={config?.searchPlaceholder || 'Search...'}
-          />
-          {config?.searchQuery && (
-            <button
-              type="button"
-              className="apple-search-clear-btn"
-              onClick={() => config?.onSearchChange?.('')}
-              aria-label="Clear search"
-            >
-              <X size={15} />
-            </button>
-          )}
-        </div>
-        <button
-          type="button"
-          className="apple-search-cancel-btn"
-          onClick={() => setSearchExpanded(false)}
-        >
-          Cancel
-        </button>
-      </div>
-
-      {/* Apple Fullscreen Curtain Menu (Categories / Universal Navigation) */}
-      <div className={`apple-curtain-container ${isOptionsDrawerOpen ? 'open' : ''}`}>
-        <div className="apple-curtain-content">
-          <div className="apple-curtain-top-bar">
-            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#86868B' }}>
-              {config?.optionsTitle || (config?.options && config.options.length > 0 ? 'Categories' : 'Navigation')}
-            </span>
-            <button
-              type="button"
-              onClick={() => setOptionsDrawerOpen(false)}
-              style={{
-                background: 'none',
-                border: 'none',
-                fontSize: 13,
-                fontWeight: 600,
-                color: '#3A3A6E',
-                cursor: 'pointer',
-                padding: '4px 8px'
-              }}
-            >
-              Done
-            </button>
-          </div>
-
-          <div className="apple-curtain-items-list">
-            {config?.options && config.options.length > 0 ? (
-              config.options.map((opt, idx) => {
-                const isActive = opt.id === config.activeOptionId;
-                const Icon = opt.icon;
-                return (
-                  <button
-                    key={opt.id}
-                    onClick={() => {
-                      config.onSelectOption?.(opt.id);
-                      setOptionsDrawerOpen(false);
-                    }}
-                    className={`apple-curtain-item-row ${isActive ? 'active' : ''}`}
-                    style={{ animationDelay: `${idx * 35}ms` }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                      {Icon && <Icon size={22} color={isActive ? '#3A3A6E' : '#6E6E73'} />}
-                      <span className="apple-curtain-item-title">{opt.label}</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      {opt.badge && (
-                        <span className="sidebar-nav-item-badge" style={{ fontSize: 12 }}>
-                          {opt.badge}
-                        </span>
-                      )}
-                      {isActive && <Check size={20} color="#3A3A6E" />}
-                    </div>
-                  </button>
-                );
-              })
-            ) : (
-              // Default Site Navigation items when on general pages without subcategories
-              [
-                { label: 'Home', path: '/' },
-                { label: 'Articles & Chronicle', path: '/blog' },
-                { label: 'About Astrologer Amit', path: '/about' },
-                { label: 'Pricing & Consultations', path: '/pricing' },
-                { label: 'Frequently Asked Questions', path: '/faq' },
-                { label: 'Privacy & Terms', path: '/legal/privacy' },
-                { label: 'Seeker Customer Portal', path: '/app' },
-                ...(isAdmin ? [{ label: 'Astrologer Admin Panel', path: '/admin' }] : [])
-              ].map((navItem, idx) => (
-                <button
-                  key={navItem.path}
-                  onClick={() => {
-                    onNavigate(navItem.path);
-                    setOptionsDrawerOpen(false);
-                  }}
-                  className="apple-curtain-item-row"
-                  style={{ animationDelay: `${idx * 35}ms` }}
-                >
-                  <span className="apple-curtain-item-title">{navItem.label}</span>
-                  <ChevronDown size={18} color="#86868B" style={{ transform: 'rotate(-90deg)' }} />
-                </button>
-              ))
-            )}
-          </div>
-
-          {/* Book Consultation button in curtain */}
-          <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid #F0F0F2' }}>
-            <button
-              onClick={() => {
-                setOptionsDrawerOpen(false);
-                onOpenBooking();
-              }}
-              className="apple-btn-primary"
-              style={{ width: '100%', padding: '14px', fontSize: 16, justifyContent: 'center' }}
-            >
-              <Calendar size={18} /> Book Vedic Consultation
-            </button>
-          </div>
-
-          <div className="apple-curtain-footer-note">
-            <Sparkles size={15} color="#C9A24B" />
-            <span>Amit Astro · Sacred Vedic Wisdom & Non-Destructive Vastu</span>
-          </div>
         </div>
       </div>
 
@@ -1129,5 +1024,265 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
         }
       `}</style>
     </header>
+
+    {/* PORTAL OVERLAYS: Rendered directly into document.body to avoid containing-block clipping */}
+    {mounted && typeof document !== 'undefined' && createPortal(
+      <>
+        {/* Apple Expanding Search Bar Overlay */}
+        <div className={`apple-expanding-search-wrap ${isSearchExpanded ? 'expanded' : ''}`}>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (config?.hasSearch) {
+                setSearchExpanded(false);
+              } else if (globalSearchQuery.trim()) {
+                onNavigate(`/blog?search=${encodeURIComponent(globalSearchQuery.trim())}`);
+                setSearchExpanded(false);
+              }
+            }}
+            className="apple-search-input-box"
+            style={{ width: '100%', display: 'flex', alignItems: 'center' }}
+          >
+            <Search size={17} className="apple-search-field-icon" />
+            <input
+              ref={searchInputRef}
+              type="text"
+              className="apple-search-field"
+              value={config?.hasSearch ? (config.searchQuery || '') : globalSearchQuery}
+              onChange={(e) => {
+                if (config?.hasSearch) {
+                  config.onSearchChange?.(e.target.value);
+                } else {
+                  setGlobalSearchQuery(e.target.value);
+                }
+              }}
+              placeholder={
+                config?.searchPlaceholder ||
+                'Search articles, remedies, transits, Vastu...'
+              }
+            />
+            {((config?.hasSearch && config.searchQuery) || (!config?.hasSearch && globalSearchQuery)) && (
+              <button
+                type="button"
+                className="apple-search-clear-btn"
+                onClick={() => {
+                  if (config?.hasSearch) {
+                    config.onSearchChange?.('');
+                  } else {
+                    setGlobalSearchQuery('');
+                  }
+                }}
+                aria-label="Clear search"
+              >
+                <X size={15} />
+              </button>
+            )}
+          </form>
+          <button
+            type="button"
+            className="apple-search-cancel-btn"
+            onClick={() => setSearchExpanded(false)}
+          >
+            Cancel
+          </button>
+        </div>
+
+        {/* Apple Fullscreen Curtain Menu (Universal Navigation & Category Picker) */}
+        <div className={`apple-curtain-container ${isOptionsDrawerOpen ? 'open' : ''}`}>
+          <div className="apple-curtain-content">
+            <div className="apple-curtain-top-bar">
+              <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#86868B' }}>
+                {config?.options && config.options.length > 0 
+                  ? (config.optionsTitle || 'Categories') 
+                  : 'Explore Amit Astro'}
+              </span>
+              <button
+                type="button"
+                onClick={() => setOptionsDrawerOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: 13.5,
+                  fontWeight: 600,
+                  color: '#3A3A6E',
+                  cursor: 'pointer',
+                  padding: '4px 8px'
+                }}
+              >
+                Done
+              </button>
+            </div>
+
+            {/* Section 1: Page-specific Category Options (if provided by Blog, FAQ, Legal, Portal, Admin) */}
+            {config?.options && config.options.length > 0 && (
+              <div className="apple-curtain-items-list" style={{ marginBottom: 14 }}>
+                {config.options.map((opt, idx) => {
+                  const isActive = opt.id === config.activeOptionId;
+                  const Icon = opt.icon;
+                  return (
+                    <button
+                      key={opt.id}
+                      onClick={() => {
+                        config.onSelectOption?.(opt.id);
+                        setOptionsDrawerOpen(false);
+                      }}
+                      className={`apple-curtain-item-row ${isActive ? 'active' : ''}`}
+                      style={{ animationDelay: `${idx * 25}ms` }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                        {Icon && <Icon size={22} color={isActive ? '#3A3A6E' : '#6E6E73'} />}
+                        <span className="apple-curtain-item-title">{opt.label}</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {opt.badge && (
+                          <span className="sidebar-nav-item-badge" style={{ fontSize: 12 }}>
+                            {opt.badge}
+                          </span>
+                        )}
+                        {isActive && <Check size={20} color="#3A3A6E" />}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Sub-heading for general site navigation when inside category mode */}
+            {config?.options && config.options.length > 0 && (
+              <div style={{ 
+                fontSize: 11.5, 
+                fontWeight: 700, 
+                letterSpacing: '0.06em', 
+                textTransform: 'uppercase', 
+                color: '#86868B', 
+                marginTop: 6, 
+                marginBottom: 6, 
+                paddingTop: 14, 
+                borderTop: '1px solid #F0F0F2' 
+              }}>
+                Explore Amit Astro
+              </div>
+            )}
+
+            {/* Section 2: Full Apple-grade Navigation Options */}
+            <div className="apple-curtain-items-list">
+              {(config?.options && config.options.length > 0 ? (
+                // Subpage mode: Clean quick links to main site sections
+                [
+                  { label: 'Home', path: '/' },
+                  { label: 'Consultation Packages & Pricing', path: '/pricing', badge: countryInfo?.currency },
+                  { label: 'Essays & Astrological Guidance', path: '/blog' },
+                  { label: 'About Astrologer Amit', path: '/about' },
+                  { label: 'Frequently Asked Questions', path: '/faq' },
+                  { label: 'Seeker Customer Portal', path: '/app' },
+                  ...(isAdmin ? [{ label: 'Astrologer Admin Panel', path: '/admin' }] : [])
+                ]
+              ) : (
+                // Home / General mode: Full Apple-grade primary destinations
+                [
+                  { label: 'Consultation Packages & Pricing', path: '/pricing', badge: 'Tier Rates' },
+                  { label: 'Janma Kundli & Horoscope Analysis', path: '/blog/kundli' },
+                  { label: 'Vastu Shastra (Home & Commercial)', path: '/blog/vastu' },
+                  { label: 'Planetary Transits & Sade Sati', path: '/blog/transits' },
+                  { label: 'Essays & Astrological Guidance', path: '/blog' },
+                  { label: 'How Amit Astro Works', path: '/#how-it-works' },
+                  { label: 'About Astrologer Amit', path: '/about' },
+                  { label: 'Frequently Asked Questions (FAQ)', path: '/faq' },
+                  { label: 'Seeker Customer Portal', path: '/app' },
+                  ...(isAdmin ? [{ label: 'Astrologer Admin Panel', path: '/admin', badge: 'Admin' }] : [])
+                ]
+              )).map((navItem, idx) => (
+                <button
+                  key={navItem.path}
+                  onClick={() => {
+                    setOptionsDrawerOpen(false);
+                    if (navItem.path.startsWith('/#')) {
+                      const hash = navItem.path.replace('/#', '');
+                      if (currentPage === 'home' || currentPage === '') {
+                        const el = document.getElementById(hash);
+                        if (el) {
+                          el.scrollIntoView({ behavior: 'smooth' });
+                          return;
+                        }
+                      }
+                    }
+                    onNavigate(navItem.path);
+                  }}
+                  className="apple-curtain-item-row"
+                  style={{ animationDelay: `${(idx + (config?.options?.length || 0)) * 25}ms` }}
+                >
+                  <span className="apple-curtain-item-title">{navItem.label}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {navItem.badge && (
+                      <span className="sidebar-nav-item-badge" style={{ fontSize: 11.5 }}>
+                        {navItem.badge}
+                      </span>
+                    )}
+                    <ChevronDown size={18} color="#86868B" style={{ transform: 'rotate(-90deg)' }} />
+                  </div>
+                </button>
+              ))}
+
+              {/* Country & Language Preferences Row */}
+              <button
+                onClick={() => {
+                  setOptionsDrawerOpen(false);
+                  onOpenSettings?.();
+                }}
+                className="apple-curtain-item-row"
+                style={{ animationDelay: '220ms', marginTop: 6, paddingTop: 14, borderTop: '1px solid #F0F0F2' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ fontSize: 20 }}>{countryInfo?.flagEmoji || '🌐'}</span>
+                  <div>
+                    <div style={{ fontSize: 15.5, fontWeight: 600, color: '#1D1D1F' }}>
+                      {countryInfo?.name || 'Country'} · {countryInfo?.currency || 'INR'}
+                    </div>
+                    <div style={{ fontSize: 12.5, color: '#86868B' }}>
+                      Change Country, Currency & Language
+                    </div>
+                  </div>
+                </div>
+                <ChevronDown size={18} color="#86868B" style={{ transform: 'rotate(-90deg)' }} />
+              </button>
+            </div>
+
+            {/* Action CTAs at bottom of curtain */}
+            <div style={{ marginTop: 22, paddingTop: 16, borderTop: '1px solid #F0F0F2', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button
+                onClick={() => {
+                  setOptionsDrawerOpen(false);
+                  onOpenBooking();
+                }}
+                className="apple-btn-primary"
+                style={{ width: '100%', padding: '14px', fontSize: 15.5, justifyContent: 'center' }}
+              >
+                <Calendar size={17} /> {t('hero.cta_primary', 'Book Vedic Consultation')}
+              </button>
+
+              {onOpenTrial && (
+                <button
+                  onClick={() => {
+                    setOptionsDrawerOpen(false);
+                    onOpenTrial();
+                  }}
+                  className="apple-btn-secondary"
+                  style={{ width: '100%', padding: '13px', fontSize: 15, justifyContent: 'center' }}
+                >
+                  <Phone size={16} /> Start Free 5-Min Discovery Call
+                </button>
+              )}
+            </div>
+
+            <div className="apple-curtain-footer-note">
+              <Sparkles size={15} color="#C9A24B" />
+              <span>Amit Astro · Sacred Vedic Wisdom & Non-Destructive Vastu</span>
+            </div>
+          </div>
+        </div>
+      </>,
+      document.body
+    )}
+  </>
   );
 };
