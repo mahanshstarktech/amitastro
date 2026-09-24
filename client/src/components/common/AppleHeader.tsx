@@ -53,6 +53,7 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
   const [globalSearchQuery, setGlobalSearchQuery] = useState('');
+  const isHomePage = currentPage === 'home' || currentPage === '' || currentPage === '/';
 
   useEffect(() => {
     setMounted(true);
@@ -954,57 +955,44 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
           </button>
         </div>
 
-        {/* Mobile & Tablet Header Controls (Search, Account & Apple 2-Bar Morphing Menu Button) */}
-        <div 
-          className="apple-mobile-header-actions"
-          style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}
-        >
-          {/* Universal Search Button */}
-          <button
-            type="button"
-            onClick={() => {
-              setSearchExpanded(!isSearchExpanded);
-              if (isOptionsDrawerOpen) setOptionsDrawerOpen(false);
-            }}
-            className={`apple-header-icon-btn ${isSearchExpanded ? 'active' : ''}`}
-            title={isSearchExpanded ? 'Close search' : 'Search'}
-            aria-label="Toggle search"
+        {/* Mobile & Tablet Header Controls: Only rendered on subpages (Articles, Portal, FAQ, Admin, Legal, etc.) */}
+        {!isHomePage && (
+          <div 
+            className="apple-mobile-header-actions"
+            style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}
           >
-            <Search size={18} />
-          </button>
+            {/* Search Button (if applicable to this page) */}
+            {config?.hasSearch && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchExpanded(!isSearchExpanded);
+                  if (isOptionsDrawerOpen) setOptionsDrawerOpen(false);
+                }}
+                className={`apple-header-icon-btn ${isSearchExpanded ? 'active' : ''}`}
+                title={isSearchExpanded ? 'Close search' : 'Search'}
+                aria-label="Toggle search"
+              >
+                <Search size={18} />
+              </button>
+            )}
 
-          {/* Account / Portal Icon Button */}
-          <button
-            type="button"
-            onClick={() => {
-              if (isAuthenticated) {
-                onNavigate(isAdmin ? '/admin' : '/app');
-              } else {
-                onOpenAuth('login');
-              }
-            }}
-            className="apple-header-icon-btn"
-            title={isAuthenticated ? (isAdmin ? 'Admin Panel' : 'Customer Portal') : 'Sign In'}
-            aria-label="Account"
-          >
-            <UserIcon size={18} />
-          </button>
-
-          {/* Apple 2-Bar Morphing Menu Button */}
-          <button
-            type="button"
-            onClick={() => {
-              setOptionsDrawerOpen(!isOptionsDrawerOpen);
-              if (isSearchExpanded) setSearchExpanded(false);
-            }}
-            className={`apple-menu-bars-btn ${isOptionsDrawerOpen ? 'open' : ''}`}
-            title={isOptionsDrawerOpen ? 'Close menu' : 'Open menu'}
-            aria-label="Toggle menu"
-          >
-            <span className="apple-menu-bar top-bar" />
-            <span className="apple-menu-bar bottom-bar" />
-          </button>
-        </div>
+            {/* Apple 2-Bar Morphing Menu Button (Expands categories/options for this page) */}
+            <button
+              type="button"
+              onClick={() => {
+                setOptionsDrawerOpen(!isOptionsDrawerOpen);
+                if (isSearchExpanded) setSearchExpanded(false);
+              }}
+              className={`apple-menu-bars-btn ${isOptionsDrawerOpen ? 'open' : ''}`}
+              title={isOptionsDrawerOpen ? 'Close menu' : 'Open menu'}
+              aria-label="Toggle menu"
+            >
+              <span className="apple-menu-bar top-bar" />
+              <span className="apple-menu-bar bottom-bar" />
+            </button>
+          </div>
+        )}
       </div>
 
       <style>{`

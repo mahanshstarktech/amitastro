@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AppleHeader } from './components/common/AppleHeader';
 import { AppleFooter } from './components/common/AppleFooter';
+import { AppleBottomNav } from './components/common/AppleBottomNav';
 import { HomePage } from './pages/public/HomePage';
 import { BlogPage } from './pages/public/BlogPage';
 import { BlogPostPage } from './pages/public/BlogPostPage';
@@ -236,6 +237,16 @@ export const App: React.FC = () => {
 
       {/* Main Content Area */}
       <main style={{ flex: 1 }}>{renderRoute()}</main>
+
+      {/* iOS Mobile Bottom Navigation Bar */}
+      <AppleBottomNav
+        currentPath={currentPath}
+        onNavigate={navigateTo}
+        onOpenBooking={() => handleOpenBooking()}
+        onOpenTrial={handleOpenTrial}
+        onOpenAuth={() => handleOpenAuth('login')}
+        onOpenSettings={() => setSettingsModalOpen(true)}
+      />
 
       {/* Apple Footer (hidden in admin views for focused dashboarding) */}
       {!currentPath.startsWith('/admin') && <AppleFooter onNavigate={navigateTo} />}

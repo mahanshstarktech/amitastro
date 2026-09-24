@@ -321,6 +321,12 @@ export const BlogPage: React.FC<BlogPageProps> = ({
           </main>
         </div>
       </div>
+      <style>{`
+        @media (max-width: 1039px) {
+          .desktop-only-search { display: none !important; }
+          .blog-desktop-sidebar { display: none !important; }
+        }
+      `}</style>
     </div>
   );
 };
