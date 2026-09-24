@@ -209,7 +209,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     try {
       const res = await sendOtp(fullPhone, 'phone');
       if (!fbSuccess) {
-        showToast(`Verification code dispatched to ${fullPhone}`, 'success');
+        if (res.provider === 'simulated') {
+          showToast('SMS delivery failed: Firebase SMS rejected the request and no SMS gateway is configured on Render.', 'error');
+        } else {
+          showToast(`Verification code sent to ${fullPhone}`, 'success');
+        }
       }
       setCooldown(res.cooldownSeconds || 60);
       setGooglePhoneOtpSent(true);
@@ -371,7 +375,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     try {
       const res = await sendOtp(fullPhone, 'phone');
       if (!fbSuccess) {
-        showToast(`Verification code dispatched to ${fullPhone}`, 'success');
+        if (res.provider === 'simulated') {
+          showToast('SMS delivery failed: Firebase SMS rejected the request and no SMS gateway is configured on Render.', 'error');
+        } else {
+          showToast(`Verification code sent to ${fullPhone}`, 'success');
+        }
       }
       setCooldown(res.cooldownSeconds || 60);
       setManualPhoneOtpSent(true);

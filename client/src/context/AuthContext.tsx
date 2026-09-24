@@ -54,7 +54,7 @@ interface AuthContextType {
     phoneCode?: string;
     firebaseVerified?: boolean;
   }) => Promise<{ token: string; user: User; profiles: BirthProfile[] }>;
-  sendOtp: (destination: string, channel?: 'phone' | 'email') => Promise<{ simulatedCode?: string; cooldownSeconds: number; channel?: string }>;
+  sendOtp: (destination: string, channel?: 'phone' | 'email') => Promise<{ simulatedCode?: string; cooldownSeconds: number; channel?: string; provider?: string }>;
   verifyEmailOtp: (email: string, code: string) => Promise<{ success: boolean; emailVerified: boolean }>;
   completeManualRegistration: (data: {
     name: string;
@@ -205,7 +205,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const sendOtp = async (destination: string, channel?: 'phone' | 'email') => {
     const isEmail = channel === 'email' || destination.includes('@');
-    return await apiRequest<{ simulatedCode?: string; cooldownSeconds: number; channel?: string }>('/auth/send-otp', {
+    return await apiRequest<{ simulatedCode?: string; cooldownSeconds: number; channel?: string; provider?: string }>('/auth/send-otp', {
       method: 'POST',
       body: JSON.stringify({
         phone: !isEmail ? destination : undefined,
