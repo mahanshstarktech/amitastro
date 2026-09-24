@@ -15,6 +15,7 @@ import {
   Orbit 
 } from 'lucide-react';
 import { apiRequest } from '../../utils/api';
+import { useHeaderActions } from '../../context/HeaderActionsContext';
 
 interface BlogPageProps {
   categorySlug?: string;
@@ -32,7 +33,6 @@ export const BlogPage: React.FC<BlogPageProps> = ({
   const [selectedCat, setSelectedCat] = useState<string>(categorySlug || 'all');
   const [search, setSearch] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
@@ -59,6 +59,8 @@ export const BlogPage: React.FC<BlogPageProps> = ({
       .finally(() => setIsLoading(false));
   }, [selectedCat, search]);
 
+  const { setHeaderActions } = useHeaderActions();
+
   const categoryPills = [
     { name: 'All Topics', slug: 'all', icon: BookOpen },
     { name: 'Kundli & Horoscope', slug: 'kundli', icon: Compass },
@@ -73,8 +75,29 @@ export const BlogPage: React.FC<BlogPageProps> = ({
 
   const handleSelectCategory = (slug: string) => {
     setSelectedCat(slug);
-    setMobileDrawerOpen(false);
   };
+
+  // Register Apple top navigation actions (Search & Categories curtain)
+  useEffect(() => {
+    setHeaderActions({
+      optionsTitle: 'Article Topics',
+      options: categoryPills.map((cp) => ({
+        id: cp.slug,
+        label: cp.name,
+        icon: cp.icon
+      })),
+      activeOptionId: selectedCat,
+      onSelectOption: (slug) => handleSelectCategory(slug),
+      hasSearch: true,
+      searchPlaceholder: 'Search essays, transits, remedies...',
+      searchQuery: search,
+      onSearchChange: (q) => setSearch(q)
+    });
+
+    return () => {
+      setHeaderActions(null);
+    };
+  }, [selectedCat, search]);
 
   return (
     <div style={{ minHeight: '100vh', paddingBottom: 96, backgroundColor: '#FAFAFC' }}>
@@ -89,8 +112,8 @@ export const BlogPage: React.FC<BlogPageProps> = ({
             In-depth Vedic Jyotish essays, Vastu Shastra principles, planetary transits, and remedial gemmology written directly by <strong>Amit</strong>.
           </p>
 
-          {/* Search bar */}
-          <div style={{ maxWidth: 480, margin: '0 auto', position: 'relative' }}>
+          {/* Search bar (Desktop only - Mobile uses top nav search) */}
+          <div className="desktop-only-search" style={{ maxWidth: 480, margin: '0 auto', position: 'relative' }}>
             <Search size={18} color="#86868B" style={{ position: 'absolute', left: 16, top: 13 }} />
             <input
               type="text"
@@ -121,106 +144,6 @@ export const BlogPage: React.FC<BlogPageProps> = ({
           </div>
         </div>
       </section>
-
-      {/* Mobile Sticky Filter Bar */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '12px 16px',
-          backgroundColor: '#FFFFFF',
-          borderBottom: '1px solid #E5E5EA',
-          position: 'sticky',
-          top: 58,
-          zIndex: 90
-        }}
-        className="blog-mobile-bar"
-      >
-        <button
-          onClick={() => setMobileDrawerOpen(true)}
-          className="panel-toggle-btn"
-          aria-label="Open categories filter drawer"
-        >
-          <PanelLeft size={18} color="#3A3A6E" />
-          <span>Categories</span>
-        </button>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#6E6E73' }}>
-          <span>Active:</span>
-          <span className="apple-badge-gold" style={{ fontSize: 11.5, padding: '3px 8px' }}>
-            {activeCategory.name}
-          </span>
-        </div>
-      </div>
-
-      {/* Mobile Category Drawer with Frosted Backdrop */}
-      {mobileDrawerOpen && (
-        <>
-          <div
-            className="mobile-drawer-backdrop"
-            onClick={() => setMobileDrawerOpen(false)}
-          />
-          <div className="mobile-drawer">
-            <div
-              style={{
-                padding: '20px 18px',
-                borderBottom: '1px solid #E5E5EA',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                backgroundColor: '#F5F5F7'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <PanelLeft size={20} color="#3A3A6E" />
-                <span style={{ fontWeight: 700, fontSize: 16, color: '#1D1D1F' }}>
-                  Article Topics
-                </span>
-              </div>
-              <button
-                onClick={() => setMobileDrawerOpen(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  padding: 6,
-                  cursor: 'pointer',
-                  borderRadius: 8,
-                  color: '#6E6E73',
-                  display: 'flex',
-                  alignItems: 'center'
-                }}
-                aria-label="Close drawer"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div style={{ padding: '16px 12px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {categoryPills.map((cp) => {
-                const IconComp = cp.icon;
-                const active = selectedCat === cp.slug;
-                return (
-                  <button
-                    key={cp.slug}
-                    onClick={() => handleSelectCategory(cp.slug)}
-                    className={`sidebar-nav-item ${active ? 'active' : ''}`}
-                  >
-                    <div className="sidebar-nav-item-content">
-                      <IconComp size={18} color={active ? '#3A3A6E' : '#6E6E73'} />
-                      <span>{cp.name}</span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div style={{ padding: 16, borderTop: '1px solid #E5E5EA', backgroundColor: '#FBFBFD', fontSize: 12, color: '#86868B', textAlign: 'center' }}>
-              Written by Amit · Vedic Astrologer & Vastu Consultant
-            </div>
-          </div>
-        </>
-      )}
 
       {/* Main Layout Container (Desktop Sidebar + Posts) */}
       <div className="container" style={{ maxWidth: 1360, marginTop: 32 }}>

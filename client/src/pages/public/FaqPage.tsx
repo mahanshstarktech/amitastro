@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   HelpCircle, 
   Search, 
@@ -16,6 +16,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { useHeaderActions } from '../../context/HeaderActionsContext';
 
 interface FaqItem {
   id: string;
@@ -159,6 +160,7 @@ interface FaqPageProps {
 
 export const FaqPage: React.FC<FaqPageProps> = ({ onNavigate, onOpenBooking, onOpenTrial }) => {
   const { t } = useLanguage();
+  const { setHeaderActions } = useHeaderActions();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [expandedId, setExpandedId] = useState<string | null>('birth-exact-time');
@@ -172,6 +174,27 @@ export const FaqPage: React.FC<FaqPageProps> = ({ onNavigate, onOpenBooking, onO
     { id: 'payments', label: 'Payments & Invoicing' },
     { id: 'general', label: 'Philosophy & Ethics' },
   ];
+
+  // Register Apple top header actions (Search & Categories curtain)
+  useEffect(() => {
+    setHeaderActions({
+      optionsTitle: 'FAQ Categories',
+      options: categories.map((cat) => ({
+        id: cat.id,
+        label: cat.label
+      })),
+      activeOptionId: selectedCategory,
+      onSelectOption: (id) => setSelectedCategory(id),
+      hasSearch: true,
+      searchPlaceholder: 'Search questions, Vastu, remedies...',
+      searchQuery: searchQuery,
+      onSearchChange: (q) => setSearchQuery(q)
+    });
+
+    return () => {
+      setHeaderActions(null);
+    };
+  }, [selectedCategory, searchQuery]);
 
   const filteredFaqs = useMemo(() => {
     return FAQ_DATABASE.filter((item) => {
@@ -201,8 +224,8 @@ export const FaqPage: React.FC<FaqPageProps> = ({ onNavigate, onOpenBooking, onO
             Everything you need to know about birth chart casting, preparation, non-destructive Vastu, and ethical Vedic consultations with Amit.
           </p>
 
-          {/* Search Input Bar */}
-          <div style={{ maxWidth: 540, margin: '28px auto 0', position: 'relative' }}>
+          {/* Search Input Bar (Desktop only - Mobile uses top nav search) */}
+          <div className="desktop-only-search" style={{ maxWidth: 540, margin: '28px auto 0', position: 'relative' }}>
             <Search 
               size={18} 
               color="#86868B" 

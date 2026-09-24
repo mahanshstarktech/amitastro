@@ -226,14 +226,12 @@ export const App: React.FC = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#FBFBFD' }}>
       {/* Apple Header */}
-      {!currentPath.startsWith('/admin') && (
-        <AppleHeader
-          onOpenAuth={handleOpenAuth}
-          onOpenBooking={() => handleOpenBooking()}
-          currentPage={currentPath === '/' ? 'home' : currentPath.substring(1)}
-          onNavigate={navigateTo}
-        />
-      )}
+      <AppleHeader
+        onOpenAuth={handleOpenAuth}
+        onOpenBooking={() => handleOpenBooking()}
+        currentPage={currentPath === '/' ? 'home' : currentPath.substring(1)}
+        onNavigate={navigateTo}
+      />
 
       {/* Main Content Area */}
       <main style={{ flex: 1 }}>{renderRoute()}</main>

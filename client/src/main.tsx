@@ -7,6 +7,7 @@ import { AuthProvider } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { CountryProvider } from './context/CountryContext';
+import { HeaderActionsProvider } from './context/HeaderActionsContext';
 
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -14,7 +15,9 @@ createRoot(document.getElementById('root')!).render(
       <CountryProvider>
         <NotificationProvider>
           <AuthProvider>
-            <App />
+            <HeaderActionsProvider>
+              <App />
+            </HeaderActionsProvider>
           </AuthProvider>
         </NotificationProvider>
       </CountryProvider>

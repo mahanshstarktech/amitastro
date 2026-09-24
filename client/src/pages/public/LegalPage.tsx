@@ -18,6 +18,7 @@ import {
   PanelLeft,
   X
 } from 'lucide-react';
+import { useHeaderActions } from '../../context/HeaderActionsContext';
 
 export type LegalTab = 
   | 'privacy' 
@@ -35,8 +36,8 @@ interface LegalPageProps {
 }
 
 export const LegalPage: React.FC<LegalPageProps> = ({ initialTab = 'privacy', onNavigate }) => {
+  const { setHeaderActions } = useHeaderActions();
   const [tab, setTab] = useState<LegalTab>(initialTab);
-  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Sync state if initialTab prop changes
@@ -48,7 +49,6 @@ export const LegalPage: React.FC<LegalPageProps> = ({ initialTab = 'privacy', on
 
   const handleTabChange = (newTab: LegalTab) => {
     setTab(newTab);
-    setMobileDrawerOpen(false);
     const newPath = `/legal/${newTab === 'refund' ? 'refund-policy' : newTab}`;
     if (onNavigate) {
       onNavigate(newPath);
@@ -67,6 +67,25 @@ export const LegalPage: React.FC<LegalPageProps> = ({ initialTab = 'privacy', on
     { id: 'ethics' as LegalTab, label: 'Ethical Charter', icon: HeartHandshake, badge: 'Zero Fear' },
     { id: 'cookies' as LegalTab, label: 'Cookie Policy', icon: Cookie, badge: 'Storage' },
   ];
+
+  // Register Apple top header actions (Curtain menu with legal tabs)
+  useEffect(() => {
+    setHeaderActions({
+      optionsTitle: 'Legal & Policies',
+      options: tabsConfig.map((t) => ({
+        id: t.id,
+        label: t.label,
+        icon: t.icon,
+        badge: t.badge
+      })),
+      activeOptionId: tab,
+      onSelectOption: (id) => handleTabChange(id as LegalTab)
+    });
+
+    return () => {
+      setHeaderActions(null);
+    };
+  }, [tab]);
 
   const activeTabConfig = tabsConfig.find((t) => t.id === tab);
 
@@ -90,108 +109,6 @@ export const LegalPage: React.FC<LegalPageProps> = ({ initialTab = 'privacy', on
           </div>
         </div>
       </section>
-
-      {/* Mobile Control Bar with PanelLeft button */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '12px 16px',
-          backgroundColor: '#FFFFFF',
-          borderBottom: '1px solid #E5E5EA',
-          position: 'sticky',
-          top: 58,
-          zIndex: 90
-        }}
-        className="legal-mobile-bar"
-      >
-        <button
-          onClick={() => setMobileDrawerOpen(true)}
-          className="panel-toggle-btn"
-          aria-label="Open legal policies drawer"
-        >
-          <PanelLeft size={18} color="#3A3A6E" />
-          <span>Policies Menu</span>
-        </button>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#6E6E73' }}>
-          <span style={{ fontWeight: 600, color: '#1D1D1F' }}>
-            {activeTabConfig?.label}
-          </span>
-        </div>
-      </div>
-
-      {/* Mobile Sliding Drawer with Frosted Glass Backdrop */}
-      {mobileDrawerOpen && (
-        <>
-          <div
-            className="mobile-drawer-backdrop"
-            onClick={() => setMobileDrawerOpen(false)}
-          />
-          <div className="mobile-drawer">
-            <div
-              style={{
-                padding: '20px 18px',
-                borderBottom: '1px solid #E5E5EA',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                backgroundColor: '#F5F5F7'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <PanelLeft size={20} color="#3A3A6E" />
-                <span style={{ fontWeight: 700, fontSize: 16, color: '#1D1D1F' }}>
-                  Legal & Policies
-                </span>
-              </div>
-              <button
-                onClick={() => setMobileDrawerOpen(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  padding: 6,
-                  cursor: 'pointer',
-                  borderRadius: 8,
-                  color: '#6E6E73',
-                  display: 'flex',
-                  alignItems: 'center'
-                }}
-                aria-label="Close drawer"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div style={{ padding: '16px 12px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {tabsConfig.map((item) => {
-                const Icon = item.icon;
-                const active = tab === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => handleTabChange(item.id)}
-                    className={`sidebar-nav-item ${active ? 'active' : ''}`}
-                  >
-                    <div className="sidebar-nav-item-content">
-                      <Icon size={18} color={active ? '#3A3A6E' : '#6E6E73'} />
-                      <span>{item.label}</span>
-                    </div>
-                    {item.badge && (
-                      <span className="sidebar-nav-item-badge">{item.badge}</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div style={{ padding: 16, borderTop: '1px solid #E5E5EA', backgroundColor: '#FBFBFD', fontSize: 12, color: '#86868B', textAlign: 'center' }}>
-              Governing Jurisdiction: New Delhi, India
-            </div>
-          </div>
-        </>
-      )}
 
       {/* Main Layout (Desktop Sidebar + Main Content) */}
       <div className="container" style={{ maxWidth: 1280, marginTop: 32 }}>

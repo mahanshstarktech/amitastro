@@ -7,6 +7,7 @@ import {
 import { useAuth, type BirthProfile } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useHeaderActions } from '../../context/HeaderActionsContext';
 import { apiRequest } from '../../utils/api';
 
 interface CustomerPortalProps {
@@ -25,7 +26,6 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
   const { language, setLanguage, t } = useLanguage();
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'appointments' | 'chat' | 'profile' | 'payments' | 'settings'>(initialTab);
-  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
@@ -162,8 +162,28 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
 
   const handleSelectTab = (tabId: typeof activeTab) => {
     setActiveTab(tabId);
-    setMobileDrawerOpen(false);
   };
+
+  const { setHeaderActions } = useHeaderActions();
+
+  // Register Apple top header actions (Curtain menu with seeker workspace tabs)
+  useEffect(() => {
+    setHeaderActions({
+      optionsTitle: 'Seeker Workspace',
+      options: navTabs.map((t) => ({
+        id: t.id,
+        label: t.label,
+        icon: t.icon,
+        badge: t.badge !== undefined && t.badge > 0 ? String(t.badge) : undefined
+      })),
+      activeOptionId: activeTab,
+      onSelectOption: (id) => setActiveTab(id as typeof activeTab)
+    });
+
+    return () => {
+      setHeaderActions(null);
+    };
+  }, [activeTab, appointments.length, profiles.length]);
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#FBFBFD', paddingBottom: 80 }}>
@@ -203,118 +223,6 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
           </div>
         </div>
       </div>
-
-      {/* Mobile Sticky Control Bar with PanelLeft button */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '12px 16px',
-          backgroundColor: '#FFFFFF',
-          borderBottom: '1px solid #E5E5EA',
-          position: 'sticky',
-          top: 58,
-          zIndex: 90
-        }}
-        className="portal-mobile-bar"
-      >
-        <button
-          onClick={() => setMobileDrawerOpen(true)}
-          className="panel-toggle-btn"
-          aria-label="Open portal navigation drawer"
-        >
-          <PanelLeft size={18} color="#3A3A6E" />
-          <span>Portal Menu</span>
-        </button>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#6E6E73' }}>
-          <span style={{ fontWeight: 600, color: '#1D1D1F' }}>
-            {currentTab.label}
-          </span>
-          {currentTab.badge !== undefined && currentTab.badge > 0 && (
-            <span className="apple-badge-gold" style={{ fontSize: 11, padding: '2px 7px' }}>
-              {currentTab.badge}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Mobile Sliding Drawer with Frosted Backdrop */}
-      {mobileDrawerOpen && (
-        <>
-          <div
-            className="mobile-drawer-backdrop"
-            onClick={() => setMobileDrawerOpen(false)}
-          />
-          <div className="mobile-drawer">
-            <div
-              style={{
-                padding: '20px 18px',
-                borderBottom: '1px solid #E5E5EA',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                backgroundColor: '#F5F5F7'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <PanelLeft size={20} color="#3A3A6E" />
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 16, color: '#1D1D1F' }}>
-                    Seeker Portal
-                  </div>
-                  <div style={{ fontSize: 12, color: '#86868B' }}>
-                    {user?.name || 'Client Workspace'}
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={() => setMobileDrawerOpen(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  padding: 6,
-                  cursor: 'pointer',
-                  borderRadius: 8,
-                  color: '#6E6E73',
-                  display: 'flex',
-                  alignItems: 'center'
-                }}
-                aria-label="Close drawer"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div style={{ padding: '16px 12px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {navTabs.map((item) => {
-                const Icon = item.icon;
-                const active = activeTab === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => handleSelectTab(item.id)}
-                    className={`sidebar-nav-item ${active ? 'active' : ''}`}
-                  >
-                    <div className="sidebar-nav-item-content">
-                      <Icon size={18} color={active ? '#3A3A6E' : '#6E6E73'} />
-                      <span>{item.label}</span>
-                    </div>
-                    {item.badge !== undefined && item.badge > 0 && (
-                      <span className="sidebar-nav-item-badge">{item.badge}</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div style={{ padding: 16, borderTop: '1px solid #E5E5EA', backgroundColor: '#FBFBFD', fontSize: 12, color: '#86868B', textAlign: 'center' }}>
-              Verified Mobile: {user?.phone}
-            </div>
-          </div>
-        </>
-      )}
 
       {/* Main Layout Container (Desktop Sidebar + Tab Content) */}
       <div className="container" style={{ maxWidth: 1380, marginTop: 32 }}>

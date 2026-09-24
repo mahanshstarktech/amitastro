@@ -1386,5 +1386,298 @@ body {
   }
 }
 
+/* ==========================================================================
+   APPLE MOBILE/TABLET HEADER ACTIONS: EXPANDING SEARCH & CURTAIN MENU
+   Lightweight, GPU-composited, 60fps/120fps on any mobile phone
+   ========================================================================== */
+
+/* Toggle Buttons in Header */
+.apple-mobile-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (min-width: 1040px) {
+  .apple-mobile-header-actions {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1039px) {
+  .blog-mobile-bar,
+  .legal-mobile-bar,
+  .portal-mobile-bar,
+  .admin-mobile-bar {
+    display: none !important;
+  }
+  .desktop-only-search {
+    display: none !important;
+  }
+}
+
+.apple-header-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #F5F5F7;
+  border: 1px solid #E5E5EA;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1D1D1F;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.apple-header-icon-btn:active {
+  transform: scale(0.92);
+  background-color: #E5E5EA;
+}
+
+.apple-header-icon-btn.active {
+  background-color: #3A3A6E;
+  color: #FFFFFF;
+  border-color: #3A3A6E;
+}
+
+/* Apple 2-Bar Morphing Menu Toggle Button */
+.apple-menu-bars-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #F5F5F7;
+  border: 1px solid #E5E5EA;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.apple-menu-bars-btn:active {
+  transform: scale(0.92);
+}
+
+.apple-menu-bar {
+  width: 15px;
+  height: 2px;
+  background-color: #1D1D1F;
+  border-radius: 2px;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease;
+  will-change: transform;
+}
+
+.apple-menu-bars-btn.open .apple-menu-bar.top-bar {
+  transform: translateY(3.5px) rotate(45deg);
+}
+
+.apple-menu-bars-btn.open .apple-menu-bar.bottom-bar {
+  transform: translateY(-3.5px) rotate(-45deg);
+}
+
+/* --------------------------------------------------------------------------
+   APPLE EXPANDING SEARCH OVERLAY / STRIP
+   -------------------------------------------------------------------------- */
+.apple-expanding-search-wrap {
+  position: fixed;
+  top: 62px;
+  left: 0;
+  right: 0;
+  z-index: 1080;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(25px) saturate(180%);
+  -webkit-backdrop-filter: blur(25px) saturate(180%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  padding: 10px 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+  will-change: transform, opacity;
+}
+
+.apple-expanding-search-wrap.expanded {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.apple-search-input-box {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.apple-search-field {
+  width: 100%;
+  padding: 10px 36px 10px 38px;
+  border-radius: 12px;
+  border: 1px solid #E5E5EA;
+  background-color: #F5F5F7;
+  font-size: 15px;
+  color: #1D1D1F;
+  outline: none;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+  -webkit-appearance: none;
+}
+
+.apple-search-field:focus {
+  background-color: #FFFFFF;
+  border-color: #3A3A6E;
+  box-shadow: 0 0 0 3px rgba(58, 58, 110, 0.12);
+}
+
+.apple-search-field-icon {
+  position: absolute;
+  left: 12px;
+  pointer-events: none;
+  color: #86868B;
+}
+
+.apple-search-clear-btn {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  padding: 4px;
+  color: #86868B;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.apple-search-cancel-btn {
+  background: none;
+  border: none;
+  color: #3A3A6E;
+  font-size: 14.5px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 6px 4px;
+  flex-shrink: 0;
+}
+
+/* --------------------------------------------------------------------------
+   APPLE FULLSCREEN CURTAIN / DRAWER (Exact apple.com/store animation)
+   -------------------------------------------------------------------------- */
+.apple-curtain-container {
+  position: fixed;
+  top: 62px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1050;
+  background: #FFFFFF;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(-8px);
+  opacity: 0;
+  visibility: hidden;
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.28s ease, visibility 0.32s;
+  will-change: transform, opacity;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.apple-curtain-container.open {
+  transform: translateY(0);
+  opacity: 1;
+  visibility: visible;
+}
+
+.apple-curtain-content {
+  padding: 24px clamp(20px, 6vw, 36px) 120px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.apple-curtain-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #F0F0F2;
+}
+
+.apple-curtain-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.apple-curtain-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  border-radius: 12px;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.apple-curtain-container.open .apple-curtain-item-row {
+  animation: appleCurtainItemReveal 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes appleCurtainItemReveal {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.apple-curtain-item-row:active {
+  background-color: #F5F5F7;
+  transform: scale(0.98);
+}
+
+.apple-curtain-item-title {
+  font-size: clamp(20px, 5.2vw, 26px);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: #1D1D1F;
+  line-height: 1.25;
+  transition: color 0.15s ease;
+}
+
+.apple-curtain-item-row.active .apple-curtain-item-title {
+  color: #3A3A6E;
+  font-weight: 700;
+}
+
+.apple-curtain-footer-note {
+  margin-top: auto;
+  padding-top: 32px;
+  font-size: 13px;
+  color: #86868B;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 
 

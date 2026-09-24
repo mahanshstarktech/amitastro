@@ -7,6 +7,7 @@ import {
 import { apiRequest } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
+import { useHeaderActions } from '../../context/HeaderActionsContext';
 
 export const AdminPortal: React.FC = () => {
   const { user, logout } = useAuth();
@@ -15,7 +16,6 @@ export const AdminPortal: React.FC = () => {
   const [activeTab, setActiveTab] = useState<
     'dashboard' | 'customers' | 'appointments' | 'chat' | 'payments' | 'blog' | 'broadcast' | 'analytics' | 'settings'
   >('dashboard');
-  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const [metrics, setMetrics] = useState<any>(null);
@@ -396,18 +396,38 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
 
   const handleSelectAdminTab = (tabId: typeof activeTab) => {
     setActiveTab(tabId);
-    setMobileDrawerOpen(false);
   };
+
+  const { setHeaderActions } = useHeaderActions();
+
+  // Register Apple top navigation actions (Curtain menu with admin module tabs)
+  useEffect(() => {
+    setHeaderActions({
+      optionsTitle: 'Admin Command Center',
+      options: adminTabs.map((t) => ({
+        id: t.id,
+        label: t.label,
+        icon: t.icon,
+        badge: t.badge !== undefined && t.badge > 0 ? String(t.badge) : undefined
+      })),
+      activeOptionId: activeTab,
+      onSelectOption: (id) => setActiveTab(id as typeof activeTab)
+    });
+
+    return () => {
+      setHeaderActions(null);
+    };
+  }, [activeTab, metrics]);
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#F5F5F7', display: 'flex', flexDirection: 'column' }}>
-      {/* Admin Top Header */}
+      {/* Admin Top Header (Desktop only) */}
       <header
+        className="desktop-header-controls"
         style={{
           backgroundColor: '#1D1D1F',
           color: '#FFFFFF',
           padding: '14px 24px',
-          display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'
         }}
@@ -435,132 +455,6 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
           </button>
         </div>
       </header>
-
-      {/* Mobile Sticky Control Bar with PanelLeft button */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '12px 16px',
-          backgroundColor: '#FFFFFF',
-          borderBottom: '1px solid #E5E5EA',
-          position: 'sticky',
-          top: 0,
-          zIndex: 90
-        }}
-        className="portal-mobile-bar"
-      >
-        <button
-          onClick={() => setMobileDrawerOpen(true)}
-          className="panel-toggle-btn"
-          aria-label="Open admin navigation drawer"
-        >
-          <PanelLeft size={18} color="#3A3A6E" />
-          <span>Admin Menu</span>
-        </button>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#6E6E73' }}>
-          <span style={{ fontWeight: 600, color: '#1D1D1F' }}>
-            {currentAdminTab.label}
-          </span>
-          {currentAdminTab.badge !== undefined && currentAdminTab.badge > 0 && (
-            <span style={{ backgroundColor: '#D64545', color: '#FFF', fontSize: 10.5, fontWeight: 700, padding: '2px 7px', borderRadius: 9999 }}>
-              {currentAdminTab.badge}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Mobile Sliding Drawer with Frosted Backdrop */}
-      {mobileDrawerOpen && (
-        <>
-          <div
-            className="mobile-drawer-backdrop"
-            onClick={() => setMobileDrawerOpen(false)}
-          />
-          <div className="mobile-drawer">
-            <div
-              style={{
-                padding: '20px 18px',
-                borderBottom: '1px solid #E5E5EA',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                backgroundColor: '#1D1D1F',
-                color: '#FFFFFF'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <PanelLeft size={20} color="#C9A24B" />
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 16, color: '#FFFFFF' }}>
-                    Command Center
-                  </div>
-                  <div style={{ fontSize: 12, color: '#A1A1A6' }}>
-                    Astrologer Admin
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={() => setMobileDrawerOpen(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  padding: 6,
-                  cursor: 'pointer',
-                  borderRadius: 8,
-                  color: '#A1A1A6',
-                  display: 'flex',
-                  alignItems: 'center'
-                }}
-                aria-label="Close drawer"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div style={{ padding: '16px 12px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {adminTabs.map((item) => {
-                const Icon = item.icon;
-                const active = activeTab === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => handleSelectAdminTab(item.id)}
-                    className={`sidebar-nav-item ${active ? 'active' : ''}`}
-                  >
-                    <div className="sidebar-nav-item-content">
-                      <Icon size={18} color={active ? '#3A3A6E' : '#6E6E73'} />
-                      <span>{item.label}</span>
-                    </div>
-                    {item.badge !== undefined && item.badge > 0 && (
-                      <span style={{ backgroundColor: '#D64545', color: '#FFF', fontSize: 10.5, fontWeight: 700, padding: '2px 7px', borderRadius: 9999 }}>
-                        {item.badge}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div style={{ padding: 16, borderTop: '1px solid #E5E5EA', backgroundColor: '#FBFBFD', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <button
-                onClick={() => (window.location.href = '/')}
-                style={{ background: 'none', border: 'none', color: '#3A3A6E', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
-              >
-                Public Site
-              </button>
-              <button
-                onClick={logout}
-                style={{ background: 'none', border: 'none', color: '#D64545', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
-              >
-                Sign Out
-              </button>
-            </div>
-          </div>
-        </>
-      )}
 
       {/* Main Layout Container (Desktop Sidebar + Admin Body) */}
       <div className="container" style={{ maxWidth: 1440, marginTop: 24, paddingBottom: 80 }}>
