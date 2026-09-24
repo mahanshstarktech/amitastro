@@ -18,6 +18,8 @@ router.get('/youtube', youtubeCtrl.getYoutubeVideos);
 // 1. Auth Routes
 router.post('/auth/send-otp', authCtrl.sendOtp);
 router.post('/auth/verify-otp', authCtrl.verifyOtp);
+router.post('/auth/verify-email-otp', authCtrl.verifyEmailOtp);
+router.post('/auth/complete-manual-registration', authCtrl.completeManualRegistration);
 router.post('/auth/send-dual-otp', authCtrl.sendDualOtp);
 router.post('/auth/verify-dual-otp', authCtrl.verifyDualOtp);
 router.post('/auth/google', authCtrl.googleAuth);

@@ -37,8 +37,31 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isAdmin: boolean;
   login: (email: string, password: string) => Promise<void>;
-  loginWithGoogle: (data: { email: string; name: string; googleId?: string; photoURL?: string; dob?: string }) => Promise<{ token: string; user: User; profiles: BirthProfile[] }>;
+  loginWithGoogle: (data: { email: string; name: string; googleId?: string; photoURL?: string; dob?: string }) => Promise<{
+    success?: boolean;
+    needsPhoneVerification?: boolean;
+    tempUser?: { email: string; name: string; googleId?: string; photoURL?: string };
+    token?: string;
+    user?: User;
+    profiles?: BirthProfile[];
+  }>;
+  completeGooglePhoneVerification: (data: {
+    email: string;
+    name: string;
+    googleId?: string;
+    photoURL?: string;
+    phone: string;
+    phoneCode: string;
+  }) => Promise<{ token: string; user: User; profiles: BirthProfile[] }>;
   sendOtp: (destination: string, channel?: 'phone' | 'email') => Promise<{ simulatedCode?: string; cooldownSeconds: number; channel?: string }>;
+  verifyEmailOtp: (email: string, code: string) => Promise<{ success: boolean; emailVerified: boolean }>;
+  completeManualRegistration: (data: {
+    name: string;
+    email: string;
+    password: string;
+    phone: string;
+    phoneCode: string;
+  }) => Promise<{ token: string; user: User; profiles: BirthProfile[] }>;
   sendDualOtp: (phone: string, email: string) => Promise<{ phoneSimulatedCode?: string; emailSimulatedCode?: string; cooldownSeconds: number }>;
   verifyOtp: (data: { phone?: string; email?: string; code: string; name?: string; password?: string }) => Promise<void>;
   verifyDualOtp: (data: { phone: string; email: string; phoneCode?: string; emailCode: string; firebaseVerified?: boolean; name?: string; password?: string }) => Promise<void>;
@@ -111,9 +134,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const loginWithGoogle = async (googleData: { email: string; name: string; googleId?: string; photoURL?: string; dob?: string }) => {
-    const res = await apiRequest<{ token: string; user: User; profiles: BirthProfile[] }>('/auth/google', {
+    const res = await apiRequest<{
+      success?: boolean;
+      needsPhoneVerification?: boolean;
+      tempUser?: { email: string; name: string; googleId?: string; photoURL?: string };
+      token?: string;
+      user?: User;
+      profiles?: BirthProfile[];
+    }>('/auth/google', {
       method: 'POST',
       body: JSON.stringify(googleData)
+    });
+
+    if (res.token && res.user) {
+      setStoredToken(res.token);
+      setToken(res.token);
+      setUser(res.user);
+      setProfiles(res.profiles || []);
+    }
+    return res;
+  };
+
+  const completeGooglePhoneVerification = async (data: {
+    email: string;
+    name: string;
+    googleId?: string;
+    photoURL?: string;
+    phone: string;
+    phoneCode: string;
+  }) => {
+    const res = await apiRequest<{ token: string; user: User; profiles: BirthProfile[] }>('/auth/google', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+    setStoredToken(res.token);
+    setToken(res.token);
+    setUser(res.user);
+    setProfiles(res.profiles || []);
+    return res;
+  };
+
+  const verifyEmailOtp = async (email: string, code: string) => {
+    return await apiRequest<{ success: boolean; emailVerified: boolean }>('/auth/verify-email-otp', {
+      method: 'POST',
+      body: JSON.stringify({ email, code })
+    });
+  };
+
+  const completeManualRegistration = async (data: {
+    name: string;
+    email: string;
+    password: string;
+    phone: string;
+    phoneCode: string;
+  }) => {
+    const res = await apiRequest<{ token: string; user: User; profiles: BirthProfile[] }>('/auth/complete-manual-registration', {
+      method: 'POST',
+      body: JSON.stringify(data)
     });
     setStoredToken(res.token);
     setToken(res.token);
@@ -204,7 +281,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAdmin: user?.role === 'admin',
         login,
         loginWithGoogle,
+        completeGooglePhoneVerification,
         sendOtp,
+        verifyEmailOtp,
+        completeManualRegistration,
         sendDualOtp,
         verifyOtp,
         verifyDualOtp,

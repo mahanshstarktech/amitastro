@@ -1,5 +1,18 @@
-import React, { useState } from 'react';
-import { X, Phone, Mail, Lock, User as UserIcon, ShieldCheck, ArrowRight, CheckCircle2, Clock, Sparkles } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import {
+  X,
+  Phone,
+  Mail,
+  Lock,
+  User as UserIcon,
+  ShieldCheck,
+  ArrowRight,
+  CheckCircle2,
+  Sparkles,
+  AlertCircle,
+  KeyRound,
+  RotateCw
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import { isFirebaseConfigured, sendFirebaseSms, signInWithFirebaseGoogle } from '../../services/firebase';
@@ -17,22 +30,49 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   initialMode = 'login',
   onSuccess
 }) => {
-  const { login, loginWithGoogle, sendOtp, sendDualOtp, verifyOtp, verifyDualOtp, addProfile, user } = useAuth();
+  const {
+    login,
+    loginWithGoogle,
+    completeGooglePhoneVerification,
+    sendOtp,
+    verifyEmailOtp,
+    completeManualRegistration,
+    addProfile
+  } = useAuth();
   const { showToast } = useNotification();
 
-  const [mode, setMode] = useState<'login' | 'signup' | 'otp' | 'dual_otp' | 'profile'>(initialMode);
-  const [channel, setChannel] = useState<'phone' | 'email'>('phone');
+  // Modal Flow Modes:
+  // 'login' | 'signup' | 'email_otp' | 'manual_phone' | 'google_phone_verify' | 'profile'
+  const [mode, setMode] = useState<'login' | 'signup' | 'email_otp' | 'manual_phone' | 'google_phone_verify' | 'profile'>(initialMode);
+
+  // Form Fields
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [otpCode, setOtpCode] = useState('');
-  const [phoneOtp, setPhoneOtp] = useState('');
-  const [emailOtp, setEmailOtp] = useState('');
-  const [phoneSimulatedCode, setPhoneSimulatedCode] = useState<string | null>(null);
-  const [emailSimulatedCode, setEmailSimulatedCode] = useState<string | null>(null);
-  const [firebaseConfirmation, setFirebaseConfirmation] = useState<any>(null);
-  const [simulatedCode, setSimulatedCode] = useState<string | null>(null);
+
+  // OTP inputs
+  const [emailOtpCode, setEmailOtpCode] = useState('');
+  const [phoneOtpCode, setPhoneOtpCode] = useState('');
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [manualPhoneOtpSent, setManualPhoneOtpSent] = useState(false);
+  const [googlePhoneOtpSent, setGooglePhoneOtpSent] = useState(false);
+
+  // Simulated OTPs for dev testing
+  const [simulatedOtp, setSimulatedOtp] = useState<{ email?: string; phone?: string } | null>(null);
+
+  // Google Temp User state for mandatory phone registration
+  const [googleTempUser, setGoogleTempUser] = useState<{
+    email: string;
+    name: string;
+    googleId?: string;
+    photoURL?: string;
+  } | null>(null);
+
+  // Error banners
+  const [unauthorizedDomainAlert, setUnauthorizedDomainAlert] = useState<string | null>(null);
+
+  // Cooldown & loading
   const [cooldown, setCooldown] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -43,10 +83,31 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [tobUncertain, setTobUncertain] = useState(false);
   const [pob, setPob] = useState('');
 
+  // Reset or initialize mode on open
+  useEffect(() => {
+    if (isOpen) {
+      setMode(initialMode);
+      setUnauthorizedDomainAlert(null);
+    }
+  }, [isOpen, initialMode]);
+
+  // Countdown timer for resend OTP
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => {
+      setCooldown((prev) => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
+
   if (!isOpen) return null;
 
+  // -------------------------------------------------------------
+  // 1. Google Sign-In Flow
+  // -------------------------------------------------------------
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
+    setUnauthorizedDomainAlert(null);
     try {
       if (!isFirebaseConfigured()) {
         showToast('Google authentication is not yet configured for this domain.', 'warning');
@@ -56,9 +117,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       try {
         const googleData = await signInWithFirebaseGoogle();
         const res = await loginWithGoogle(googleData);
-        showToast(`Welcome ${googleData.name}! Signed in with Google.`, 'success');
 
-        // If new seeker without a birth chart profile yet, prompt for birth details
+        // Scenario A: First time registration OR phone not verified yet -> Mandatory Phone Verification
+        if (res.needsPhoneVerification) {
+          setGoogleTempUser({
+            email: res.tempUser?.email || googleData.email,
+            name: res.tempUser?.name || googleData.name,
+            googleId: res.tempUser?.googleId || googleData.googleId,
+            photoURL: res.tempUser?.photoURL || googleData.photoURL
+          });
+          setMode('google_phone_verify');
+          showToast('Google verified! Please enter your mobile number to complete registration.', 'info');
+          return;
+        }
+
+        // Scenario B: Existing user with verified phone -> Immediate Login
+        showToast(`Welcome back, ${res.user?.name || googleData.name}!`, 'success');
+
         if (!res.profiles || res.profiles.length === 0) {
           setProfileName(googleData.name || '');
           setMode('profile');
@@ -67,21 +142,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           if (onSuccess) onSuccess();
         }
       } catch (fbErr: any) {
-        if (fbErr.code === 'auth/operation-not-allowed') {
-          showToast('Google Sign-In needs to be enabled in Firebase Console: Authentication > Sign-in method > Google (switch to Enable).', 'warning');
-          return;
-        } else if (fbErr.code === 'auth/unauthorized-domain') {
-          showToast(`Domain not authorized: Please add "${window.location.hostname}" to Firebase Console > Authentication > Settings > Authorized domains.`, 'warning');
-          return;
+        if (fbErr.code === 'auth/unauthorized-domain') {
+          const currentHost = typeof window !== 'undefined' ? window.location.hostname : 'amitastro.pages.dev';
+          setUnauthorizedDomainAlert(currentHost);
+          showToast(`Domain "${currentHost}" is not authorized in Firebase Console. See instructions below.`, 'error');
+        } else if (fbErr.code === 'auth/operation-not-allowed') {
+          showToast('Google Sign-In needs to be enabled in Firebase Console: Authentication > Sign-in method > Google.', 'warning');
         } else if (fbErr.code === 'auth/popup-closed-by-user') {
-          // User intentionally closed the Google popup window
-          return;
+          // Intentional user close
         } else if (fbErr.code === 'auth/popup-blocked') {
           showToast('Google sign-in popup was blocked by browser. Please allow popups for this site.', 'warning');
-          return;
+        } else {
+          console.warn('[Firebase Google Sign-In]:', fbErr);
+          showToast(fbErr.message || 'Google sign-in could not be completed.', 'error');
         }
-        console.warn('[Firebase Google Sign-In]:', fbErr);
-        showToast(fbErr.message || 'Google sign in could not be completed.', 'error');
       }
     } catch (err: any) {
       showToast(err.message || 'Google sign in failed', 'error');
@@ -90,194 +164,233 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  const handleSendOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (channel === 'phone' && !phone) {
-      showToast('Please enter your mobile phone number', 'error');
-      return;
-    }
-    if (channel === 'email' && !email) {
-      showToast('Please enter your email address', 'error');
-      return;
-    }
-
-    const destination = channel === 'phone' ? phone : email;
-    setIsLoading(true);
-    try {
-      const res = await sendOtp(destination, channel);
-      if (res.simulatedCode) {
-        setSimulatedCode(res.simulatedCode);
-        setOtpCode(res.simulatedCode); // Pre-fill for instant test convenience
-      }
-      setCooldown(res.cooldownSeconds || 60);
-      setMode('otp');
-      showToast(`Verification code dispatched to your ${channel === 'phone' ? 'phone' : 'email'}`, 'success');
-
-      // Countdown interval
-      const timer = setInterval(() => {
-        setCooldown((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } catch (err: any) {
-      showToast(err.message, 'error');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!otpCode || otpCode.length < 6) {
-      showToast('Please enter the 6-digit verification code', 'error');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      await verifyOtp({
-        phone: channel === 'phone' ? phone : undefined,
-        email: channel === 'email' ? email : undefined,
-        code: otpCode,
-        name: name || undefined,
-        password: password || undefined
-      });
-
-      showToast(`${channel === 'phone' ? 'Phone' : 'Email'} verified successfully!`, 'success');
-
-      // Check if user needs progressive birth profiling
-      setProfileName(name || 'Myself');
-      setMode('profile');
-    } catch (err: any) {
-      showToast(err.message, 'error');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSendDualOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) {
-      showToast('Please enter your full name', 'error');
-      return;
-    }
+  // Google Phone Verification: Send SMS OTP
+  const handleSendGooglePhoneOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     const cleanPhone = phone.replace(/[^0-9]/g, '');
     if (!cleanPhone || cleanPhone.length < 10) {
       showToast('Please enter a valid 10-digit mobile number', 'error');
       return;
     }
-    if (!email || !email.includes('@')) {
+    const fullPhone = '+91' + cleanPhone.slice(-10);
+
+    setIsLoading(true);
+    try {
+      if (isFirebaseConfigured()) {
+        try {
+          await sendFirebaseSms(fullPhone, 'recaptcha-container-google');
+        } catch (fbErr: any) {
+          console.warn('[Firebase SMS fallback]:', fbErr.message);
+        }
+      }
+
+      const res = await sendOtp(fullPhone, 'phone');
+      if (res.simulatedCode) {
+        setSimulatedOtp((prev) => ({ ...prev, phone: res.simulatedCode }));
+        setPhoneOtpCode(res.simulatedCode);
+      }
+      setCooldown(res.cooldownSeconds || 60);
+      setGooglePhoneOtpSent(true);
+      showToast(`SMS OTP sent to ${fullPhone}`, 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to send SMS OTP', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Google Phone Verification: Complete registration
+  const handleVerifyGooglePhone = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!googleTempUser) return;
+    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    if (!cleanPhone || cleanPhone.length < 10) {
+      showToast('Please enter a valid 10-digit mobile phone number', 'error');
+      return;
+    }
+    if (!phoneOtpCode || phoneOtpCode.length < 6) {
+      showToast('Please enter the 6-digit SMS verification code', 'error');
+      return;
+    }
+
+    const fullPhone = '+91' + cleanPhone.slice(-10);
+    setIsLoading(true);
+    try {
+      const res = await completeGooglePhoneVerification({
+        email: googleTempUser.email,
+        name: googleTempUser.name,
+        googleId: googleTempUser.googleId,
+        photoURL: googleTempUser.photoURL,
+        phone: fullPhone,
+        phoneCode: phoneOtpCode
+      });
+
+      showToast(`Welcome ${res.user.name}! Your account is now active.`, 'success');
+      if (!res.profiles || res.profiles.length === 0) {
+        setProfileName(googleTempUser.name || '');
+        setMode('profile');
+      } else {
+        onClose();
+        if (onSuccess) onSuccess();
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Phone verification failed', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // -------------------------------------------------------------
+  // 2. Manual Registration Flow
+  // Step 1: User enters details -> Sends Email OTP
+  // Step 2: User verifies Email OTP -> Email verified
+  // Step 3: Mandatory Mobile Phone Number -> Sends SMS OTP -> Verifies SMS OTP -> Logged In!
+  // -------------------------------------------------------------
+  const handleStartManualSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) {
+      showToast('Please enter your full name', 'error');
+      return;
+    }
+    if (!email.trim() || !email.includes('@')) {
       showToast('Please enter a valid email address', 'error');
       return;
     }
+    if (!password || password.length < 6) {
+      showToast('Password must be at least 6 characters', 'error');
+      return;
+    }
 
     setIsLoading(true);
     try {
-      const fullPhone = '+91' + cleanPhone.slice(-10);
-
-      if (isFirebaseConfigured()) {
-        try {
-          const confirmation = await sendFirebaseSms(fullPhone, 'recaptcha-container');
-          setFirebaseConfirmation(confirmation);
-          showToast('Real SMS verification sent via Firebase!', 'success');
-        } catch (firebaseErr: any) {
-          console.warn('[Firebase SMS fallback]:', firebaseErr.message);
-        }
-      }
-
-      const res = await sendDualOtp(fullPhone, email.trim().toLowerCase());
-      if (res.phoneSimulatedCode) {
-        setPhoneSimulatedCode(res.phoneSimulatedCode);
-        setPhoneOtp(res.phoneSimulatedCode);
-      }
-      if (res.emailSimulatedCode) {
-        setEmailSimulatedCode(res.emailSimulatedCode);
-        setEmailOtp(res.emailSimulatedCode);
+      const res = await sendOtp(email.trim().toLowerCase(), 'email');
+      if (res.simulatedCode) {
+        setSimulatedOtp((prev) => ({ ...prev, email: res.simulatedCode }));
+        setEmailOtpCode(res.simulatedCode);
       }
       setCooldown(res.cooldownSeconds || 60);
-      setMode('dual_otp');
-      showToast('Verification codes dispatched to Phone (SMS) and Email', 'success');
-
-      const timer = setInterval(() => {
-        setCooldown((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+      setMode('email_otp');
+      showToast(`6-digit code sent to ${email}`, 'success');
     } catch (err: any) {
-      showToast(err.message, 'error');
+      showToast(err.message || 'Failed to dispatch email verification code', 'error');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleVerifyDualOtp = async (e: React.FormEvent) => {
+  const handleVerifyEmailOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phoneOtp || phoneOtp.length < 6) {
-      showToast('Please enter the 6-digit Mobile SMS verification code', 'error');
-      return;
-    }
-    if (!emailOtp || emailOtp.length < 6) {
-      showToast('Please enter the 6-digit Email verification code', 'error');
+    if (!emailOtpCode || emailOtpCode.length < 6) {
+      showToast('Please enter the 6-digit email verification code', 'error');
       return;
     }
 
     setIsLoading(true);
     try {
-      const fullPhone = '+91' + phone.replace(/[^0-9]/g, '').slice(-10);
-      let firebaseVerified = false;
-
-      if (firebaseConfirmation) {
-        try {
-          await firebaseConfirmation.confirm(phoneOtp);
-          firebaseVerified = true;
-        } catch (fbErr: any) {
-          console.warn('Firebase confirmation warning:', fbErr.message);
-        }
-      }
-
-      await verifyDualOtp({
-        phone: fullPhone,
-        email: email.trim().toLowerCase(),
-        phoneCode: phoneOtp,
-        emailCode: emailOtp,
-        firebaseVerified,
-        name: name.trim(),
-        password: password || undefined
-      });
-
-      showToast('Both Phone & Email verified successfully!', 'success');
-      setProfileName(name || 'Myself');
-      setMode('profile');
+      await verifyEmailOtp(email.trim().toLowerCase(), emailOtpCode);
+      setEmailVerified(true);
+      setMode('manual_phone');
+      showToast('Email verified successfully! Now complete mandatory phone verification.', 'success');
     } catch (err: any) {
-      showToast(err.message, 'error');
+      showToast(err.message || 'Invalid or expired email OTP', 'error');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleSendManualPhoneOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    if (!cleanPhone || cleanPhone.length < 10) {
+      showToast('Please enter a valid 10-digit mobile number', 'error');
+      return;
+    }
+    const fullPhone = '+91' + cleanPhone.slice(-10);
+
+    setIsLoading(true);
+    try {
+      if (isFirebaseConfigured()) {
+        try {
+          await sendFirebaseSms(fullPhone, 'recaptcha-container-manual');
+        } catch (fbErr: any) {
+          console.warn('[Firebase SMS fallback]:', fbErr.message);
+        }
+      }
+
+      const res = await sendOtp(fullPhone, 'phone');
+      if (res.simulatedCode) {
+        setSimulatedOtp((prev) => ({ ...prev, phone: res.simulatedCode }));
+        setPhoneOtpCode(res.simulatedCode);
+      }
+      setCooldown(res.cooldownSeconds || 60);
+      setManualPhoneOtpSent(true);
+      showToast(`SMS OTP sent to ${fullPhone}`, 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to send SMS OTP', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCompleteManualRegistration = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    if (!cleanPhone || cleanPhone.length < 10) {
+      showToast('Please enter a valid 10-digit mobile number', 'error');
+      return;
+    }
+    if (!phoneOtpCode || phoneOtpCode.length < 6) {
+      showToast('Please enter the 6-digit SMS verification code', 'error');
+      return;
+    }
+
+    const fullPhone = '+91' + cleanPhone.slice(-10);
+    setIsLoading(true);
+    try {
+      const res = await completeManualRegistration({
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        password,
+        phone: fullPhone,
+        phoneCode: phoneOtpCode
+      });
+
+      showToast(`Registration complete! Welcome ${res.user.name}.`, 'success');
+      if (!res.profiles || res.profiles.length === 0) {
+        setProfileName(name || '');
+        setMode('profile');
+      } else {
+        onClose();
+        if (onSuccess) onSuccess();
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Registration failed', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // -------------------------------------------------------------
+  // 3. Regular Email + Password Login
+  // -------------------------------------------------------------
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await login(email, password);
+      await login(email.trim().toLowerCase(), password);
       showToast('Welcome back to Amit Astro', 'success');
       onClose();
       if (onSuccess) onSuccess();
     } catch (err: any) {
-      showToast(err.message, 'error');
+      showToast(err.message || 'Login failed', 'error');
     } finally {
       setIsLoading(false);
     }
   };
 
+  // -------------------------------------------------------------
+  // 4. Save Progressive Birth Profile
+  // -------------------------------------------------------------
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profileName || !dob || !pob) {
@@ -325,23 +438,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         className="apple-card"
         style={{
           width: '100%',
-          maxWidth: 450,
+          maxWidth: 440,
           backgroundColor: '#FFFFFF',
           borderRadius: 22,
-          padding: '32px 28px',
+          padding: '30px 26px',
           boxShadow: '0 24px 60px rgba(0, 0, 0, 0.14)',
           position: 'relative',
           maxHeight: '94vh',
           overflowY: 'auto'
         }}
       >
-        {/* Close button */}
+        {/* Close Button */}
         <button
           onClick={onClose}
           style={{
             position: 'absolute',
-            top: 20,
-            right: 20,
+            top: 18,
+            right: 18,
             background: '#F5F5F7',
             border: 'none',
             borderRadius: '50%',
@@ -357,7 +470,57 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <X size={18} />
         </button>
 
-        {/* 1. Mode: LOGIN */}
+        {/* Firebase Unauthorized Domain Error Banner */}
+        {unauthorizedDomainAlert && (
+          <div
+            style={{
+              backgroundColor: '#FEF2F2',
+              border: '1px solid #FECACA',
+              borderRadius: 14,
+              padding: '14px 16px',
+              marginBottom: 18,
+              textAlign: 'left'
+            }}
+          >
+            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+              <AlertCircle size={20} color="#DC2626" style={{ flexShrink: 0, marginTop: 1 }} />
+              <div>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: '#991B1B', marginBottom: 4 }}>
+                  Firebase Domain Authorization Required
+                </div>
+                <p style={{ fontSize: 12, color: '#7F1D1D', margin: 0, lineHeight: 1.45 }}>
+                  The domain <strong>{unauthorizedDomainAlert}</strong> has not yet been added to your Firebase project's authorized domains.
+                </p>
+                <div
+                  style={{
+                    backgroundColor: '#FFFFFF',
+                    border: '1px solid #FCA5A5',
+                    borderRadius: 8,
+                    padding: '8px 10px',
+                    margin: '8px 0',
+                    fontSize: 11.5,
+                    color: '#7F1D1D',
+                    lineHeight: 1.4
+                  }}
+                >
+                  <strong>Quick 30-Second Fix:</strong>
+                  <ol style={{ margin: '4px 0 0 16px', padding: 0 }}>
+                    <li>Open <strong>Firebase Console &gt; nakshaktram</strong></li>
+                    <li>Go to <strong>Authentication &gt; Settings &gt; Authorized domains</strong></li>
+                    <li>Click <strong>Add domain</strong> and enter <code>{unauthorizedDomainAlert}</code></li>
+                  </ol>
+                </div>
+                <div style={{ fontSize: 11, color: '#991B1B' }}>
+                  Once added in Firebase, Google sign-in works immediately for all users!
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ======================================================== */}
+        {/* MODE 1: LOGIN                                            */}
+        {/* ======================================================== */}
         {mode === 'login' && (
           <div>
             <div style={{ textAlign: 'center', marginBottom: 20 }}>
@@ -378,12 +541,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <h2 className="text-h2" style={{ fontSize: 22, marginBottom: 4 }}>
                 Sign In to Amit Astro
               </h2>
-              <p className="text-body" style={{ fontSize: 13.5 }}>
-                Access consultation slots, birth charts, and private astrologer chat.
+              <p className="text-body" style={{ fontSize: 13 }}>
+                Access consultation slots, birth charts, and private astrologer guidance.
               </p>
             </div>
 
-            {/* 1-Click Continue with Google Button (100% Free OAuth) */}
+            {/* Google Sign-In */}
             <button
               type="button"
               onClick={handleGoogleSignIn}
@@ -405,17 +568,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               }}
             >
               <svg width="18" height="18" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
-                <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.34 24 12 24z"/>
-                <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
-                <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+                <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z" />
+                <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.34 24 12 24z" />
+                <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z" />
+                <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z" />
               </svg>
               Continue with Google
             </button>
 
             <div style={{ margin: '14px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ flex: 1, height: 1, backgroundColor: '#E5E5EA' }} />
-              <span style={{ fontSize: 11.5, color: '#A1A1A6' }}>or with email & password</span>
+              <span style={{ fontSize: 11.5, color: '#A1A1A6' }}>or sign in with password</span>
               <div style={{ flex: 1, height: 1, backgroundColor: '#E5E5EA' }} />
             </div>
 
@@ -467,18 +630,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </form>
 
             <div style={{ marginTop: 18, textAlign: 'center', fontSize: 13, color: '#6E6E73' }}>
-              Don't have an account?{' '}
+              First time at Amit Astro?{' '}
               <span
                 onClick={() => setMode('signup')}
                 style={{ color: '#3A3A6E', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}
               >
-                Sign Up with OTP
+                Create Account
               </span>
             </div>
           </div>
         )}
 
-        {/* 2. Mode: SIGN UP WITH PHONE OR EMAIL OTP */}
+        {/* ======================================================== */}
+        {/* MODE 2: SIGNUP (MANUAL REGISTRATION STEP 1)              */}
+        {/* ======================================================== */}
         {mode === 'signup' && (
           <div>
             <div style={{ textAlign: 'center', marginBottom: 18 }}>
@@ -500,7 +665,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 Create Your Account
               </h2>
               <p className="text-body" style={{ fontSize: 13 }}>
-                Get 5-min complimentary consultation eligibility and store your family Kundli charts.
+                Sequential OTP verification: Verify Email first, followed by mandatory Mobile Number.
               </p>
             </div>
 
@@ -526,78 +691,42 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               }}
             >
               <svg width="18" height="18" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
-                <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.34 24 12 24z"/>
-                <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
-                <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+                <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z" />
+                <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.34 24 12 24z" />
+                <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z" />
+                <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z" />
               </svg>
               Sign Up with Google
             </button>
 
             <div style={{ margin: '14px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ flex: 1, height: 1, backgroundColor: '#E5E5EA' }} />
-              <span style={{ fontSize: 11.5, color: '#A1A1A6' }}>or register with OTP</span>
+              <span style={{ fontSize: 11.5, color: '#A1A1A6' }}>or register manually with OTP</span>
               <div style={{ flex: 1, height: 1, backgroundColor: '#E5E5EA' }} />
             </div>
 
-            {/* Mandatory Dual Verification Notice */}
-            <div
-              style={{
-                backgroundColor: 'rgba(58, 58, 110, 0.06)',
-                border: '1px solid rgba(58, 58, 110, 0.14)',
-                borderRadius: 12,
-                padding: '12px 14px',
-                marginBottom: 16,
-                display: 'flex',
-                gap: 10,
-                alignItems: 'flex-start'
-              }}
-            >
-              <ShieldCheck size={18} color="#3A3A6E" style={{ flexShrink: 0, marginTop: 2 }} />
-              <div style={{ fontSize: 12, color: '#3A3A6E', lineHeight: 1.45 }}>
-                <strong>Mandatory Dual Verification:</strong> Both Phone (SMS) and Email OTP verification are required to confirm your client profile and unlock consultations.
-              </div>
-            </div>
-
-            <form onSubmit={handleSendDualOtp} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <form onSubmit={handleStartManualSignup} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 12.5, fontWeight: 500, color: '#1D1D1F', marginBottom: 4 }}>
                   Full Name
                 </label>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Rahul Sharma"
-                  className="apple-input"
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 500, color: '#1D1D1F', marginBottom: 4 }}>
-                  Mobile Phone Number (SMS OTP)
-                </label>
                 <div style={{ position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: 14, top: 12, color: '#1D1D1F', fontWeight: 500, fontSize: 14 }}>
-                    +91
-                  </span>
+                  <UserIcon size={16} color="#A1A1A6" style={{ position: 'absolute', left: 14, top: 12 }} />
                   <input
-                    type="tel"
+                    type="text"
                     required
-                    value={phone.replace('+91', '')}
-                    onChange={(e) => setPhone('+91' + e.target.value.replace(/[^0-9]/g, ''))}
-                    placeholder="98765 43210"
-                    maxLength={10}
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. Rahul Sharma"
                     className="apple-input"
-                    style={{ paddingLeft: 50 }}
+                    style={{ paddingLeft: 38 }}
                   />
                 </div>
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: 12.5, fontWeight: 500, color: '#1D1D1F', marginBottom: 4 }}>
-                  Email Address (Email OTP)
+                  Email Address
                 </label>
                 <div style={{ position: 'relative' }}>
                   <Mail size={16} color="#A1A1A6" style={{ position: 'absolute', left: 14, top: 12 }} />
@@ -613,7 +742,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </div>
               </div>
 
-              <div id="recaptcha-container"></div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 500, color: '#1D1D1F', marginBottom: 4 }}>
+                  Set Account Password
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <Lock size={16} color="#A1A1A6" style={{ position: 'absolute', left: 14, top: 12 }} />
+                  <input
+                    type="password"
+                    required
+                    minLength={6}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="At least 6 characters"
+                    className="apple-input"
+                    style={{ paddingLeft: 38 }}
+                  />
+                </div>
+              </div>
 
               <button
                 type="submit"
@@ -621,24 +767,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 className="apple-btn-primary"
                 style={{ marginTop: 6, padding: 12, width: '100%', fontSize: 14.5 }}
               >
-                {isLoading ? 'Dispatching Verification Codes...' : 'Send Codes to Phone & Email'}
+                {isLoading ? 'Sending Email OTP...' : 'Continue & Verify Email (Step 1 of 2) →'}
               </button>
             </form>
 
             <div style={{ marginTop: 18, textAlign: 'center', fontSize: 13, color: '#6E6E73' }}>
-              Already have an account?{' '}
+              Already registered?{' '}
               <span
                 onClick={() => setMode('login')}
                 style={{ color: '#3A3A6E', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}
               >
-                Sign In with Password
+                Sign In
               </span>
             </div>
           </div>
         )}
 
-        {/* 3. Mode: MANDATORY DUAL OTP VERIFICATION */}
-        {mode === 'dual_otp' && (
+        {/* ======================================================== */}
+        {/* MODE 3: EMAIL OTP VERIFICATION (STEP 1)                  */}
+        {/* ======================================================== */}
+        {mode === 'email_otp' && (
           <div>
             <div style={{ textAlign: 'center', marginBottom: 18 }}>
               <div
@@ -646,25 +794,25 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   width: 48,
                   height: 48,
                   borderRadius: 14,
-                  background: 'rgba(47, 168, 79, 0.1)',
+                  background: 'rgba(58, 58, 110, 0.08)',
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   marginBottom: 10
                 }}
               >
-                <ShieldCheck size={24} color="#2FA84F" />
+                <Mail size={22} color="#3A3A6E" />
               </div>
               <h2 className="text-h2" style={{ fontSize: 21, marginBottom: 4 }}>
-                Verify Phone & Email
+                Verify Your Email
               </h2>
               <p className="text-body" style={{ fontSize: 12.5 }}>
-                Enter the verification codes sent to both destinations below.
+                Step 1 of 2: We sent a 6-digit verification code to <strong>{email}</strong>
               </p>
             </div>
 
-            {/* Simulated Code Indicator if in dev/simulated mode */}
-            {(phoneSimulatedCode || emailSimulatedCode) && (
+            {/* Dev mode auto-code banner */}
+            {simulatedOtp?.email && (
               <div
                 style={{
                   backgroundColor: '#FFF8E6',
@@ -677,69 +825,40 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   textAlign: 'center'
                 }}
               >
-                {phoneSimulatedCode && <div>📱 Mobile Dev Code: <strong>{phoneSimulatedCode}</strong></div>}
-                {emailSimulatedCode && <div>✉️ Email Dev Code: <strong>{emailSimulatedCode}</strong></div>}
+                ✉️ Email Dev Code: <strong>{simulatedOtp.email}</strong>
               </div>
             )}
 
-            <form onSubmit={handleVerifyDualOtp} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {/* Phone OTP Input */}
-              <div style={{ backgroundColor: '#F5F5F7', padding: '12px 14px', borderRadius: 14 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <span style={{ fontSize: 12.5, fontWeight: 600, color: '#1D1D1F', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Phone size={14} color="#3A3A6E" /> 1. Mobile SMS Code
-                  </span>
-                  <span style={{ fontSize: 11.5, color: '#6E6E73' }}>
-                    +91 {phone.replace(/[^0-9]/g, '').slice(-10)}
-                  </span>
-                </div>
+            <form onSubmit={handleVerifyEmailOtp} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 500, color: '#1D1D1F', marginBottom: 6 }}>
+                  Enter 6-Digit Email Code
+                </label>
                 <input
                   type="text"
                   required
-                  value={phoneOtp}
-                  onChange={(e) => setPhoneOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+                  value={emailOtpCode}
+                  onChange={(e) => setEmailOtpCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
                   placeholder="• • • • • •"
                   maxLength={6}
                   className="apple-input"
-                  style={{ textAlign: 'center', fontSize: 20, letterSpacing: 6, fontWeight: 700, backgroundColor: '#FFFFFF' }}
+                  style={{ textAlign: 'center', fontSize: 22, letterSpacing: 8, fontWeight: 700 }}
                   autoFocus
-                />
-              </div>
-
-              {/* Email OTP Input */}
-              <div style={{ backgroundColor: '#F5F5F7', padding: '12px 14px', borderRadius: 14 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <span style={{ fontSize: 12.5, fontWeight: 600, color: '#1D1D1F', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Mail size={14} color="#3A3A6E" /> 2. Email OTP Code
-                  </span>
-                  <span style={{ fontSize: 11.5, color: '#6E6E73' }}>
-                    {email}
-                  </span>
-                </div>
-                <input
-                  type="text"
-                  required
-                  value={emailOtp}
-                  onChange={(e) => setEmailOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
-                  placeholder="• • • • • •"
-                  maxLength={6}
-                  className="apple-input"
-                  style={{ textAlign: 'center', fontSize: 20, letterSpacing: 6, fontWeight: 700, backgroundColor: '#FFFFFF' }}
                 />
               </div>
 
               <button
                 type="submit"
-                disabled={isLoading || phoneOtp.length < 6 || emailOtp.length < 6}
+                disabled={isLoading || emailOtpCode.length < 6}
                 className="apple-btn-primary"
                 style={{
                   padding: 12,
                   width: '100%',
                   fontSize: 14.5,
-                  opacity: (phoneOtp.length < 6 || emailOtp.length < 6) ? 0.6 : 1
+                  opacity: emailOtpCode.length < 6 ? 0.6 : 1
                 }}
               >
-                {isLoading ? 'Verifying Credentials...' : 'Verify Both & Continue'}
+                {isLoading ? 'Verifying Email...' : 'Verify Email & Proceed to Phone →'}
               </button>
             </form>
 
@@ -749,7 +868,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 onClick={() => setMode('signup')}
                 style={{ background: 'none', border: 'none', color: '#3A3A6E', cursor: 'pointer', fontSize: 12 }}
               >
-                ← Edit phone/email
+                ← Edit details
               </button>
 
               {cooldown > 0 ? (
@@ -757,20 +876,30 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               ) : (
                 <button
                   type="button"
-                  onClick={handleSendDualOtp}
+                  onClick={async () => {
+                    const res = await sendOtp(email.trim().toLowerCase(), 'email');
+                    if (res.simulatedCode) {
+                      setSimulatedOtp((prev) => ({ ...prev, email: res.simulatedCode }));
+                      setEmailOtpCode(res.simulatedCode);
+                    }
+                    setCooldown(res.cooldownSeconds || 60);
+                    showToast('New verification code sent to your email', 'success');
+                  }}
                   style={{ background: 'none', border: 'none', color: '#3A3A6E', fontWeight: 600, cursor: 'pointer', fontSize: 12 }}
                 >
-                  Resend Both Codes
+                  Resend Code
                 </button>
               )}
             </div>
           </div>
         )}
 
-        {/* 3b. Mode: SINGLE OTP (Fallback / Login) */}
-        {mode === 'otp' && (
+        {/* ======================================================== */}
+        {/* MODE 4: MANUAL PHONE VERIFICATION (STEP 2 - MANDATORY)    */}
+        {/* ======================================================== */}
+        {mode === 'manual_phone' && (
           <div>
-            <div style={{ textAlign: 'center', marginBottom: 20 }}>
+            <div style={{ textAlign: 'center', marginBottom: 16 }}>
               <div
                 style={{
                   width: 48,
@@ -783,87 +912,394 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   marginBottom: 10
                 }}
               >
-                <ShieldCheck size={24} color="#2FA84F" />
+                <Phone size={22} color="#2FA84F" />
               </div>
-              <h2 className="text-h2" style={{ fontSize: 22, marginBottom: 4 }}>
-                Enter Verification Code
+              <h2 className="text-h2" style={{ fontSize: 21, marginBottom: 4 }}>
+                Verify Mobile Number
               </h2>
-              <p className="text-body" style={{ fontSize: 13 }}>
-                Sent to <strong>{channel === 'phone' ? phone : email}</strong>
+              <p className="text-body" style={{ fontSize: 12.5 }}>
+                Step 2 of 2: Mobile number is mandatory for consultation audio appointments and reminders.
               </p>
             </div>
 
-            {/* Simulated OTP notice for local development */}
-            {simulatedCode && (
+            {/* Email Verified Badge */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '9px 12px',
+                backgroundColor: '#F0FDF4',
+                border: '1px solid #BBF7D0',
+                borderRadius: 12,
+                marginBottom: 16
+              }}
+            >
+              <CheckCircle2 size={16} color="#16A34A" />
+              <span style={{ fontSize: 12.5, color: '#15803D', fontWeight: 500 }}>
+                Email Verified: <strong>{email}</strong>
+              </span>
+            </div>
+
+            {/* Dev mode auto-code banner */}
+            {simulatedOtp?.phone && (
               <div
                 style={{
                   backgroundColor: '#FFF8E6',
                   border: '1px solid #C9A24B',
                   borderRadius: 10,
-                  padding: '10px 14px',
-                  marginBottom: 16,
-                  fontSize: 12.5,
+                  padding: '9px 12px',
+                  marginBottom: 14,
+                  fontSize: 12,
                   color: '#6A531C',
                   textAlign: 'center'
                 }}
               >
-                Dev Code Auto-Detected: <strong>{simulatedCode}</strong>
+                📱 Mobile Dev Code: <strong>{simulatedOtp.phone}</strong>
               </div>
             )}
 
-            <form onSubmit={handleVerifyOtp} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div id="recaptcha-container-manual"></div>
+
+            <form onSubmit={handleCompleteManualRegistration} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
-                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 500, color: '#1D1D1F', marginBottom: 6 }}>
-                  6-Digit OTP Code
+                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 500, color: '#1D1D1F', marginBottom: 4 }}>
+                  Mobile Phone Number
                 </label>
-                <input
-                  type="text"
-                  required
-                  value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
-                  placeholder="• • • • • •"
-                  maxLength={6}
-                  className="apple-input"
-                  style={{ textAlign: 'center', fontSize: 24, letterSpacing: 8, fontWeight: 700 }}
-                  autoFocus
-                />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '0 12px',
+                      backgroundColor: '#F5F5F7',
+                      borderRadius: 12,
+                      fontSize: 13.5,
+                      fontWeight: 600,
+                      color: '#1D1D1F',
+                      border: '1px solid #E5E5EA'
+                    }}
+                  >
+                    +91
+                  </div>
+                  <input
+                    type="tel"
+                    required
+                    value={phone.replace('+91', '')}
+                    onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ''))}
+                    placeholder="98765 43210"
+                    maxLength={10}
+                    className="apple-input"
+                    style={{ flex: 1 }}
+                    autoFocus
+                  />
+                  {!manualPhoneOtpSent && (
+                    <button
+                      type="button"
+                      onClick={handleSendManualPhoneOtp}
+                      disabled={isLoading || phone.replace(/[^0-9]/g, '').length < 10}
+                      className="apple-btn-secondary"
+                      style={{
+                        padding: '0 14px',
+                        fontSize: 13,
+                        fontWeight: 600,
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {isLoading ? 'Sending...' : 'Send OTP'}
+                    </button>
+                  )}
+                </div>
               </div>
 
-              <button
-                type="submit"
-                disabled={isLoading || otpCode.length < 6}
-                className="apple-btn-primary"
-                style={{ padding: 12, width: '100%', fontSize: 14.5, opacity: otpCode.length < 6 ? 0.6 : 1 }}
-              >
-                {isLoading ? 'Verifying...' : 'Verify & Continue'}
-              </button>
-            </form>
+              {manualPhoneOtpSent && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <label style={{ fontSize: 12.5, fontWeight: 500, color: '#1D1D1F' }}>
+                      6-Digit SMS Verification Code
+                    </label>
+                    {cooldown > 0 ? (
+                      <span style={{ fontSize: 11.5, color: '#6E6E73' }}>Resend in {cooldown}s</span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleSendManualPhoneOtp}
+                        style={{ background: 'none', border: 'none', color: '#3A3A6E', fontSize: 11.5, fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        Resend SMS
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    value={phoneOtpCode}
+                    onChange={(e) => setPhoneOtpCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+                    placeholder="• • • • • •"
+                    maxLength={6}
+                    className="apple-input"
+                    style={{ textAlign: 'center', fontSize: 22, letterSpacing: 8, fontWeight: 700 }}
+                  />
+                </div>
+              )}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, fontSize: 12.5, color: '#6E6E73' }}>
-              <button
-                type="button"
-                onClick={() => setMode('signup')}
-                style={{ background: 'none', border: 'none', color: '#3A3A6E', cursor: 'pointer', fontSize: 12.5 }}
-              >
-                ← Change destination
-              </button>
-
-              {cooldown > 0 ? (
-                <span>Resend in {cooldown}s</span>
+              {manualPhoneOtpSent ? (
+                <button
+                  type="submit"
+                  disabled={isLoading || phoneOtpCode.length < 6}
+                  className="apple-btn-primary"
+                  style={{
+                    padding: 12,
+                    width: '100%',
+                    fontSize: 14.5,
+                    opacity: phoneOtpCode.length < 6 ? 0.6 : 1
+                  }}
+                >
+                  {isLoading ? 'Activating Account...' : 'Complete Registration & Sign In'}
+                </button>
               ) : (
                 <button
                   type="button"
-                  onClick={handleSendOtp}
-                  style={{ background: 'none', border: 'none', color: '#3A3A6E', fontWeight: 600, cursor: 'pointer', fontSize: 12.5 }}
+                  onClick={handleSendManualPhoneOtp}
+                  disabled={isLoading || phone.replace(/[^0-9]/g, '').length < 10}
+                  className="apple-btn-primary"
+                  style={{
+                    padding: 12,
+                    width: '100%',
+                    fontSize: 14.5
+                  }}
                 >
-                  Resend Code
+                  {isLoading ? 'Sending SMS OTP...' : 'Send SMS Verification Code'}
                 </button>
               )}
-            </div>
+            </form>
           </div>
         )}
 
-        {/* 4. Mode: PROGRESSIVE BIRTH PROFILE SETUP */}
+        {/* ======================================================== */}
+        {/* MODE 5: GOOGLE MANDATORY PHONE VERIFICATION              */}
+        {/* ======================================================== */}
+        {mode === 'google_phone_verify' && googleTempUser && (
+          <div>
+            <div style={{ textAlign: 'center', marginBottom: 16 }}>
+              <div
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 14,
+                  background: 'rgba(58, 58, 110, 0.08)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 10
+                }}
+              >
+                <ShieldCheck size={24} color="#3A3A6E" />
+              </div>
+              <h2 className="text-h2" style={{ fontSize: 21, marginBottom: 4 }}>
+                Verify Phone Number
+              </h2>
+              <p className="text-body" style={{ fontSize: 12.5 }}>
+                Final step: Link and verify your mobile number to complete registration.
+              </p>
+            </div>
+
+            {/* Google Profile Badge */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                padding: '10px 14px',
+                backgroundColor: '#F5F5F7',
+                borderRadius: 14,
+                marginBottom: 16
+              }}
+            >
+              {googleTempUser.photoURL ? (
+                <img
+                  src={googleTempUser.photoURL}
+                  alt={googleTempUser.name}
+                  style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: '50%',
+                    backgroundColor: '#3A3A6E',
+                    color: '#FFF',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 600,
+                    fontSize: 14
+                  }}
+                >
+                  {googleTempUser.name?.charAt(0) || 'G'}
+                </div>
+              )}
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: '#1D1D1F' }}>
+                  {googleTempUser.name}
+                </div>
+                <div style={{ fontSize: 11.5, color: '#6E6E73', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {googleTempUser.email}
+                </div>
+              </div>
+              <span
+                style={{
+                  fontSize: 11,
+                  backgroundColor: '#E8F5E9',
+                  color: '#2E7D32',
+                  padding: '4px 8px',
+                  borderRadius: 6,
+                  fontWeight: 600
+                }}
+              >
+                Google ✓
+              </span>
+            </div>
+
+            {/* Dev mode auto-code banner */}
+            {simulatedOtp?.phone && (
+              <div
+                style={{
+                  backgroundColor: '#FFF8E6',
+                  border: '1px solid #C9A24B',
+                  borderRadius: 10,
+                  padding: '9px 12px',
+                  marginBottom: 14,
+                  fontSize: 12,
+                  color: '#6A531C',
+                  textAlign: 'center'
+                }}
+              >
+                📱 Mobile Dev Code: <strong>{simulatedOtp.phone}</strong>
+              </div>
+            )}
+
+            <div id="recaptcha-container-google"></div>
+
+            <form onSubmit={handleVerifyGooglePhone} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 500, color: '#1D1D1F', marginBottom: 4 }}>
+                  Mobile Phone Number
+                </label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '0 12px',
+                      backgroundColor: '#F5F5F7',
+                      borderRadius: 12,
+                      fontSize: 13.5,
+                      fontWeight: 600,
+                      color: '#1D1D1F',
+                      border: '1px solid #E5E5EA'
+                    }}
+                  >
+                    +91
+                  </div>
+                  <input
+                    type="tel"
+                    required
+                    value={phone.replace('+91', '')}
+                    onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ''))}
+                    placeholder="98765 43210"
+                    maxLength={10}
+                    className="apple-input"
+                    style={{ flex: 1 }}
+                    autoFocus
+                  />
+                  {!googlePhoneOtpSent && (
+                    <button
+                      type="button"
+                      onClick={handleSendGooglePhoneOtp}
+                      disabled={isLoading || phone.replace(/[^0-9]/g, '').length < 10}
+                      className="apple-btn-secondary"
+                      style={{
+                        padding: '0 14px',
+                        fontSize: 13,
+                        fontWeight: 600,
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {isLoading ? 'Sending...' : 'Send OTP'}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {googlePhoneOtpSent && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <label style={{ fontSize: 12.5, fontWeight: 500, color: '#1D1D1F' }}>
+                      6-Digit SMS Verification Code
+                    </label>
+                    {cooldown > 0 ? (
+                      <span style={{ fontSize: 11.5, color: '#6E6E73' }}>Resend in {cooldown}s</span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleSendGooglePhoneOtp}
+                        style={{ background: 'none', border: 'none', color: '#3A3A6E', fontSize: 11.5, fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        Resend SMS
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    value={phoneOtpCode}
+                    onChange={(e) => setPhoneOtpCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+                    placeholder="• • • • • •"
+                    maxLength={6}
+                    className="apple-input"
+                    style={{ textAlign: 'center', fontSize: 22, letterSpacing: 8, fontWeight: 700 }}
+                  />
+                </div>
+              )}
+
+              {googlePhoneOtpSent ? (
+                <button
+                  type="submit"
+                  disabled={isLoading || phoneOtpCode.length < 6}
+                  className="apple-btn-primary"
+                  style={{
+                    padding: 12,
+                    width: '100%',
+                    fontSize: 14.5,
+                    opacity: phoneOtpCode.length < 6 ? 0.6 : 1
+                  }}
+                >
+                  {isLoading ? 'Verifying & Activating...' : 'Verify Phone & Complete Registration'}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSendGooglePhoneOtp}
+                  disabled={isLoading || phone.replace(/[^0-9]/g, '').length < 10}
+                  className="apple-btn-primary"
+                  style={{
+                    padding: 12,
+                    width: '100%',
+                    fontSize: 14.5
+                  }}
+                >
+                  {isLoading ? 'Sending SMS OTP...' : 'Send SMS Verification Code'}
+                </button>
+              )}
+            </form>
+          </div>
+        )}
+
+        {/* ======================================================== */}
+        {/* MODE 6: PROGRESSIVE BIRTH PROFILE SETUP                  */}
+        {/* ======================================================== */}
         {mode === 'profile' && (
           <div>
             <div style={{ textAlign: 'center', marginBottom: 20 }}>
