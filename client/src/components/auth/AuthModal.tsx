@@ -505,7 +505,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 >
                   <strong>Quick 30-Second Fix:</strong>
                   <ol style={{ margin: '4px 0 0 16px', padding: 0 }}>
-                    <li>Open <strong>Firebase Console &gt; nakshaktram</strong></li>
+                    <li>Open <strong>Firebase Console &gt; amitastro</strong></li>
                     <li>Go to <strong>Authentication &gt; Settings &gt; Authorized domains</strong></li>
                     <li>Click <strong>Add domain</strong> and enter <code>{unauthorizedDomainAlert}</code></li>
                   </ol>
