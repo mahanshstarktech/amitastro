@@ -57,9 +57,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [emailVerified, setEmailVerified] = useState(false);
   const [manualPhoneOtpSent, setManualPhoneOtpSent] = useState(false);
   const [googlePhoneOtpSent, setGooglePhoneOtpSent] = useState(false);
+  const [firebaseConfirmation, setFirebaseConfirmation] = useState<any>(null);
 
   // Simulated OTPs for dev testing
   const [simulatedOtp, setSimulatedOtp] = useState<{ email?: string; phone?: string } | null>(null);
+
+  const handleChangePhoneNumber = () => {
+    setGooglePhoneOtpSent(false);
+    setManualPhoneOtpSent(false);
+    setPhoneOtpCode('');
+    setFirebaseConfirmation(null);
+    setCooldown(0);
+  };
 
   // Google Temp User state for mandatory phone registration
   const [googleTempUser, setGoogleTempUser] = useState<{
@@ -175,25 +184,39 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     const fullPhone = '+91' + cleanPhone.slice(-10);
 
     setIsLoading(true);
-    try {
-      if (isFirebaseConfigured()) {
-        try {
-          await sendFirebaseSms(fullPhone, 'recaptcha-container-google');
-        } catch (fbErr: any) {
-          console.warn('[Firebase SMS fallback]:', fbErr.message);
+    let fbSuccess = false;
+
+    if (isFirebaseConfigured()) {
+      try {
+        const confirmation = await sendFirebaseSms(fullPhone, 'recaptcha-container-google');
+        setFirebaseConfirmation(confirmation);
+        fbSuccess = true;
+        showToast(`SMS OTP sent to ${fullPhone} via Google SMS`, 'success');
+      } catch (fbErr: any) {
+        console.warn('[Firebase SMS Error]:', fbErr);
+        if (fbErr.code === 'auth/quota-exceeded') {
+          showToast('Firebase daily SMS quota exceeded (10/day limit on free plan).', 'warning');
+        } else if (fbErr.code === 'auth/captcha-check-failed') {
+          showToast('reCAPTCHA verification failed. Please try again.', 'error');
+        } else if (fbErr.code === 'auth/invalid-phone-number') {
+          showToast('Invalid phone number format for SMS.', 'error');
+        } else {
+          showToast(fbErr.message || 'Firebase SMS delivery error.', 'warning');
         }
       }
+    }
 
+    try {
       const res = await sendOtp(fullPhone, 'phone');
-      if (res.simulatedCode) {
-        setSimulatedOtp((prev) => ({ ...prev, phone: res.simulatedCode }));
-        setPhoneOtpCode(res.simulatedCode);
+      if (!fbSuccess) {
+        showToast(`Verification code dispatched to ${fullPhone}`, 'success');
       }
       setCooldown(res.cooldownSeconds || 60);
       setGooglePhoneOtpSent(true);
-      showToast(`SMS OTP sent to ${fullPhone}`, 'success');
     } catch (err: any) {
-      showToast(err.message || 'Failed to send SMS OTP', 'error');
+      if (!fbSuccess) {
+        showToast(err.message || 'Failed to send SMS OTP', 'error');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -215,6 +238,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     const fullPhone = '+91' + cleanPhone.slice(-10);
     setIsLoading(true);
+    let firebaseVerified = false;
+
+    if (firebaseConfirmation) {
+      try {
+        await firebaseConfirmation.confirm(phoneOtpCode);
+        firebaseVerified = true;
+      } catch (fbErr: any) {
+        console.warn('[Firebase Confirm Error]:', fbErr);
+        showToast(fbErr.message || 'Invalid SMS verification code. Please check and try again.', 'error');
+        setIsLoading(false);
+        return;
+      }
+    }
+
     try {
       const res = await completeGooglePhoneVerification({
         email: googleTempUser.email,
@@ -222,7 +259,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         googleId: googleTempUser.googleId,
         photoURL: googleTempUser.photoURL,
         phone: fullPhone,
-        phoneCode: phoneOtpCode
+        phoneCode: phoneOtpCode,
+        firebaseVerified
       });
 
       showToast(`Welcome ${res.user.name}! Your account is now active.`, 'success');
@@ -308,25 +346,39 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     const fullPhone = '+91' + cleanPhone.slice(-10);
 
     setIsLoading(true);
-    try {
-      if (isFirebaseConfigured()) {
-        try {
-          await sendFirebaseSms(fullPhone, 'recaptcha-container-manual');
-        } catch (fbErr: any) {
-          console.warn('[Firebase SMS fallback]:', fbErr.message);
+    let fbSuccess = false;
+
+    if (isFirebaseConfigured()) {
+      try {
+        const confirmation = await sendFirebaseSms(fullPhone, 'recaptcha-container-manual');
+        setFirebaseConfirmation(confirmation);
+        fbSuccess = true;
+        showToast(`SMS OTP sent to ${fullPhone} via Google SMS`, 'success');
+      } catch (fbErr: any) {
+        console.warn('[Firebase SMS Error]:', fbErr);
+        if (fbErr.code === 'auth/quota-exceeded') {
+          showToast('Firebase daily SMS quota exceeded (10/day limit on free plan).', 'warning');
+        } else if (fbErr.code === 'auth/captcha-check-failed') {
+          showToast('reCAPTCHA verification failed. Please try again.', 'error');
+        } else if (fbErr.code === 'auth/invalid-phone-number') {
+          showToast('Invalid phone number format for SMS.', 'error');
+        } else {
+          showToast(fbErr.message || 'Firebase SMS delivery error.', 'warning');
         }
       }
+    }
 
+    try {
       const res = await sendOtp(fullPhone, 'phone');
-      if (res.simulatedCode) {
-        setSimulatedOtp((prev) => ({ ...prev, phone: res.simulatedCode }));
-        setPhoneOtpCode(res.simulatedCode);
+      if (!fbSuccess) {
+        showToast(`Verification code dispatched to ${fullPhone}`, 'success');
       }
       setCooldown(res.cooldownSeconds || 60);
       setManualPhoneOtpSent(true);
-      showToast(`SMS OTP sent to ${fullPhone}`, 'success');
     } catch (err: any) {
-      showToast(err.message || 'Failed to send SMS OTP', 'error');
+      if (!fbSuccess) {
+        showToast(err.message || 'Failed to send SMS OTP', 'error');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -346,13 +398,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     const fullPhone = '+91' + cleanPhone.slice(-10);
     setIsLoading(true);
+    let firebaseVerified = false;
+
+    if (firebaseConfirmation) {
+      try {
+        await firebaseConfirmation.confirm(phoneOtpCode);
+        firebaseVerified = true;
+      } catch (fbErr: any) {
+        console.warn('[Firebase Confirm Error]:', fbErr);
+        showToast(fbErr.message || 'Invalid SMS verification code. Please check and try again.', 'error');
+        setIsLoading(false);
+        return;
+      }
+    }
+
     try {
       const res = await completeManualRegistration({
         name: name.trim(),
         email: email.trim().toLowerCase(),
         password,
         phone: fullPhone,
-        phoneCode: phoneOtpCode
+        phoneCode: phoneOtpCode,
+        firebaseVerified
       });
 
       showToast(`Registration complete! Welcome ${res.user.name}.`, 'success');
@@ -941,31 +1008,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </span>
             </div>
 
-            {/* Dev mode auto-code banner */}
-            {simulatedOtp?.phone && (
-              <div
-                style={{
-                  backgroundColor: '#FFF8E6',
-                  border: '1px solid #C9A24B',
-                  borderRadius: 10,
-                  padding: '9px 12px',
-                  marginBottom: 14,
-                  fontSize: 12,
-                  color: '#6A531C',
-                  textAlign: 'center'
-                }}
-              >
-                📱 Mobile Dev Code: <strong>{simulatedOtp.phone}</strong>
-              </div>
-            )}
-
             <div id="recaptcha-container-manual"></div>
 
             <form onSubmit={handleCompleteManualRegistration} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
-                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 500, color: '#1D1D1F', marginBottom: 4 }}>
-                  Mobile Phone Number
-                </label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <label style={{ fontSize: 12.5, fontWeight: 500, color: '#1D1D1F' }}>
+                    Mobile Phone Number
+                  </label>
+                  {manualPhoneOtpSent && (
+                    <button
+                      type="button"
+                      onClick={handleChangePhoneNumber}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#3A3A6E',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        textDecoration: 'underline'
+                      }}
+                    >
+                      ✎ Change Phone Number
+                    </button>
+                  )}
+                </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <div
                     style={{
@@ -985,12 +1053,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <input
                     type="tel"
                     required
+                    disabled={manualPhoneOtpSent}
                     value={phone.replace('+91', '')}
                     onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ''))}
                     placeholder="98765 43210"
                     maxLength={10}
                     className="apple-input"
-                    style={{ flex: 1 }}
+                    style={{ flex: 1, opacity: manualPhoneOtpSent ? 0.75 : 1 }}
                     autoFocus
                   />
                   {!manualPhoneOtpSent && (
@@ -1162,31 +1231,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </span>
             </div>
 
-            {/* Dev mode auto-code banner */}
-            {simulatedOtp?.phone && (
-              <div
-                style={{
-                  backgroundColor: '#FFF8E6',
-                  border: '1px solid #C9A24B',
-                  borderRadius: 10,
-                  padding: '9px 12px',
-                  marginBottom: 14,
-                  fontSize: 12,
-                  color: '#6A531C',
-                  textAlign: 'center'
-                }}
-              >
-                📱 Mobile Dev Code: <strong>{simulatedOtp.phone}</strong>
-              </div>
-            )}
-
             <div id="recaptcha-container-google"></div>
 
             <form onSubmit={handleVerifyGooglePhone} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
-                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 500, color: '#1D1D1F', marginBottom: 4 }}>
-                  Mobile Phone Number
-                </label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <label style={{ fontSize: 12.5, fontWeight: 500, color: '#1D1D1F' }}>
+                    Mobile Phone Number
+                  </label>
+                  {googlePhoneOtpSent && (
+                    <button
+                      type="button"
+                      onClick={handleChangePhoneNumber}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#3A3A6E',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        textDecoration: 'underline'
+                      }}
+                    >
+                      ✎ Change Phone Number
+                    </button>
+                  )}
+                </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <div
                     style={{
@@ -1206,12 +1276,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <input
                     type="tel"
                     required
+                    disabled={googlePhoneOtpSent}
                     value={phone.replace('+91', '')}
                     onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ''))}
                     placeholder="98765 43210"
                     maxLength={10}
                     className="apple-input"
-                    style={{ flex: 1 }}
+                    style={{ flex: 1, opacity: googlePhoneOtpSent ? 0.75 : 1 }}
                     autoFocus
                   />
                   {!googlePhoneOtpSent && (

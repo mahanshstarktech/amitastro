@@ -335,30 +335,32 @@ export const verifyEmailOtp = async (req: Request, res: Response) => {
 
 export const completeManualRegistration = async (req: Request, res: Response) => {
   try {
-    const { name, email, password, phone, phoneCode } = req.body;
-    if (!name || !email || !password || !phone || !phoneCode) {
+    const { name, email, password, phone, phoneCode, firebaseVerified } = req.body;
+    if (!name || !email || !password || !phone || (!phoneCode && !firebaseVerified)) {
       return res.status(400).json({ error: 'Name, email, password, phone number, and phone OTP are required' });
     }
 
     const cleanEmail = email.trim().toLowerCase();
     const cleanPhone = phone.trim();
 
-    // Verify phone OTP
-    const otpRecord = await getOne<any>('SELECT * FROM otps WHERE phone = ?', [cleanPhone]);
-    if (!otpRecord) {
-      return res.status(400).json({ error: 'No SMS verification code requested for this phone number' });
+    // Verify phone OTP if not verified via Firebase client SDK
+    if (!firebaseVerified) {
+      const otpRecord = await getOne<any>('SELECT * FROM otps WHERE phone = ?', [cleanPhone]);
+      if (!otpRecord) {
+        return res.status(400).json({ error: 'No SMS verification code requested for this phone number' });
+      }
+      if (Date.now() > otpRecord.expires_at) {
+        return res.status(400).json({ error: 'SMS verification code has expired. Please request a new code.' });
+      }
+      if (otpRecord.attempts >= 5) {
+        return res.status(429).json({ error: 'Too many incorrect attempts. Please request a new code.' });
+      }
+      if (otpRecord.code !== phoneCode.trim()) {
+        await runQuery('UPDATE otps SET attempts = attempts + 1 WHERE phone = ?', [cleanPhone]);
+        return res.status(400).json({ error: 'Invalid Phone OTP verification code.' });
+      }
+      await runQuery('DELETE FROM otps WHERE phone = ?', [cleanPhone]);
     }
-    if (Date.now() > otpRecord.expires_at) {
-      return res.status(400).json({ error: 'SMS verification code has expired. Please request a new code.' });
-    }
-    if (otpRecord.attempts >= 5) {
-      return res.status(429).json({ error: 'Too many incorrect attempts. Please request a new code.' });
-    }
-    if (otpRecord.code !== phoneCode.trim()) {
-      await runQuery('UPDATE otps SET attempts = attempts + 1 WHERE phone = ?', [cleanPhone]);
-      return res.status(400).json({ error: 'Invalid Phone OTP verification code.' });
-    }
-    await runQuery('DELETE FROM otps WHERE phone = ?', [cleanPhone]);
 
     // Check if account already exists with this email or phone
     const existingEmail = await getOne<any>('SELECT * FROM users WHERE email = ?', [cleanEmail]);
@@ -424,7 +426,7 @@ export const completeManualRegistration = async (req: Request, res: Response) =>
 
 export const googleAuth = async (req: Request, res: Response) => {
   try {
-    const { email, name, googleId, photoURL, phone, phoneCode, dob } = req.body;
+    const { email, name, googleId, photoURL, phone, phoneCode, firebaseVerified, dob } = req.body;
     if (!email) {
       return res.status(400).json({ error: 'Google email is required' });
     }
@@ -432,24 +434,26 @@ export const googleAuth = async (req: Request, res: Response) => {
     const cleanEmail = email.trim().toLowerCase();
     let user = await getOne<any>('SELECT * FROM users WHERE email = ?', [cleanEmail]);
 
-    // Scenario A: Phone and Phone OTP are provided (Completing mandatory phone verification for Google registration)
-    if (phone && phoneCode) {
+    // Scenario A: Phone and Phone OTP (or Firebase verified) are provided (Completing mandatory phone verification)
+    if (phone && (phoneCode || firebaseVerified)) {
       const cleanPhone = phone.trim();
-      const otpRecord = await getOne<any>('SELECT * FROM otps WHERE phone = ?', [cleanPhone]);
-      if (!otpRecord) {
-        return res.status(400).json({ error: 'No SMS OTP requested for this phone number' });
+      if (!firebaseVerified) {
+        const otpRecord = await getOne<any>('SELECT * FROM otps WHERE phone = ?', [cleanPhone]);
+        if (!otpRecord) {
+          return res.status(400).json({ error: 'No SMS OTP requested for this phone number' });
+        }
+        if (Date.now() > otpRecord.expires_at) {
+          return res.status(400).json({ error: 'Phone OTP has expired. Please request a new one.' });
+        }
+        if (otpRecord.attempts >= 5) {
+          return res.status(429).json({ error: 'Too many incorrect attempts. Please request a new OTP.' });
+        }
+        if (otpRecord.code !== phoneCode.trim()) {
+          await runQuery('UPDATE otps SET attempts = attempts + 1 WHERE phone = ?', [cleanPhone]);
+          return res.status(400).json({ error: 'Invalid Phone OTP verification code.' });
+        }
+        await runQuery('DELETE FROM otps WHERE phone = ?', [cleanPhone]);
       }
-      if (Date.now() > otpRecord.expires_at) {
-        return res.status(400).json({ error: 'Phone OTP has expired. Please request a new one.' });
-      }
-      if (otpRecord.attempts >= 5) {
-        return res.status(429).json({ error: 'Too many incorrect attempts. Please request a new OTP.' });
-      }
-      if (otpRecord.code !== phoneCode.trim()) {
-        await runQuery('UPDATE otps SET attempts = attempts + 1 WHERE phone = ?', [cleanPhone]);
-        return res.status(400).json({ error: 'Invalid Phone OTP verification code.' });
-      }
-      await runQuery('DELETE FROM otps WHERE phone = ?', [cleanPhone]);
 
       const role = isConfiguredAdminEmail(cleanEmail) ? 'admin' : 'customer';
 

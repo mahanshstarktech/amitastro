@@ -51,7 +51,8 @@ interface AuthContextType {
     googleId?: string;
     photoURL?: string;
     phone: string;
-    phoneCode: string;
+    phoneCode?: string;
+    firebaseVerified?: boolean;
   }) => Promise<{ token: string; user: User; profiles: BirthProfile[] }>;
   sendOtp: (destination: string, channel?: 'phone' | 'email') => Promise<{ simulatedCode?: string; cooldownSeconds: number; channel?: string }>;
   verifyEmailOtp: (email: string, code: string) => Promise<{ success: boolean; emailVerified: boolean }>;
@@ -60,7 +61,8 @@ interface AuthContextType {
     email: string;
     password: string;
     phone: string;
-    phoneCode: string;
+    phoneCode?: string;
+    firebaseVerified?: boolean;
   }) => Promise<{ token: string; user: User; profiles: BirthProfile[] }>;
   sendDualOtp: (phone: string, email: string) => Promise<{ phoneSimulatedCode?: string; emailSimulatedCode?: string; cooldownSeconds: number }>;
   verifyOtp: (data: { phone?: string; email?: string; code: string; name?: string; password?: string }) => Promise<void>;
@@ -161,7 +163,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     googleId?: string;
     photoURL?: string;
     phone: string;
-    phoneCode: string;
+    phoneCode?: string;
+    firebaseVerified?: boolean;
   }) => {
     const res = await apiRequest<{ token: string; user: User; profiles: BirthProfile[] }>('/auth/google', {
       method: 'POST',
@@ -186,7 +189,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     email: string;
     password: string;
     phone: string;
-    phoneCode: string;
+    phoneCode?: string;
+    firebaseVerified?: boolean;
   }) => {
     const res = await apiRequest<{ token: string; user: User; profiles: BirthProfile[] }>('/auth/complete-manual-registration', {
       method: 'POST',
