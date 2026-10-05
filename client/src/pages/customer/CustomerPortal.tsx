@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Calendar, MessageSquare, User, CreditCard, Clock, Plus, Trash2, Edit3, 
   CheckCircle2, AlertCircle, ArrowRight, ShieldCheck, Sparkles, Send, Paperclip, X,
-  Settings, Globe, Check, PanelLeft
+  Settings, Globe, Check, PanelLeft, Pencil
 } from 'lucide-react';
 import { useAuth, type BirthProfile } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
@@ -21,9 +21,39 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
   onOpenTrial,
   initialTab = 'dashboard'
 }) => {
-  const { user, profiles, addProfile, deleteProfile } = useAuth();
+  const { user, profiles, addProfile, deleteProfile, updateProfilePhoto } = useAuth();
   const { showToast } = useNotification();
   const { language, setLanguage, t } = useLanguage();
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      showToast('Image size should be less than 2MB', 'error');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64 = reader.result as string;
+      setIsUploadingPhoto(true);
+      try {
+        await updateProfilePhoto(base64);
+        showToast('Profile photo updated successfully', 'success');
+      } catch (err: any) {
+        showToast(err.message || 'Failed to update profile photo', 'error');
+      } finally {
+        setIsUploadingPhoto(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const selfProfile = profiles.find((p) => p.relation === 'self') || profiles[0];
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'appointments' | 'chat' | 'profile' | 'payments' | 'settings'>(initialTab);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -190,16 +220,79 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
       {/* Top Welcome Bar */}
       <div style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid #E5E5EA', padding: '24px 0' }}>
         <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
-          <div>
-            <span className="apple-badge-gold" style={{ marginBottom: 6 }}>
-              Seeker Portal
-            </span>
-            <h1 className="text-h1" style={{ fontSize: 26, color: '#1D1D1F', marginTop: 4 }}>
-              Namaste, {user?.name || 'Seeker'}
-            </h1>
-            <p style={{ fontSize: 13.5, color: '#6E6E73' }}>
-              Verified Mobile: {user?.phone} · Personal Charts & Consultations
-            </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+            {/* User Profile Avatar with Pencil Edit Option */}
+            <div style={{ position: 'relative', width: 64, height: 64, flexShrink: 0 }}>
+              <div
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: '50%',
+                  overflow: 'hidden',
+                  background: 'linear-gradient(135deg, #F5F5F7, #E5E5EA)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '2.5px solid #C9A24B',
+                  boxShadow: '0 4px 14px rgba(201, 162, 75, 0.2)'
+                }}
+              >
+                {user?.photoURL ? (
+                  <img
+                    src={user.photoURL}
+                    alt={user.name || 'User'}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  <span style={{ fontSize: 24, fontWeight: 700, color: '#3A3A6E' }}>
+                    {(user?.name || 'S').charAt(0).toUpperCase()}
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingPhoto}
+                title="Change Profile Photo"
+                style={{
+                  position: 'absolute',
+                  bottom: -2,
+                  right: -2,
+                  width: 26,
+                  height: 26,
+                  borderRadius: '50%',
+                  backgroundColor: '#C9A24B',
+                  color: '#FFFFFF',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '2px solid #FFFFFF',
+                  boxShadow: '0 2px 6px rgba(0, 0, 0, 0.25)',
+                  cursor: isUploadingPhoto ? 'wait' : 'pointer'
+                }}
+              >
+                <Pencil size={13} />
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoUpload}
+                style={{ display: 'none' }}
+              />
+            </div>
+
+            <div>
+              <span className="apple-badge-gold" style={{ marginBottom: 6 }}>
+                Seeker Portal
+              </span>
+              <h1 className="text-h1" style={{ fontSize: 26, color: '#1D1D1F', marginTop: 4 }}>
+                Namaste, {user?.name || 'Seeker'}
+              </h1>
+              <p style={{ fontSize: 13.5, color: '#6E6E73' }}>
+                Mobile: {user?.phone ? `+91 ${user.phone}` : 'Not linked'} · Personal Charts & Consultations
+              </p>
+            </div>
           </div>
 
           <div style={{ display: 'flex', gap: 10 }}>
@@ -313,6 +406,49 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
           <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
             {/* Quick Cards Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
+              {/* Personal Astrological Vedic Profile Card */}
+              <div className="apple-card" style={{ padding: '26px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    <span className="apple-badge-gold">Personal Vedic Profile</span>
+                    <Sparkles size={18} color="#C9A24B" />
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
+                    <div style={{ width: 46, height: 46, borderRadius: '50%', overflow: 'hidden', border: '1.5px solid #C9A24B', flexShrink: 0, backgroundColor: '#F5F5F7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {user?.photoURL ? (
+                        <img src={user.photoURL} alt={user?.name || 'Seeker'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <span style={{ fontSize: 18, fontWeight: 700, color: '#3A3A6E' }}>
+                          {(user?.name || 'S').charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <h3 style={{ fontSize: 16, fontWeight: 600, color: '#1D1D1F', marginBottom: 2 }}>
+                        {selfProfile?.full_name || user?.name || 'Primary Seeker'}
+                      </h3>
+                      <div style={{ fontSize: 12.5, color: '#6E6E73' }}>
+                        {user?.phone ? `+91 ${user.phone}` : 'Mobile not linked'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13, color: '#6E6E73', backgroundColor: '#F5F5F7', padding: '12px 14px', borderRadius: 12 }}>
+                    <div>DOB: <strong style={{ color: '#1D1D1F' }}>{selfProfile?.dob || 'Not provided'}</strong></div>
+                    <div>Time: <strong style={{ color: '#1D1D1F' }}>{selfProfile?.tob ? `${selfProfile.tob} ${selfProfile.tob_uncertain ? '(Approximate)' : ''}` : 'Not provided'}</strong></div>
+                    <div>Place: <strong style={{ color: '#1D1D1F' }}>{selfProfile?.pob || 'Not provided'}</strong></div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setActiveTab('profile')}
+                  className="apple-btn-secondary"
+                  style={{ width: '100%', marginTop: 20, fontSize: 13.5 }}
+                >
+                  View / Edit Birth Chart <ArrowRight size={14} />
+                </button>
+              </div>
               {/* Upcoming Appointment Card */}
               <div className="apple-card" style={{ padding: '26px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                 <div>
@@ -801,8 +937,10 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                 >
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                      <span className="apple-badge-gold">{p.relation.toUpperCase()}</span>
-                      {profiles.length > 1 && (
+                      <span className={p.relation === 'self' ? 'apple-badge-primary' : 'apple-badge-gold'}>
+                        {p.relation === 'self' ? 'YOU (PRIMARY)' : p.relation.toUpperCase()}
+                      </span>
+                      {p.relation !== 'self' && profiles.length > 1 && (
                         <button
                           onClick={() => handleDeleteProfile(p.id)}
                           style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#D64545' }}

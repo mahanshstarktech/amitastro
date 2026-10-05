@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthRequest } from '../middleware/auth';
 import { getAll, getOne, runQuery } from '../db/database';
+import { generateBilingualArticle, translateArticleContent, generateArtworkUrl } from '../services/geminiService';
 
 export const getCategories = async (req: Request, res: Response) => {
   try {
@@ -40,8 +41,8 @@ export const getPosts = async (req: Request, res: Response) => {
       sql += ' AND p.is_featured = 1';
     }
     if (search) {
-      sql += ' AND (p.title LIKE ? OR p.excerpt LIKE ? OR p.content_markdown LIKE ?)';
-      params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+      sql += ' AND (p.title LIKE ? OR p.excerpt LIKE ? OR p.content_markdown LIKE ? OR p.title_hi LIKE ? OR p.content_markdown_hi LIKE ?)';
+      params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
     }
 
     sql += ' ORDER BY p.published_at DESC';
@@ -82,7 +83,7 @@ export const getPostBySlug = async (req: Request, res: Response) => {
 
     // Get related posts
     const related = await getAll<any>(`
-      SELECT id, slug, title, excerpt, hero_image_url, reading_time_min, published_at
+      SELECT id, slug, title, title_hi, excerpt, excerpt_hi, hero_image_url, reading_time_min, published_at
       FROM blog_posts
       WHERE category_id = ? AND id != ? AND is_published = 1
       ORDER BY published_at DESC
@@ -109,26 +110,45 @@ export const getPostBySlug = async (req: Request, res: Response) => {
 
 export const adminCreatePost = async (req: AuthRequest, res: Response) => {
   try {
-    const { title, slug, excerpt, contentMarkdown, categoryId, tags, heroImageUrl, readingTimeMin, isFeatured, isPublished, metaTitle, metaDescription } = req.body;
+    const {
+      title,
+      titleHi,
+      slug,
+      excerpt,
+      excerptHi,
+      contentMarkdown,
+      contentMarkdownHi,
+      categoryId,
+      tags,
+      heroImageUrl,
+      readingTimeMin,
+      isFeatured,
+      isPublished,
+      metaTitle,
+      metaDescription
+    } = req.body;
 
     if (!title || !contentMarkdown || !categoryId) {
       return res.status(400).json({ error: 'Title, content, and category are required' });
     }
 
     const postId = `post-${uuidv4().substring(0, 8)}`;
-    const postSlug = slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+    const postSlug = slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') + `-${Math.floor(Math.random() * 1000)}`;
 
     await runQuery(`
       INSERT INTO blog_posts (
-        id, slug, title, excerpt, content_markdown, category_id, tags_json,
-        hero_image_url, reading_time_min, is_featured, is_published, meta_title, meta_description
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        id, slug, title, title_hi, excerpt, excerpt_hi, content_markdown, content_markdown_hi,
+        category_id, tags_json, hero_image_url, reading_time_min, is_featured, is_published, meta_title, meta_description
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       postId,
       postSlug,
       title,
+      titleHi || null,
       excerpt || '',
+      excerptHi || null,
       contentMarkdown,
+      contentMarkdownHi || null,
       categoryId,
       JSON.stringify(tags || []),
       heroImageUrl || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1200&q=80',
@@ -149,7 +169,23 @@ export const adminCreatePost = async (req: AuthRequest, res: Response) => {
 export const adminUpdatePost = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { title, slug, excerpt, contentMarkdown, categoryId, tags, heroImageUrl, readingTimeMin, isFeatured, isPublished, metaTitle, metaDescription } = req.body;
+    const {
+      title,
+      titleHi,
+      slug,
+      excerpt,
+      excerptHi,
+      contentMarkdown,
+      contentMarkdownHi,
+      categoryId,
+      tags,
+      heroImageUrl,
+      readingTimeMin,
+      isFeatured,
+      isPublished,
+      metaTitle,
+      metaDescription
+    } = req.body;
 
     const existing = await getOne<any>('SELECT * FROM blog_posts WHERE id = ?', [id]);
     if (!existing) {
@@ -159,9 +195,12 @@ export const adminUpdatePost = async (req: AuthRequest, res: Response) => {
     await runQuery(`
       UPDATE blog_posts SET
         title = COALESCE(?, title),
+        title_hi = COALESCE(?, title_hi),
         slug = COALESCE(?, slug),
         excerpt = COALESCE(?, excerpt),
+        excerpt_hi = COALESCE(?, excerpt_hi),
         content_markdown = COALESCE(?, content_markdown),
+        content_markdown_hi = COALESCE(?, content_markdown_hi),
         category_id = COALESCE(?, category_id),
         tags_json = COALESCE(?, tags_json),
         hero_image_url = COALESCE(?, hero_image_url),
@@ -172,12 +211,21 @@ export const adminUpdatePost = async (req: AuthRequest, res: Response) => {
         meta_description = COALESCE(?, meta_description)
       WHERE id = ?
     `, [
-      title, slug, excerpt, contentMarkdown, categoryId,
+      title !== undefined ? title : null,
+      titleHi !== undefined ? titleHi : null,
+      slug !== undefined ? slug : null,
+      excerpt !== undefined ? excerpt : null,
+      excerptHi !== undefined ? excerptHi : null,
+      contentMarkdown !== undefined ? contentMarkdown : null,
+      contentMarkdownHi !== undefined ? contentMarkdownHi : null,
+      categoryId !== undefined ? categoryId : null,
       tags ? JSON.stringify(tags) : null,
-      heroImageUrl, readingTimeMin,
+      heroImageUrl !== undefined ? heroImageUrl : null,
+      readingTimeMin !== undefined ? readingTimeMin : null,
       isFeatured !== undefined ? (isFeatured ? 1 : 0) : null,
       isPublished !== undefined ? (isPublished ? 1 : 0) : null,
-      metaTitle, metaDescription,
+      metaTitle !== undefined ? metaTitle : null,
+      metaDescription !== undefined ? metaDescription : null,
       id
     ]);
 
@@ -193,6 +241,76 @@ export const adminDeletePost = async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     await runQuery('DELETE FROM blog_posts WHERE id = ?', [id]);
     return res.json({ success: true, message: 'Article deleted successfully' });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+/**
+ * Generate a complete bilingual article using Gemini AI from a user idea prompt
+ */
+export const adminGenerateAiArticle = async (req: AuthRequest, res: Response) => {
+  try {
+    const { idea, tone, length, categoryId } = req.body;
+    if (!idea || typeof idea !== 'string' || idea.trim().length === 0) {
+      return res.status(400).json({ error: 'Please provide an article idea or topic description' });
+    }
+
+    let categoryName = 'Vedic Astrology';
+    if (categoryId) {
+      const cat = await getOne<any>('SELECT name FROM categories WHERE id = ?', [categoryId]);
+      if (cat?.name) categoryName = cat.name;
+    }
+
+    const result = await generateBilingualArticle({
+      idea: idea.trim(),
+      tone,
+      length,
+      categoryName
+    });
+
+    return res.json({ success: true, ...result });
+  } catch (err: any) {
+    console.error('Error generating AI article:', err);
+    return res.status(500).json({ error: err.message || 'Failed to generate article with AI' });
+  }
+};
+
+/**
+ * Translate article content bidirectionally between English and Hindi
+ */
+export const adminTranslateArticle = async (req: AuthRequest, res: Response) => {
+  try {
+    const { title, excerpt, contentMarkdown, direction } = req.body;
+    if (!contentMarkdown && !title) {
+      return res.status(400).json({ error: 'Content or title is required for translation' });
+    }
+
+    const translated = await translateArticleContent({
+      title: title || '',
+      excerpt: excerpt || '',
+      contentMarkdown: contentMarkdown || '',
+      direction: direction === 'hi-to-en' ? 'hi-to-en' : 'en-to-hi'
+    });
+
+    return res.json({ success: true, ...translated });
+  } catch (err: any) {
+    console.error('Error translating article:', err);
+    return res.status(500).json({ error: err.message || 'Translation failed' });
+  }
+};
+
+/**
+ * Generate a fresh AI artwork illustration URL based on prompt
+ */
+export const adminGenerateArticleImage = async (req: AuthRequest, res: Response) => {
+  try {
+    const { prompt } = req.body;
+    if (!prompt) {
+      return res.status(400).json({ error: 'Image prompt is required' });
+    }
+    const imageUrl = generateArtworkUrl(prompt);
+    return res.json({ success: true, imageUrl });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }

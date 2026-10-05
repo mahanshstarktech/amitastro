@@ -175,7 +175,36 @@ export const AppleBottomNav: React.FC<AppleBottomNavProps> = ({
           flex: 1
         }}
       >
-        {isAdmin ? (
+        {isAuthenticated && user?.photoURL ? (
+          <img
+            src={user.photoURL}
+            alt={user.name || 'User'}
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: '50%',
+              objectFit: 'cover',
+              border: isPortal ? '2px solid #3A3A6E' : '1.5px solid #C7C7CC'
+            }}
+          />
+        ) : isAuthenticated ? (
+          <div
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: '50%',
+              backgroundColor: '#3A3A6E',
+              color: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 11,
+              fontWeight: 700
+            }}
+          >
+            {user?.name?.charAt(0).toUpperCase() || 'A'}
+          </div>
+        ) : isAdmin ? (
           <ShieldCheck size={21} strokeWidth={isPortal ? 2.2 : 1.7} />
         ) : (
           <User size={21} strokeWidth={isPortal ? 2.2 : 1.7} />

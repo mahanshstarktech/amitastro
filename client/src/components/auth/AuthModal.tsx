@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   X,
   Phone,
@@ -11,11 +11,12 @@ import {
   Sparkles,
   AlertCircle,
   KeyRound,
-  RotateCw
+  RotateCw,
+  Pencil
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
-import { isFirebaseConfigured, sendFirebaseSms, signInWithFirebaseGoogle } from '../../services/firebase';
+import { isFirebaseConfigured, signInWithFirebaseGoogle } from '../../services/firebase';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -51,24 +52,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [password, setPassword] = useState('');
   const [phone, setPhone] = useState('');
 
-  // OTP inputs
+  // Email OTP inputs
   const [emailOtpCode, setEmailOtpCode] = useState('');
-  const [phoneOtpCode, setPhoneOtpCode] = useState('');
   const [emailVerified, setEmailVerified] = useState(false);
-  const [manualPhoneOtpSent, setManualPhoneOtpSent] = useState(false);
-  const [googlePhoneOtpSent, setGooglePhoneOtpSent] = useState(false);
-  const [firebaseConfirmation, setFirebaseConfirmation] = useState<any>(null);
 
   // Simulated OTPs for dev testing
-  const [simulatedOtp, setSimulatedOtp] = useState<{ email?: string; phone?: string } | null>(null);
-
-  const handleChangePhoneNumber = () => {
-    setGooglePhoneOtpSent(false);
-    setManualPhoneOtpSent(false);
-    setPhoneOtpCode('');
-    setFirebaseConfirmation(null);
-    setCooldown(0);
-  };
+  const [simulatedOtp, setSimulatedOtp] = useState<{ email?: string } | null>(null);
 
   // Google Temp User state for mandatory phone registration
   const [googleTempUser, setGoogleTempUser] = useState<{
@@ -77,6 +66,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     googleId?: string;
     photoURL?: string;
   } | null>(null);
+
+  // Profile photo state and ref
+  const [customPhotoURL, setCustomPhotoURL] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Error banners
   const [unauthorizedDomainAlert, setUnauthorizedDomainAlert] = useState<string | null>(null);
@@ -127,16 +120,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         const googleData = await signInWithFirebaseGoogle();
         const res = await loginWithGoogle(googleData);
 
-        // Scenario A: First time registration OR phone not verified yet -> Mandatory Phone Verification
+        // Scenario A: First time registration OR phone not provided yet -> Complete Profile & Birth Details
         if (res.needsPhoneVerification) {
-          setGoogleTempUser({
+          const temp = {
             email: res.tempUser?.email || googleData.email,
             name: res.tempUser?.name || googleData.name,
             googleId: res.tempUser?.googleId || googleData.googleId,
             photoURL: res.tempUser?.photoURL || googleData.photoURL
-          });
+          };
+          setGoogleTempUser(temp);
+          if (temp.photoURL) {
+            setCustomPhotoURL(temp.photoURL);
+          }
+          if (temp.name) {
+            setName(temp.name);
+          }
           setMode('google_phone_verify');
-          showToast('Google verified! Please enter your mobile number to complete registration.', 'info');
+          showToast('Google verified! Please enter your phone number and birth details to personalize your charts.', 'info');
           return;
         }
 
@@ -173,61 +173,27 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  // Google Phone Verification: Send SMS OTP
-  const handleSendGooglePhoneOtp = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const cleanPhone = phone.replace(/[^0-9]/g, '');
-    if (!cleanPhone || cleanPhone.length < 10) {
-      showToast('Please enter a valid 10-digit mobile number', 'error');
-      return;
-    }
-    const fullPhone = '+91' + cleanPhone.slice(-10);
-
-    setIsLoading(true);
-    let fbSuccess = false;
-
-    if (isFirebaseConfigured()) {
-      try {
-        const confirmation = await sendFirebaseSms(fullPhone, 'recaptcha-container-google');
-        setFirebaseConfirmation(confirmation);
-        fbSuccess = true;
-        showToast(`SMS OTP sent to ${fullPhone} via Google SMS`, 'success');
-      } catch (fbErr: any) {
-        console.warn('[Firebase SMS Error]:', fbErr);
-        if (fbErr.code === 'auth/quota-exceeded') {
-          showToast('Firebase daily SMS quota exceeded (10/day limit on free plan).', 'warning');
-        } else if (fbErr.code === 'auth/captcha-check-failed') {
-          showToast('reCAPTCHA verification failed. Please try again.', 'error');
-        } else if (fbErr.code === 'auth/invalid-phone-number') {
-          showToast('Invalid phone number format for SMS.', 'error');
-        } else {
-          showToast(fbErr.message || 'Firebase SMS delivery error.', 'warning');
+  // Profile Photo file upload handler
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        showToast('Image size should be less than 2MB', 'warning');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setCustomPhotoURL(event.target.result as string);
+          showToast('Profile photo updated!', 'success');
         }
-      }
-    }
-
-    try {
-      const res = await sendOtp(fullPhone, 'phone');
-      if (!fbSuccess) {
-        if (res.provider === 'simulated') {
-          showToast('SMS delivery failed: Firebase SMS rejected the request and no SMS gateway is configured on Render.', 'error');
-        } else {
-          showToast(`Verification code sent to ${fullPhone}`, 'success');
-        }
-      }
-      setCooldown(res.cooldownSeconds || 60);
-      setGooglePhoneOtpSent(true);
-    } catch (err: any) {
-      if (!fbSuccess) {
-        showToast(err.message || 'Failed to send SMS OTP', 'error');
-      }
-    } finally {
-      setIsLoading(false);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
-  // Google Phone Verification: Complete registration
-  const handleVerifyGooglePhone = async (e: React.FormEvent) => {
+  // Google Registration Completion: Phone & Birth Details (Direct, No Phone OTP)
+  const handleCompleteGoogleRegistration = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!googleTempUser) return;
     const cleanPhone = phone.replace(/[^0-9]/g, '');
@@ -235,48 +201,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       showToast('Please enter a valid 10-digit mobile phone number', 'error');
       return;
     }
-    if (!phoneOtpCode || phoneOtpCode.length < 6) {
-      showToast('Please enter the 6-digit SMS verification code', 'error');
+    if (!dob) {
+      showToast('Please select your Date of Birth for your Vedic Kundli', 'error');
       return;
     }
 
     const fullPhone = '+91' + cleanPhone.slice(-10);
     setIsLoading(true);
-    let firebaseVerified = false;
-
-    if (firebaseConfirmation) {
-      try {
-        await firebaseConfirmation.confirm(phoneOtpCode);
-        firebaseVerified = true;
-      } catch (fbErr: any) {
-        console.warn('[Firebase Confirm Error]:', fbErr);
-        showToast(fbErr.message || 'Invalid SMS verification code. Please check and try again.', 'error');
-        setIsLoading(false);
-        return;
-      }
-    }
 
     try {
       const res = await completeGooglePhoneVerification({
         email: googleTempUser.email,
-        name: googleTempUser.name,
+        name: name.trim() || googleTempUser.name,
         googleId: googleTempUser.googleId,
-        photoURL: googleTempUser.photoURL,
+        photoURL: customPhotoURL || googleTempUser.photoURL,
         phone: fullPhone,
-        phoneCode: phoneOtpCode,
-        firebaseVerified
+        dob,
+        tob: tobUncertain ? '12:00' : tob,
+        pob: pob.trim() || 'India',
+        tobUncertain
       });
 
-      showToast(`Welcome ${res.user.name}! Your account is now active.`, 'success');
-      if (!res.profiles || res.profiles.length === 0) {
-        setProfileName(googleTempUser.name || '');
-        setMode('profile');
-      } else {
-        onClose();
-        if (onSuccess) onSuccess();
-      }
+      showToast(`Welcome to Amit Astro, ${res.user.name}! Your account is active.`, 'success');
+      onClose();
+      if (onSuccess) onSuccess();
     } catch (err: any) {
-      showToast(err.message || 'Phone verification failed', 'error');
+      showToast(err.message || 'Registration failed. Please try again.', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -332,61 +282,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       await verifyEmailOtp(email.trim().toLowerCase(), emailOtpCode);
       setEmailVerified(true);
       setMode('manual_phone');
-      showToast('Email verified successfully! Now complete mandatory phone verification.', 'success');
+      showToast('Email verified successfully! Please enter your phone number and birth details.', 'success');
     } catch (err: any) {
       showToast(err.message || 'Invalid or expired email OTP', 'error');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSendManualPhoneOtp = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const cleanPhone = phone.replace(/[^0-9]/g, '');
-    if (!cleanPhone || cleanPhone.length < 10) {
-      showToast('Please enter a valid 10-digit mobile number', 'error');
-      return;
-    }
-    const fullPhone = '+91' + cleanPhone.slice(-10);
-
-    setIsLoading(true);
-    let fbSuccess = false;
-
-    if (isFirebaseConfigured()) {
-      try {
-        const confirmation = await sendFirebaseSms(fullPhone, 'recaptcha-container-manual');
-        setFirebaseConfirmation(confirmation);
-        fbSuccess = true;
-        showToast(`SMS OTP sent to ${fullPhone} via Google SMS`, 'success');
-      } catch (fbErr: any) {
-        console.warn('[Firebase SMS Error]:', fbErr);
-        if (fbErr.code === 'auth/quota-exceeded') {
-          showToast('Firebase daily SMS quota exceeded (10/day limit on free plan).', 'warning');
-        } else if (fbErr.code === 'auth/captcha-check-failed') {
-          showToast('reCAPTCHA verification failed. Please try again.', 'error');
-        } else if (fbErr.code === 'auth/invalid-phone-number') {
-          showToast('Invalid phone number format for SMS.', 'error');
-        } else {
-          showToast(fbErr.message || 'Firebase SMS delivery error.', 'warning');
-        }
-      }
-    }
-
-    try {
-      const res = await sendOtp(fullPhone, 'phone');
-      if (!fbSuccess) {
-        if (res.provider === 'simulated') {
-          showToast('SMS delivery failed: Firebase SMS rejected the request and no SMS gateway is configured on Render.', 'error');
-        } else {
-          showToast(`Verification code sent to ${fullPhone}`, 'success');
-        }
-      }
-      setCooldown(res.cooldownSeconds || 60);
-      setManualPhoneOtpSent(true);
-    } catch (err: any) {
-      if (!fbSuccess) {
-        showToast(err.message || 'Failed to send SMS OTP', 'error');
-      }
     } finally {
       setIsLoading(false);
     }
@@ -399,26 +297,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       showToast('Please enter a valid 10-digit mobile number', 'error');
       return;
     }
-    if (!phoneOtpCode || phoneOtpCode.length < 6) {
-      showToast('Please enter the 6-digit SMS verification code', 'error');
+    if (!dob) {
+      showToast('Please select your Date of Birth for your birth chart', 'error');
       return;
     }
 
     const fullPhone = '+91' + cleanPhone.slice(-10);
     setIsLoading(true);
-    let firebaseVerified = false;
-
-    if (firebaseConfirmation) {
-      try {
-        await firebaseConfirmation.confirm(phoneOtpCode);
-        firebaseVerified = true;
-      } catch (fbErr: any) {
-        console.warn('[Firebase Confirm Error]:', fbErr);
-        showToast(fbErr.message || 'Invalid SMS verification code. Please check and try again.', 'error');
-        setIsLoading(false);
-        return;
-      }
-    }
 
     try {
       const res = await completeManualRegistration({
@@ -426,18 +311,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         email: email.trim().toLowerCase(),
         password,
         phone: fullPhone,
-        phoneCode: phoneOtpCode,
-        firebaseVerified
+        dob,
+        tob: tobUncertain ? '12:00' : tob,
+        pob: pob.trim() || 'India',
+        tobUncertain,
+        photoURL: customPhotoURL || undefined
       });
 
       showToast(`Registration complete! Welcome ${res.user.name}.`, 'success');
-      if (!res.profiles || res.profiles.length === 0) {
-        setProfileName(name || '');
-        setMode('profile');
-      } else {
-        onClose();
-        if (onSuccess) onSuccess();
-      }
+      onClose();
+      if (onSuccess) onSuccess();
     } catch (err: any) {
       showToast(err.message || 'Registration failed', 'error');
     } finally {
@@ -740,7 +623,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 Create Your Account
               </h2>
               <p className="text-body" style={{ fontSize: 13 }}>
-                Sequential OTP verification: Verify Email first, followed by mandatory Mobile Number.
+                Verify your email, then provide your phone number and birth details.
               </p>
             </div>
 
@@ -776,7 +659,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
             <div style={{ margin: '14px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ flex: 1, height: 1, backgroundColor: '#E5E5EA' }} />
-              <span style={{ fontSize: 11.5, color: '#A1A1A6' }}>or register manually with OTP</span>
+              <span style={{ fontSize: 11.5, color: '#A1A1A6' }}>or register manually with email</span>
               <div style={{ flex: 1, height: 1, backgroundColor: '#E5E5EA' }} />
             </div>
 
@@ -972,6 +855,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {/* ======================================================== */}
         {/* MODE 4: MANUAL PHONE VERIFICATION (STEP 2 - MANDATORY)    */}
         {/* ======================================================== */}
+        {/* ======================================================== */}
+        {/* MODE 4: MANUAL STEP 2 - PHONE & BIRTH DETAILS            */}
+        {/* ======================================================== */}
         {mode === 'manual_phone' && (
           <div>
             <div style={{ textAlign: 'center', marginBottom: 16 }}>
@@ -990,10 +876,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <Phone size={22} color="#2FA84F" />
               </div>
               <h2 className="text-h2" style={{ fontSize: 21, marginBottom: 4 }}>
-                Verify Mobile Number
+                Birth Details & Mobile
               </h2>
               <p className="text-body" style={{ fontSize: 12.5 }}>
-                Step 2 of 2: Mobile number is mandatory for consultation audio appointments and reminders.
+                Step 2 of 2: Mobile number and birth details are required for your personal Vedic Kundli.
               </p>
             </div>
 
@@ -1016,32 +902,83 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </span>
             </div>
 
-            <div id="recaptcha-container-manual"></div>
+            {/* Profile Avatar with Pencil Edit Icon */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 18 }}>
+              <div style={{ position: 'relative', width: 76, height: 76 }}>
+                {customPhotoURL ? (
+                  <img
+                    src={customPhotoURL}
+                    alt={name}
+                    style={{
+                      width: 76,
+                      height: 76,
+                      borderRadius: '50%',
+                      objectFit: 'cover',
+                      border: '3px solid #3A3A6E',
+                      boxShadow: '0 4px 14px rgba(58,58,110,0.18)'
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: 76,
+                      height: 76,
+                      borderRadius: '50%',
+                      backgroundColor: '#3A3A6E',
+                      color: '#FFF',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 700,
+                      fontSize: 26
+                    }}
+                  >
+                    {name?.charAt(0) || 'S'}
+                  </div>
+                )}
+                {/* Pencil Edit Icon Button */}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  title="Upload profile picture"
+                  style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    right: 0,
+                    width: 26,
+                    height: 26,
+                    borderRadius: '50%',
+                    backgroundColor: '#FFFFFF',
+                    border: '1.5px solid #3A3A6E',
+                    color: '#3A3A6E',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
+                  }}
+                >
+                  <Pencil size={12} strokeWidth={2.5} />
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={handlePhotoSelect}
+                />
+              </div>
+              <span style={{ fontSize: 11, color: '#8E8E93', marginTop: 5 }}>
+                Optional: Upload profile photo
+              </span>
+            </div>
 
             <form onSubmit={handleCompleteManualRegistration} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {/* Mobile Phone Number */}
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                  <label style={{ fontSize: 12.5, fontWeight: 500, color: '#1D1D1F' }}>
-                    Mobile Phone Number
-                  </label>
-                  {manualPhoneOtpSent && (
-                    <button
-                      type="button"
-                      onClick={handleChangePhoneNumber}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: '#3A3A6E',
-                        fontSize: 12,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        textDecoration: 'underline'
-                      }}
-                    >
-                      ✎ Change Phone Number
-                    </button>
-                  )}
-                </div>
+                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 500, color: '#1D1D1F', marginBottom: 4 }}>
+                  Mobile Phone Number <span style={{ color: '#E03131' }}>*</span>
+                </label>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <div
                     style={{
@@ -1061,104 +998,94 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <input
                     type="tel"
                     required
-                    disabled={manualPhoneOtpSent}
                     value={phone.replace('+91', '')}
                     onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ''))}
                     placeholder="98765 43210"
                     maxLength={10}
                     className="apple-input"
-                    style={{ flex: 1, opacity: manualPhoneOtpSent ? 0.75 : 1 }}
+                    style={{ flex: 1 }}
                     autoFocus
                   />
-                  {!manualPhoneOtpSent && (
-                    <button
-                      type="button"
-                      onClick={handleSendManualPhoneOtp}
-                      disabled={isLoading || phone.replace(/[^0-9]/g, '').length < 10}
-                      className="apple-btn-secondary"
-                      style={{
-                        padding: '0 14px',
-                        fontSize: 13,
-                        fontWeight: 600,
-                        whiteSpace: 'nowrap'
-                      }}
-                    >
-                      {isLoading ? 'Sending...' : 'Send OTP'}
-                    </button>
-                  )}
                 </div>
               </div>
 
-              {manualPhoneOtpSent && (
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                    <label style={{ fontSize: 12.5, fontWeight: 500, color: '#1D1D1F' }}>
-                      6-Digit SMS Verification Code
-                    </label>
-                    {cooldown > 0 ? (
-                      <span style={{ fontSize: 11.5, color: '#6E6E73' }}>Resend in {cooldown}s</span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={handleSendManualPhoneOtp}
-                        style={{ background: 'none', border: 'none', color: '#3A3A6E', fontSize: 11.5, fontWeight: 600, cursor: 'pointer' }}
-                      >
-                        Resend SMS
-                      </button>
-                    )}
-                  </div>
-                  <input
-                    type="text"
-                    required
-                    value={phoneOtpCode}
-                    onChange={(e) => setPhoneOtpCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
-                    placeholder="• • • • • •"
-                    maxLength={6}
-                    className="apple-input"
-                    style={{ textAlign: 'center', fontSize: 22, letterSpacing: 8, fontWeight: 700 }}
-                  />
-                </div>
-              )}
+              {/* Date of Birth */}
+              <div>
+                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 500, color: '#1D1D1F', marginBottom: 4 }}>
+                  Date of Birth <span style={{ color: '#E03131' }}>*</span>
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={dob}
+                  onChange={(e) => setDob(e.target.value)}
+                  className="apple-input"
+                />
+              </div>
 
-              {manualPhoneOtpSent ? (
-                <button
-                  type="submit"
-                  disabled={isLoading || phoneOtpCode.length < 6}
-                  className="apple-btn-primary"
-                  style={{
-                    padding: 12,
-                    width: '100%',
-                    fontSize: 14.5,
-                    opacity: phoneOtpCode.length < 6 ? 0.6 : 1
-                  }}
-                >
-                  {isLoading ? 'Activating Account...' : 'Complete Registration & Sign In'}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleSendManualPhoneOtp}
-                  disabled={isLoading || phone.replace(/[^0-9]/g, '').length < 10}
-                  className="apple-btn-primary"
-                  style={{
-                    padding: 12,
-                    width: '100%',
-                    fontSize: 14.5
-                  }}
-                >
-                  {isLoading ? 'Sending SMS OTP...' : 'Send SMS Verification Code'}
-                </button>
-              )}
+              {/* Time of Birth & Time Uncertain */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <label style={{ fontSize: 12.5, fontWeight: 500, color: '#1D1D1F' }}>
+                    Time of Birth
+                  </label>
+                  <label style={{ fontSize: 11.5, color: '#6E6E73', display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={tobUncertain}
+                      onChange={(e) => setTobUncertain(e.target.checked)}
+                    />
+                    Approximate / Uncertain
+                  </label>
+                </div>
+                <input
+                  type="time"
+                  disabled={tobUncertain}
+                  value={tob}
+                  onChange={(e) => setTob(e.target.value)}
+                  className="apple-input"
+                  style={{ opacity: tobUncertain ? 0.5 : 1 }}
+                />
+              </div>
+
+              {/* Place of Birth */}
+              <div>
+                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 500, color: '#1D1D1F', marginBottom: 4 }}>
+                  Place of Birth (City / Town)
+                </label>
+                <input
+                  type="text"
+                  value={pob}
+                  onChange={(e) => setPob(e.target.value)}
+                  placeholder="e.g. Jaipur, Rajasthan"
+                  className="apple-input"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading || phone.replace(/[^0-9]/g, '').length < 10 || !dob}
+                className="apple-btn-primary"
+                style={{
+                  marginTop: 6,
+                  padding: 13,
+                  width: '100%',
+                  fontSize: 14.5,
+                  opacity: (phone.replace(/[^0-9]/g, '').length < 10 || !dob) ? 0.6 : 1
+                }}
+              >
+                {isLoading ? 'Activating Account...' : 'Complete Registration & Sign In →'}
+              </button>
             </form>
           </div>
         )}
 
         {/* ======================================================== */}
-        {/* MODE 5: GOOGLE MANDATORY PHONE VERIFICATION              */}
+        {/* MODE 5: GOOGLE MANDATORY PHONE & BIRTH DETAILS           */}
         {/* ======================================================== */}
         {mode === 'google_phone_verify' && googleTempUser && (
           <div>
-            <div style={{ textAlign: 'center', marginBottom: 16 }}>
+            <div style={{ textAlign: 'center', marginBottom: 18 }}>
               <div
                 style={{
                   width: 48,
@@ -1171,14 +1098,86 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   marginBottom: 10
                 }}
               >
-                <ShieldCheck size={24} color="#3A3A6E" />
+                <Sparkles size={24} color="#3A3A6E" />
               </div>
               <h2 className="text-h2" style={{ fontSize: 21, marginBottom: 4 }}>
-                Verify Phone Number
+                Complete Your Profile
               </h2>
-              <p className="text-body" style={{ fontSize: 12.5 }}>
-                Final step: Link and verify your mobile number to complete registration.
+              <p className="text-body" style={{ fontSize: 13 }}>
+                Final step: Link your mobile number and birth details to personalize your charts.
               </p>
+            </div>
+
+            {/* Profile Avatar with Pencil Edit Icon */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 20 }}>
+              <div style={{ position: 'relative', width: 80, height: 80 }}>
+                {customPhotoURL || googleTempUser.photoURL ? (
+                  <img
+                    src={customPhotoURL || googleTempUser.photoURL}
+                    alt={googleTempUser.name}
+                    style={{
+                      width: 80,
+                      height: 80,
+                      borderRadius: '50%',
+                      objectFit: 'cover',
+                      border: '3px solid #3A3A6E',
+                      boxShadow: '0 4px 14px rgba(58,58,110,0.18)'
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: 80,
+                      height: 80,
+                      borderRadius: '50%',
+                      backgroundColor: '#3A3A6E',
+                      color: '#FFF',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 700,
+                      fontSize: 28
+                    }}
+                  >
+                    {googleTempUser.name?.charAt(0) || 'G'}
+                  </div>
+                )}
+                {/* Pencil Edit Icon Button */}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  title="Change profile picture"
+                  style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    right: 0,
+                    width: 28,
+                    height: 28,
+                    borderRadius: '50%',
+                    backgroundColor: '#FFFFFF',
+                    border: '1.5px solid #3A3A6E',
+                    color: '#3A3A6E',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                    transition: 'transform 0.15s ease'
+                  }}
+                >
+                  <Pencil size={13} strokeWidth={2.5} />
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={handlePhotoSelect}
+                />
+              </div>
+              <span style={{ fontSize: 11.5, color: '#8E8E93', marginTop: 6 }}>
+                Tap pencil to change photo
+              </span>
             </div>
 
             {/* Google Profile Badge */}
@@ -1187,38 +1186,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 gap: 12,
-                padding: '10px 14px',
+                padding: '9px 14px',
                 backgroundColor: '#F5F5F7',
-                borderRadius: 14,
+                borderRadius: 12,
                 marginBottom: 16
               }}
             >
-              {googleTempUser.photoURL ? (
-                <img
-                  src={googleTempUser.photoURL}
-                  alt={googleTempUser.name}
-                  style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: '50%',
-                    backgroundColor: '#3A3A6E',
-                    color: '#FFF',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 600,
-                    fontSize: 14
-                  }}
-                >
-                  {googleTempUser.name?.charAt(0) || 'G'}
-                </div>
-              )}
               <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 600, color: '#1D1D1F' }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#1D1D1F' }}>
                   {googleTempUser.name}
                 </div>
                 <div style={{ fontSize: 11.5, color: '#6E6E73', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -1230,7 +1205,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   fontSize: 11,
                   backgroundColor: '#E8F5E9',
                   color: '#2E7D32',
-                  padding: '4px 8px',
+                  padding: '3px 8px',
                   borderRadius: 6,
                   fontWeight: 600
                 }}
@@ -1239,32 +1214,27 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </span>
             </div>
 
-            <div id="recaptcha-container-google"></div>
-
-            <form onSubmit={handleVerifyGooglePhone} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <form onSubmit={handleCompleteGoogleRegistration} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {/* Full Name */}
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                  <label style={{ fontSize: 12.5, fontWeight: 500, color: '#1D1D1F' }}>
-                    Mobile Phone Number
-                  </label>
-                  {googlePhoneOtpSent && (
-                    <button
-                      type="button"
-                      onClick={handleChangePhoneNumber}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: '#3A3A6E',
-                        fontSize: 12,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        textDecoration: 'underline'
-                      }}
-                    >
-                      ✎ Change Phone Number
-                    </button>
-                  )}
-                </div>
+                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 500, color: '#1D1D1F', marginBottom: 4 }}>
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={name || googleTempUser.name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="apple-input"
+                  placeholder="Your Full Name"
+                />
+              </div>
+
+              {/* Mobile Phone Number */}
+              <div>
+                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 500, color: '#1D1D1F', marginBottom: 4 }}>
+                  Mobile Phone Number <span style={{ color: '#E03131' }}>*</span>
+                </label>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <div
                     style={{
@@ -1284,94 +1254,84 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <input
                     type="tel"
                     required
-                    disabled={googlePhoneOtpSent}
                     value={phone.replace('+91', '')}
                     onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ''))}
                     placeholder="98765 43210"
                     maxLength={10}
                     className="apple-input"
-                    style={{ flex: 1, opacity: googlePhoneOtpSent ? 0.75 : 1 }}
+                    style={{ flex: 1 }}
                     autoFocus
                   />
-                  {!googlePhoneOtpSent && (
-                    <button
-                      type="button"
-                      onClick={handleSendGooglePhoneOtp}
-                      disabled={isLoading || phone.replace(/[^0-9]/g, '').length < 10}
-                      className="apple-btn-secondary"
-                      style={{
-                        padding: '0 14px',
-                        fontSize: 13,
-                        fontWeight: 600,
-                        whiteSpace: 'nowrap'
-                      }}
-                    >
-                      {isLoading ? 'Sending...' : 'Send OTP'}
-                    </button>
-                  )}
                 </div>
               </div>
 
-              {googlePhoneOtpSent && (
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                    <label style={{ fontSize: 12.5, fontWeight: 500, color: '#1D1D1F' }}>
-                      6-Digit SMS Verification Code
-                    </label>
-                    {cooldown > 0 ? (
-                      <span style={{ fontSize: 11.5, color: '#6E6E73' }}>Resend in {cooldown}s</span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={handleSendGooglePhoneOtp}
-                        style={{ background: 'none', border: 'none', color: '#3A3A6E', fontSize: 11.5, fontWeight: 600, cursor: 'pointer' }}
-                      >
-                        Resend SMS
-                      </button>
-                    )}
-                  </div>
-                  <input
-                    type="text"
-                    required
-                    value={phoneOtpCode}
-                    onChange={(e) => setPhoneOtpCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
-                    placeholder="• • • • • •"
-                    maxLength={6}
-                    className="apple-input"
-                    style={{ textAlign: 'center', fontSize: 22, letterSpacing: 8, fontWeight: 700 }}
-                  />
-                </div>
-              )}
+              {/* Birth Date */}
+              <div>
+                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 500, color: '#1D1D1F', marginBottom: 4 }}>
+                  Date of Birth <span style={{ color: '#E03131' }}>*</span>
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={dob}
+                  onChange={(e) => setDob(e.target.value)}
+                  className="apple-input"
+                />
+              </div>
 
-              {googlePhoneOtpSent ? (
-                <button
-                  type="submit"
-                  disabled={isLoading || phoneOtpCode.length < 6}
-                  className="apple-btn-primary"
-                  style={{
-                    padding: 12,
-                    width: '100%',
-                    fontSize: 14.5,
-                    opacity: phoneOtpCode.length < 6 ? 0.6 : 1
-                  }}
-                >
-                  {isLoading ? 'Verifying & Activating...' : 'Verify Phone & Complete Registration'}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleSendGooglePhoneOtp}
-                  disabled={isLoading || phone.replace(/[^0-9]/g, '').length < 10}
-                  className="apple-btn-primary"
-                  style={{
-                    padding: 12,
-                    width: '100%',
-                    fontSize: 14.5
-                  }}
-                >
-                  {isLoading ? 'Sending SMS OTP...' : 'Send SMS Verification Code'}
-                </button>
-              )}
+              {/* Birth Time & Time Uncertain Toggle */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <label style={{ fontSize: 12.5, fontWeight: 500, color: '#1D1D1F' }}>
+                    Time of Birth
+                  </label>
+                  <label style={{ fontSize: 11.5, color: '#6E6E73', display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={tobUncertain}
+                      onChange={(e) => setTobUncertain(e.target.checked)}
+                    />
+                    Approximate / Uncertain
+                  </label>
+                </div>
+                <input
+                  type="time"
+                  disabled={tobUncertain}
+                  value={tob}
+                  onChange={(e) => setTob(e.target.value)}
+                  className="apple-input"
+                  style={{ opacity: tobUncertain ? 0.5 : 1 }}
+                />
+              </div>
+
+              {/* Place of Birth */}
+              <div>
+                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 500, color: '#1D1D1F', marginBottom: 4 }}>
+                  Place of Birth (City / Town)
+                </label>
+                <input
+                  type="text"
+                  value={pob}
+                  onChange={(e) => setPob(e.target.value)}
+                  placeholder="e.g. Jaipur, Rajasthan"
+                  className="apple-input"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading || phone.replace(/[^0-9]/g, '').length < 10 || !dob}
+                className="apple-btn-primary"
+                style={{
+                  marginTop: 6,
+                  padding: 13,
+                  width: '100%',
+                  fontSize: 14.5,
+                  opacity: (phone.replace(/[^0-9]/g, '').length < 10 || !dob) ? 0.6 : 1
+                }}
+              >
+                {isLoading ? 'Creating Your Account...' : 'Complete Registration & Continue →'}
+              </button>
             </form>
           </div>
         )}

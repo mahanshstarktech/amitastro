@@ -90,8 +90,26 @@ export const getAll = async <T>(sql: string, params: any[] = []): Promise<T[]> =
 export async function initDatabase() {
   if (isPostgres && pgPool) {
     await initPostgresSchema();
+    try {
+      await pgPool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS photo_url TEXT;');
+      await pgPool.query('ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS title_hi TEXT;');
+      await pgPool.query('ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS excerpt_hi TEXT;');
+      await pgPool.query('ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS content_markdown_hi TEXT;');
+    } catch (_) {}
   } else if (sqliteDb) {
     await initSqliteSchema();
+    try {
+      await runQuery('ALTER TABLE users ADD COLUMN photo_url TEXT;');
+    } catch (_) {}
+    try {
+      await runQuery('ALTER TABLE blog_posts ADD COLUMN title_hi TEXT;');
+    } catch (_) {}
+    try {
+      await runQuery('ALTER TABLE blog_posts ADD COLUMN excerpt_hi TEXT;');
+    } catch (_) {}
+    try {
+      await runQuery('ALTER TABLE blog_posts ADD COLUMN content_markdown_hi TEXT;');
+    } catch (_) {}
   }
   await seedInitialData();
 }
@@ -103,6 +121,7 @@ async function initPostgresSchema() {
       name VARCHAR(255) NOT NULL,
       email VARCHAR(255) UNIQUE NOT NULL,
       phone VARCHAR(64) UNIQUE NOT NULL,
+      photo_url TEXT,
       password_hash TEXT,
       role VARCHAR(32) DEFAULT 'customer',
       is_phone_verified INT DEFAULT 0,
@@ -185,8 +204,11 @@ async function initPostgresSchema() {
       id VARCHAR(64) PRIMARY KEY,
       slug VARCHAR(128) UNIQUE NOT NULL,
       title VARCHAR(255) NOT NULL,
+      title_hi TEXT,
       excerpt TEXT NOT NULL,
+      excerpt_hi TEXT,
       content_markdown TEXT NOT NULL,
+      content_markdown_hi TEXT,
       category_id VARCHAR(64) NOT NULL REFERENCES categories(id),
       tags_json TEXT,
       hero_image_url TEXT,
@@ -308,6 +330,7 @@ async function initSqliteSchema() {
           name TEXT NOT NULL,
           email TEXT UNIQUE NOT NULL,
           phone TEXT UNIQUE NOT NULL,
+          photo_url TEXT,
           password_hash TEXT,
           role TEXT DEFAULT 'customer',
           is_phone_verified INTEGER DEFAULT 0,
@@ -408,8 +431,11 @@ async function initSqliteSchema() {
           id TEXT PRIMARY KEY,
           slug TEXT UNIQUE NOT NULL,
           title TEXT NOT NULL,
+          title_hi TEXT,
           excerpt TEXT NOT NULL,
+          excerpt_hi TEXT,
           content_markdown TEXT NOT NULL,
+          content_markdown_hi TEXT,
           category_id TEXT NOT NULL,
           tags_json TEXT,
           hero_image_url TEXT,

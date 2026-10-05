@@ -44,6 +44,8 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({
     window.open(`https://wa.me/?text=${text}`, '_blank');
   };
 
+  const [readLang, setReadLang] = useState<'en' | 'hi'>('en');
+
   if (isLoading) {
     return (
       <div className="container" style={{ padding: '80px 24px', maxWidth: 840 }}>
@@ -66,6 +68,10 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({
   }
 
   const { post, author, related } = data;
+  const hasHindi = Boolean(post.content_markdown_hi && post.title_hi);
+  const activeTitle = readLang === 'hi' && post.title_hi ? post.title_hi : post.title;
+  const activeExcerpt = readLang === 'hi' && post.excerpt_hi ? post.excerpt_hi : post.excerpt;
+  const activeContent = readLang === 'hi' && post.content_markdown_hi ? post.content_markdown_hi : post.content_markdown;
 
   // Simple Markdown renderer helper for headings, blockquotes, lists, and bold text
   const renderMarkdown = (content: string) => {
@@ -150,19 +156,61 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({
 
       {/* Article Header */}
       <div className="container" style={{ maxWidth: 840, paddingTop: 48, paddingBottom: 32 }}>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-          <span className="apple-badge-gold">{post.category_name}</span>
-          <span className="apple-badge-primary">
-            <Clock size={12} /> {post.reading_time_min} Min Read
-          </span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <span className="apple-badge-gold">{post.category_name}</span>
+            <span className="apple-badge-primary">
+              <Clock size={12} /> {post.reading_time_min} Min Read
+            </span>
+          </div>
+
+          {/* Bilingual Switcher if Hindi is available */}
+          {hasHindi && (
+            <div style={{ display: 'inline-flex', padding: 3, backgroundColor: '#F5F5F7', borderRadius: 10, border: '1px solid #E5E5EA' }}>
+              <button
+                type="button"
+                onClick={() => setReadLang('en')}
+                style={{
+                  padding: '4px 12px',
+                  fontSize: 12,
+                  fontWeight: readLang === 'en' ? 600 : 500,
+                  backgroundColor: readLang === 'en' ? '#FFFFFF' : 'transparent',
+                  color: readLang === 'en' ? '#1D1D1F' : '#6E6E73',
+                  borderRadius: 7,
+                  border: 'none',
+                  boxShadow: readLang === 'en' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                🇬🇧 English
+              </button>
+              <button
+                type="button"
+                onClick={() => setReadLang('hi')}
+                style={{
+                  padding: '4px 12px',
+                  fontSize: 12,
+                  fontWeight: readLang === 'hi' ? 600 : 500,
+                  backgroundColor: readLang === 'hi' ? '#FFFFFF' : 'transparent',
+                  color: readLang === 'hi' ? '#1D1D1F' : '#6E6E73',
+                  borderRadius: 7,
+                  border: 'none',
+                  boxShadow: readLang === 'hi' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                🇮🇳 हिंदी संस्करण
+              </button>
+            </div>
+          )}
         </div>
 
         <h1 className="text-display" style={{ fontSize: 38, marginBottom: 18, lineHeight: 1.2 }}>
-          {post.title}
+          {activeTitle}
         </h1>
 
         <p className="text-body-large" style={{ fontSize: 19, color: '#6E6E73', lineHeight: 1.6, marginBottom: 28 }}>
-          {post.excerpt}
+          {activeExcerpt}
         </p>
 
         {/* Author Strip (Section 5) */}
@@ -218,14 +266,14 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({
         <div style={{ borderRadius: 20, overflow: 'hidden', marginBottom: 40, boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
           <img
             src={post.hero_image_url}
-            alt={post.title}
+            alt={activeTitle}
             style={{ width: '100%', maxHeight: 440, objectFit: 'cover' }}
           />
         </div>
 
         {/* Article Body Content */}
         <div style={{ fontSize: 17, color: '#1D1D1F' }}>
-          {renderMarkdown(post.content_markdown)}
+          {renderMarkdown(activeContent)}
         </div>
 
         {/* Persistent Book Consultation Bottom Banner (Section 5) */}

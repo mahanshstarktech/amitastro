@@ -59,20 +59,24 @@ export const getDashboardStats = async (req: AuthRequest, res: Response) => {
 
 export const getCustomersCrm = async (req: AuthRequest, res: Response) => {
   try {
-    const { search } = req.query;
+    const { search, role } = req.query;
     let sql = `
       SELECT 
-        u.id, u.name, u.email, u.phone, u.trial_used, u.trial_seconds_remaining,
+        u.id, u.name, u.email, u.phone, u.role, u.photo_url, u.trial_used, u.trial_seconds_remaining,
         u.is_new_customer, u.created_at,
         crm.internal_notes, crm.tags_json,
         (SELECT COUNT(*) FROM appointments WHERE customer_id = u.id) as appointment_count,
         (SELECT COALESCE(SUM(p.amount), 0) FROM payments p WHERE p.user_id = u.id AND p.status = 'Verified') as total_spent
       FROM users u
       LEFT JOIN customer_crm_meta crm ON crm.user_id = u.id
-      WHERE u.role = 'customer'
+      WHERE 1=1
     `;
     const params: any[] = [];
 
+    if (role && role !== 'all') {
+      sql += ' AND u.role = ?';
+      params.push(role);
+    }
     if (search) {
       sql += ' AND (u.name LIKE ? OR u.phone LIKE ? OR u.email LIKE ?)';
       params.push(`%${search}%`, `%${search}%`, `%${search}%`);
@@ -351,6 +355,31 @@ export const getAnalytics = async (req: AuthRequest, res: Response) => {
       packageDistribution,
       topBlogPosts,
       auditLogs
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+export const adminUpdateUserRole = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+    if (!role || !['admin', 'customer'].includes(role)) {
+      return res.status(400).json({ error: "Invalid role. Role must be 'admin' or 'customer'." });
+    }
+
+    const user = await getOne<any>('SELECT * FROM users WHERE id = ?', [id]);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    await runQuery('UPDATE users SET role = ? WHERE id = ?', [role, id]);
+    const updated = await getOne<any>('SELECT id, name, email, phone, role FROM users WHERE id = ?', [id]);
+    return res.json({
+      success: true,
+      message: `User "${updated.name}" is now ${role === 'admin' ? 'an Administrator' : 'a Customer'}.`,
+      user: updated
     });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });

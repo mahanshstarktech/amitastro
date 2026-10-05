@@ -39,3 +39,6 @@ Thumbs.db
 *.mov
 *.mp4
 *.webm
+/*.jpg
+/*.jpeg
+/*.png

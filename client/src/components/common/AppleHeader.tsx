@@ -668,9 +668,13 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
               {isAuthenticated && user?.photoURL ? (
                 <img
                   src={user.photoURL}
-                  alt={user.name}
-                  style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }}
+                  alt={user.name || 'User'}
+                  style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }}
                 />
+              ) : isAuthenticated ? (
+                <div style={{ width: 36, height: 36, borderRadius: '50%', backgroundColor: '#3A3A6E', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: 14 }}>
+                  {user?.name?.charAt(0).toUpperCase() || 'A'}
+                </div>
               ) : (
                 <UserIcon size={18} />
               )}

@@ -150,6 +150,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
         email: user.email,
         phone: user.phone,
         role: user.role,
+        photoURL: user.photo_url || undefined,
         isPhoneVerified: true,
         isNewCustomer: user.is_new_customer !== 0,
         trialUsed: !!user.trial_used,
@@ -291,6 +292,7 @@ export const verifyDualOtp = async (req: Request, res: Response) => {
         email: user.email,
         phone: user.phone,
         role: user.role,
+        photoURL: user.photo_url || undefined,
         isPhoneVerified: true,
         isEmailVerified: true,
         isNewCustomer: user.is_new_customer !== 0,
@@ -335,63 +337,56 @@ export const verifyEmailOtp = async (req: Request, res: Response) => {
 
 export const completeManualRegistration = async (req: Request, res: Response) => {
   try {
-    const { name, email, password, phone, phoneCode, firebaseVerified } = req.body;
-    if (!name || !email || !password || !phone || (!phoneCode && !firebaseVerified)) {
-      return res.status(400).json({ error: 'Name, email, password, phone number, and phone OTP are required' });
+    const { name, email, password, phone, dob, tob, pob, tobUncertain, photoURL } = req.body;
+    if (!name || !email || !password || !phone) {
+      return res.status(400).json({ error: 'Name, email, password, and mobile phone number are required' });
     }
 
     const cleanEmail = email.trim().toLowerCase();
     const cleanPhone = phone.trim();
-
-    // Verify phone OTP if not verified via Firebase client SDK
-    if (!firebaseVerified) {
-      const otpRecord = await getOne<any>('SELECT * FROM otps WHERE phone = ?', [cleanPhone]);
-      if (!otpRecord) {
-        return res.status(400).json({ error: 'No SMS verification code requested for this phone number' });
-      }
-      if (Date.now() > otpRecord.expires_at) {
-        return res.status(400).json({ error: 'SMS verification code has expired. Please request a new code.' });
-      }
-      if (otpRecord.attempts >= 5) {
-        return res.status(429).json({ error: 'Too many incorrect attempts. Please request a new code.' });
-      }
-      if (otpRecord.code !== phoneCode.trim()) {
-        await runQuery('UPDATE otps SET attempts = attempts + 1 WHERE phone = ?', [cleanPhone]);
-        return res.status(400).json({ error: 'Invalid Phone OTP verification code.' });
-      }
-      await runQuery('DELETE FROM otps WHERE phone = ?', [cleanPhone]);
+    if (cleanPhone.replace(/[^0-9]/g, '').length < 10) {
+      return res.status(400).json({ error: 'Please enter a valid 10-digit mobile phone number' });
     }
 
-    // Check if account already exists with this email or phone
+    // Check if account already exists with this email
     const existingEmail = await getOne<any>('SELECT * FROM users WHERE email = ?', [cleanEmail]);
     if (existingEmail && existingEmail.password_hash) {
       return res.status(400).json({ error: 'An account with this email address already exists. Please sign in.' });
-    }
-    const existingPhone = await getOne<any>('SELECT * FROM users WHERE phone = ?', [cleanPhone]);
-    if (existingPhone && existingPhone.password_hash) {
-      return res.status(400).json({ error: 'An account with this phone number already exists. Please sign in.' });
     }
 
     const userId = existingEmail ? existingEmail.id : `usr-${uuidv4().substring(0, 8)}`;
     const hash = await bcrypt.hash(password, 10);
     const role = isConfiguredAdminEmail(cleanEmail) ? 'admin' : 'customer';
+    const finalPhoto = photoURL || (existingEmail && existingEmail.photo_url) || null;
 
     if (existingEmail) {
       await runQuery(`
         UPDATE users 
-        SET name = ?, email = ?, phone = ?, password_hash = ?, role = ?, is_email_verified = 1, is_phone_verified = 1
+        SET name = ?, email = ?, phone = ?, photo_url = ?, password_hash = ?, role = ?, is_email_verified = 1, is_phone_verified = 1
         WHERE id = ?
-      `, [name.trim(), cleanEmail, cleanPhone, hash, role, userId]);
+      `, [name.trim(), cleanEmail, cleanPhone, finalPhoto, hash, role, userId]);
     } else {
       await runQuery(`
-        INSERT INTO users (id, name, email, phone, password_hash, role, is_phone_verified, is_email_verified, is_new_customer)
-        VALUES (?, ?, ?, ?, ?, ?, 1, 1, 1)
-      `, [userId, name.trim(), cleanEmail, cleanPhone, hash, role]);
+        INSERT INTO users (id, name, email, phone, photo_url, password_hash, role, is_phone_verified, is_email_verified, is_new_customer)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1, 1)
+      `, [userId, name.trim(), cleanEmail, cleanPhone, finalPhoto, hash, role]);
 
       await runQuery(`
         INSERT INTO customer_crm_meta (user_id, tags_json, internal_notes)
-        VALUES (?, '["Dual-Verified Seeker"]', '')
+        VALUES (?, '["Registered Seeker"]', '')
       `, [userId]);
+    }
+
+    // If birth details are provided, create default 'self' birth profile
+    if (dob && dob.trim()) {
+      const existingProfile = await getOne<any>('SELECT * FROM birth_profiles WHERE user_id = ? AND relation = "self"', [userId]);
+      if (!existingProfile) {
+        const profileId = `bp-${uuidv4().substring(0, 8)}`;
+        await runQuery(`
+          INSERT INTO birth_profiles (id, user_id, relation, full_name, dob, tob, tob_uncertain, pob)
+          VALUES (?, ?, 'self', ?, ?, ?, ?, ?)
+        `, [profileId, userId, name.trim(), dob.trim(), tob || '12:00', tobUncertain ? 1 : 0, pob || 'India']);
+      }
     }
 
     const user = await getOne<any>('SELECT * FROM users WHERE id = ?', [userId]);
@@ -411,6 +406,7 @@ export const completeManualRegistration = async (req: Request, res: Response) =>
         email: user.email,
         phone: user.phone,
         role: user.role,
+        photoURL: user.photo_url || finalPhoto || undefined,
         isPhoneVerified: true,
         isEmailVerified: true,
         isNewCustomer: user.is_new_customer !== 0,
@@ -426,7 +422,7 @@ export const completeManualRegistration = async (req: Request, res: Response) =>
 
 export const googleAuth = async (req: Request, res: Response) => {
   try {
-    const { email, name, googleId, photoURL, phone, phoneCode, firebaseVerified, dob } = req.body;
+    const { email, name, googleId, photoURL, phone, dob, tob, pob, tobUncertain } = req.body;
     if (!email) {
       return res.status(400).json({ error: 'Google email is required' });
     }
@@ -434,52 +430,47 @@ export const googleAuth = async (req: Request, res: Response) => {
     const cleanEmail = email.trim().toLowerCase();
     let user = await getOne<any>('SELECT * FROM users WHERE email = ?', [cleanEmail]);
 
-    // Scenario A: Phone and Phone OTP (or Firebase verified) are provided (Completing mandatory phone verification)
-    if (phone && (phoneCode || firebaseVerified)) {
+    // Scenario A: Phone is provided (completing profile and birth details after Google sign-in)
+    if (phone && phone.trim()) {
       const cleanPhone = phone.trim();
-      if (!firebaseVerified) {
-        const otpRecord = await getOne<any>('SELECT * FROM otps WHERE phone = ?', [cleanPhone]);
-        if (!otpRecord) {
-          return res.status(400).json({ error: 'No SMS OTP requested for this phone number' });
-        }
-        if (Date.now() > otpRecord.expires_at) {
-          return res.status(400).json({ error: 'Phone OTP has expired. Please request a new one.' });
-        }
-        if (otpRecord.attempts >= 5) {
-          return res.status(429).json({ error: 'Too many incorrect attempts. Please request a new OTP.' });
-        }
-        if (otpRecord.code !== phoneCode.trim()) {
-          await runQuery('UPDATE otps SET attempts = attempts + 1 WHERE phone = ?', [cleanPhone]);
-          return res.status(400).json({ error: 'Invalid Phone OTP verification code.' });
-        }
-        await runQuery('DELETE FROM otps WHERE phone = ?', [cleanPhone]);
-      }
-
       const role = isConfiguredAdminEmail(cleanEmail) ? 'admin' : 'customer';
+      const userName = name ? name.trim() : (user && user.name) || cleanEmail.split('@')[0];
+      const finalPhoto = photoURL || (user && user.photo_url) || null;
 
       if (!user) {
         const userId = `usr-${uuidv4().substring(0, 8)}`;
-        const userName = name ? name.trim() : cleanEmail.split('@')[0];
         const hash = await bcrypt.hash(uuidv4(), 10);
 
         await runQuery(`
-          INSERT INTO users (id, name, email, phone, password_hash, role, is_phone_verified, is_email_verified, is_new_customer)
-          VALUES (?, ?, ?, ?, ?, ?, 1, 1, 1)
-        `, [userId, userName, cleanEmail, cleanPhone, hash, role]);
+          INSERT INTO users (id, name, email, phone, photo_url, password_hash, role, is_phone_verified, is_email_verified, is_new_customer)
+          VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1, 1)
+        `, [userId, userName, cleanEmail, cleanPhone, finalPhoto, hash, role]);
 
         await runQuery(`
           INSERT INTO customer_crm_meta (user_id, tags_json, internal_notes)
           VALUES (?, ?, ?)
-        `, [userId, JSON.stringify(['Google Auth', 'Verified Mobile']), photoURL ? `Avatar: ${photoURL}` : '']);
+        `, [userId, JSON.stringify(['Google Auth', 'Profile Completed']), finalPhoto ? `Avatar: ${finalPhoto}` : '']);
 
         user = await getOne<any>('SELECT * FROM users WHERE id = ?', [userId]);
       } else {
         await runQuery(`
           UPDATE users 
-          SET phone = ?, is_phone_verified = 1, is_email_verified = 1, role = ?
+          SET name = ?, phone = ?, photo_url = ?, is_phone_verified = 1, is_email_verified = 1, role = ?
           WHERE id = ?
-        `, [cleanPhone, role, user.id]);
+        `, [userName, cleanPhone, finalPhoto, role, user.id]);
         user = await getOne<any>('SELECT * FROM users WHERE id = ?', [user.id]);
+      }
+
+      // If birth details are provided, create default 'self' birth profile if not exists
+      if (dob && dob.trim()) {
+        const existingProfile = await getOne<any>('SELECT * FROM birth_profiles WHERE user_id = ? AND relation = "self"', [user.id]);
+        if (!existingProfile) {
+          const profileId = `bp-${uuidv4().substring(0, 8)}`;
+          await runQuery(`
+            INSERT INTO birth_profiles (id, user_id, relation, full_name, dob, tob, tob_uncertain, pob)
+            VALUES (?, ?, 'self', ?, ?, ?, ?, ?)
+          `, [profileId, user.id, userName, dob.trim(), tob || '12:00', tobUncertain ? 1 : 0, pob || 'India']);
+        }
       }
 
       const token = jwt.sign(
@@ -499,8 +490,9 @@ export const googleAuth = async (req: Request, res: Response) => {
           email: user.email,
           phone: user.phone,
           role: user.role,
-          photoURL: photoURL || undefined,
+          photoURL: user.photo_url || finalPhoto || undefined,
           isPhoneVerified: true,
+          isEmailVerified: true,
           isNewCustomer: user.is_new_customer !== 0,
           trialUsed: !!user.trial_used,
           trialSecondsRemaining: user.trial_seconds_remaining
@@ -509,9 +501,13 @@ export const googleAuth = async (req: Request, res: Response) => {
       });
     }
 
-    // Scenario B: Check if existing user already has a real verified phone number
-    if (user && user.is_phone_verified && user.phone && !user.phone.startsWith('google-') && !user.phone.startsWith('email-')) {
+    // Scenario B: Check if existing user already has a real phone number
+    if (user && user.phone && !user.phone.startsWith('google-') && !user.phone.startsWith('email-')) {
       const role = (user.role === 'admin' || isConfiguredAdminEmail(cleanEmail)) ? 'admin' : 'customer';
+      if (photoURL && !user.photo_url) {
+        await runQuery("UPDATE users SET photo_url = ? WHERE id = ?", [photoURL, user.id]);
+        user.photo_url = photoURL;
+      }
       if (user.role !== role) {
         await runQuery("UPDATE users SET role = ? WHERE id = ?", [role, user.id]);
         user.role = role;
@@ -534,8 +530,9 @@ export const googleAuth = async (req: Request, res: Response) => {
           email: user.email,
           phone: user.phone,
           role: user.role,
-          photoURL: photoURL || undefined,
+          photoURL: user.photo_url || photoURL || undefined,
           isPhoneVerified: true,
+          isEmailVerified: true,
           isNewCustomer: user.is_new_customer !== 0,
           trialUsed: !!user.trial_used,
           trialSecondsRemaining: user.trial_seconds_remaining
@@ -544,7 +541,7 @@ export const googleAuth = async (req: Request, res: Response) => {
       });
     }
 
-    // Scenario C: User is registering for the first time OR has no verified phone number. Mandatory phone verification required!
+    // Scenario C: User needs to provide phone & birth details
     return res.json({
       success: true,
       needsPhoneVerification: true,
@@ -552,7 +549,7 @@ export const googleAuth = async (req: Request, res: Response) => {
         email: cleanEmail,
         name: (user && user.name) || name || cleanEmail.split('@')[0],
         googleId,
-        photoURL
+        photoURL: (user && user.photo_url) || photoURL
       }
     });
   } catch (err: any) {
@@ -608,6 +605,7 @@ export const login = async (req: Request, res: Response) => {
         email: user.email,
         phone: user.phone,
         role: user.role,
+        photoURL: user.photo_url || undefined,
         isPhoneVerified: !!user.is_phone_verified,
         isNewCustomer: user.is_new_customer !== 0,
         trialUsed: !!user.trial_used,
@@ -636,6 +634,7 @@ export const getMe = async (req: any, res: Response) => {
         email: user.email,
         phone: user.phone,
         role: user.role,
+        photoURL: user.photo_url || undefined,
         isPhoneVerified: !!user.is_phone_verified,
         isNewCustomer: user.is_new_customer !== 0,
         trialUsed: !!user.trial_used,
@@ -643,6 +642,19 @@ export const getMe = async (req: any, res: Response) => {
       },
       profiles
     });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+export const updateProfilePhoto = async (req: any, res: Response) => {
+  try {
+    const { photoURL } = req.body;
+    if (!photoURL) {
+      return res.status(400).json({ error: 'Photo URL or image data is required' });
+    }
+    await runQuery('UPDATE users SET photo_url = ? WHERE id = ?', [photoURL, req.user.id]);
+    return res.json({ success: true, photoURL });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }

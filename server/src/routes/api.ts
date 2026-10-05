@@ -25,6 +25,7 @@ router.post('/auth/verify-dual-otp', authCtrl.verifyDualOtp);
 router.post('/auth/google', authCtrl.googleAuth);
 router.post('/auth/login', authCtrl.login);
 router.get('/auth/me', authenticateToken, authCtrl.getMe);
+router.put('/auth/profile-photo', authenticateToken, authCtrl.updateProfilePhoto);
 
 // 2. Birth Profiles
 router.get('/profiles', authenticateToken, profileCtrl.getProfiles);
@@ -65,13 +66,16 @@ router.post('/chat/admin/crm/:customerId', authenticateToken, requireAdmin, chat
 router.get('/trial/status', authenticateToken, trialCtrl.getTrialStatus);
 router.post('/trial/deduct', authenticateToken, trialCtrl.deductTrialTime);
 
-// 8. Blog
+// 8. Blog & AI CMS
 router.get('/blog/categories', blogCtrl.getCategories);
 router.get('/blog/posts', blogCtrl.getPosts);
 router.get('/blog/posts/:slug', blogCtrl.getPostBySlug);
 router.post('/blog/admin/posts', authenticateToken, requireAdmin, blogCtrl.adminCreatePost);
 router.put('/blog/admin/posts/:id', authenticateToken, requireAdmin, blogCtrl.adminUpdatePost);
 router.delete('/blog/admin/posts/:id', authenticateToken, requireAdmin, blogCtrl.adminDeletePost);
+router.post('/blog/admin/generate-ai-article', authenticateToken, requireAdmin, blogCtrl.adminGenerateAiArticle);
+router.post('/blog/admin/translate', authenticateToken, requireAdmin, blogCtrl.adminTranslateArticle);
+router.post('/blog/admin/generate-image', authenticateToken, requireAdmin, blogCtrl.adminGenerateArticleImage);
 
 // 9. Admin Operations
 router.get('/admin/dashboard', authenticateToken, requireAdmin, adminCtrl.getDashboardStats);
@@ -79,6 +83,7 @@ router.get('/admin/customers', authenticateToken, requireAdmin, adminCtrl.getCus
 router.get('/admin/customers/:id/full-context', authenticateToken, requireAdmin, adminCtrl.getCustomerFullContext);
 router.get('/admin/customers/:id', authenticateToken, requireAdmin, adminCtrl.getCustomerDetails);
 router.patch('/admin/customers/:id/new-customer-status', authenticateToken, requireAdmin, adminCtrl.toggleNewCustomerStatus);
+router.patch('/admin/users/:id/role', authenticateToken, requireAdmin, adminCtrl.adminUpdateUserRole);
 router.patch('/admin/packages/:id', authenticateToken, requireAdmin, adminCtrl.updatePackage);
 router.get('/admin/availability-settings', authenticateToken, requireAdmin, adminCtrl.getAvailabilitySettings);
 router.put('/admin/availability-settings', authenticateToken, requireAdmin, adminCtrl.updateAvailabilityRules);
