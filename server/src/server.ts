@@ -17,10 +17,12 @@ const CLIENT_URL = process.env.CLIENT_URL || '*';
 // Socket.io for Realtime Chat
 const io = new SocketIOServer(server, {
   cors: {
-    origin: CLIENT_URL,
+    origin: true,
+    credentials: true,
     methods: ['GET', 'POST']
   }
 });
+app.set('io', io);
 
 // Middlewares
 app.use(cors({
@@ -47,10 +49,22 @@ app.use('/api', apiRouter);
 io.on('connection', (socket) => {
   console.log(`[WebSocket] Client connected: ${socket.id}`);
 
+  // Authenticate user socket into personal or role-based rooms
+  socket.on('authenticate', (data: { userId?: string; role?: string }) => {
+    if (data?.role === 'admin') {
+      socket.join('admin_room');
+      console.log(`[WebSocket] Socket ${socket.id} joined admin_room`);
+    }
+    if (data?.userId) {
+      socket.join(`user_${data.userId}`);
+      console.log(`[WebSocket] Socket ${socket.id} joined user_${data.userId}`);
+    }
+  });
+
   // Join a conversation room
   socket.on('join_conversation', (conversationId: string) => {
     socket.join(conversationId);
-    console.log(`Socket ${socket.id} joined room ${conversationId}`);
+    console.log(`[WebSocket] Socket ${socket.id} joined conversation room: ${conversationId}`);
   });
 
   // Leave room
@@ -63,13 +77,11 @@ io.on('connection', (socket) => {
     socket.to(conversationId).emit('user_typing', { senderName, isTyping });
   });
 
-  // New message broadcast
+  // Client-originated send_message fallback
   socket.on('send_message', async (data) => {
     const { conversationId, message } = data;
-    // Broadcast to everyone in room except sender
     socket.to(conversationId).emit('receive_message', message);
-    // Broadcast notification to admin room
-    io.emit('admin_new_message', { conversationId, message });
+    io.to('admin_room').emit('admin_new_message', { conversationId, message });
   });
 
   // Message read receipt

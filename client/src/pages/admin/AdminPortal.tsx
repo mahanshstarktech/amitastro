@@ -11,6 +11,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import { useHeaderActions } from '../../context/HeaderActionsContext';
 import { AppleAdminChat } from '../../components/chat/AppleAdminChat';
+import { getSocket, authenticateSocket, playReceiveChime, notifyNewMessage, setTabUnreadBadge, requestNotificationPermission } from '../../utils/socket';
 
 export type AdminTab = 'dashboard' | 'customers' | 'appointments' | 'chat' | 'payments' | 'blog' | 'broadcast' | 'analytics' | 'settings';
 
@@ -163,6 +164,31 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ initialTab }) => {
   const [realtimeData, setRealtimeData] = useState<any>(null);
   const [isRealtimePolling, setIsRealtimePolling] = useState(true);
   const [lastAnalyticsSync, setLastAnalyticsSync] = useState<Date>(new Date());
+
+  // Real-time WebSocket listener for WhatsApp-level Admin Notifications & Live Badge
+  useEffect(() => {
+    requestNotificationPermission();
+    authenticateSocket(undefined, 'admin');
+    const socket = getSocket();
+
+    const onAdminNewMsg = (data: any) => {
+      if (data?.message?.sender_type === 'customer') {
+        playReceiveChime();
+        notifyNewMessage(
+          `💬 ${data?.customer?.name || 'Customer'}`,
+          data?.message?.content || 'Sent a photo attachment'
+        );
+        showToast(`💬 New message from ${data?.customer?.name || 'Customer'}: ${data?.message?.content?.slice(0, 45) || 'Photo attachment'}`, 'info');
+        setMetrics((prev: any) => prev ? { ...prev, unreadChats: (prev.unreadChats || 0) + 1 } : prev);
+        setTabUnreadBadge((metrics?.unreadChats || 0) + 1);
+      }
+    };
+
+    socket.on('admin_new_message', onAdminNewMsg);
+    return () => {
+      socket.off('admin_new_message', onAdminNewMsg);
+    };
+  }, [metrics?.unreadChats]);
 
   // Fetch data on tab change
   useEffect(() => {
@@ -2783,13 +2809,15 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                     Active Pages In-Flight Right Now
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                    {(realtimeData?.topActivePages && realtimeData.topActivePages.length > 0
+                    {((realtimeData?.topActivePages && realtimeData.topActivePages.length > 0)
                       ? realtimeData.topActivePages
-                      : [
-                          { page_title: 'Kundli Milan & Gun Milan', page_path: '/blog/kundli', active_seekers: Math.ceil((realtimeData?.activeNow || 1) * 0.45) },
-                          { page_title: 'Vedic Consultation Booking', page_path: '/#booking', active_seekers: Math.ceil((realtimeData?.activeNow || 1) * 0.3) },
-                          { page_title: 'Sade Sati & Planetary Transits', page_path: '/blog/transits', active_seekers: Math.max(1, Math.ceil((realtimeData?.activeNow || 1) * 0.25)) }
-                        ]
+                      : (analytics?.content?.topPages && analytics.content.topPages.length > 0)
+                        ? analytics.content.topPages.slice(0, 3).map((p: any) => ({
+                            page_title: p.page_title || p.page_path,
+                            page_path: p.page_path,
+                            active_seekers: p.views || 1
+                          }))
+                        : []
                     ).map((pg: any, idx: number) => (
                       <div 
                         key={idx}
@@ -2811,6 +2839,11 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                         </span>
                       </div>
                     ))}
+                    {(!realtimeData?.topActivePages?.length && !analytics?.content?.topPages?.length) && (
+                      <div style={{ fontSize: 12, color: '#94A3B8', fontStyle: 'italic', padding: '6px 0' }}>
+                        Awaiting incoming seeker page telemetry...
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -2862,6 +2895,11 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                       </div>
                     );
                   })}
+                  {(!realtimeData?.events?.length && !analytics?.realtime?.events?.length) && (
+                    <div style={{ color: '#94A3B8', fontSize: 12, fontStyle: 'italic', padding: '12px 0' }}>
+                      Waiting for incoming telemetry events from active visitors...
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -2879,11 +2917,11 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                   </div>
                 </div>
                 <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#1D1D1F', letterSpacing: '-0.02em' }}>
-                  {analytics?.summary?.totalVisits?.toLocaleString() || '1,420'}
+                  {Number(analytics?.summary?.totalVisits ?? 0).toLocaleString()}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, fontSize: 11.5, color: '#15803D' }}>
                   <TrendingUp size={13} />
-                  <span>+18.4% vs prev period</span>
+                  <span>{analytics?.summary?.totalVisits ? 'Distinct visitors recorded' : 'No visitors in period'}</span>
                 </div>
               </div>
 
@@ -2898,10 +2936,14 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                   </div>
                 </div>
                 <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#1D1D1F', letterSpacing: '-0.02em' }}>
-                  {analytics?.summary?.totalPageviews?.toLocaleString() || '4,680'}
+                  {Number(analytics?.summary?.totalPageviews ?? 0).toLocaleString()}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, fontSize: 11.5, color: '#86868B' }}>
-                  <span>3.3 views / visitor</span>
+                  <span>
+                    {analytics?.summary?.totalVisits 
+                      ? `${((analytics?.summary?.totalPageviews || 0) / Math.max(1, analytics?.summary?.totalVisits || 1)).toFixed(1)} views / visitor`
+                      : '0 views / visitor'}
+                  </span>
                 </div>
               </div>
 
@@ -2916,7 +2958,7 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                   </div>
                 </div>
                 <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#1D1D1F', letterSpacing: '-0.02em' }}>
-                  {analytics?.summary?.signups || '18'}
+                  {Number(analytics?.summary?.signups ?? 0).toLocaleString()}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, fontSize: 11.5, color: '#15803D' }}>
                   <TrendingUp size={13} />
@@ -2935,7 +2977,7 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                   </div>
                 </div>
                 <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#15803D', letterSpacing: '-0.02em' }}>
-                  {analytics?.summary?.conversionRate || '2.84%'}
+                  {analytics?.summary?.conversionRate ?? '0.00%'}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, fontSize: 11.5, color: '#86868B' }}>
                   <span>Visits → Paid readings</span>
@@ -2953,10 +2995,10 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                   </div>
                 </div>
                 <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#1D1D1F', letterSpacing: '-0.02em' }}>
-                  ₹{Number(analytics?.summary?.revenue || 24800).toLocaleString('en-IN')}
+                  ₹{Number(analytics?.summary?.revenue ?? 0).toLocaleString('en-IN')}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, fontSize: 11.5, color: '#86868B' }}>
-                  <span>{analytics?.summary?.paidConsultations || 3} Paid Consultations</span>
+                  <span>{analytics?.summary?.paidConsultations ?? 0} Paid Consultations</span>
                 </div>
               </div>
 
@@ -2971,10 +3013,10 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                   </div>
                 </div>
                 <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color: '#1D1D1F', letterSpacing: '-0.02em' }}>
-                  {analytics?.summary?.avgSessionDuration || '3m 48s'}
+                  {analytics?.summary?.avgSessionDuration ?? '0m 0s'}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, fontSize: 11.5, color: '#86868B' }}>
-                  <span>Bounce rate: {analytics?.summary?.bounceRate || '28.4%'}</span>
+                  <span>Bounce rate: {analytics?.summary?.bounceRate ?? '0.0%'}</span>
                 </div>
               </div>
             </div>
@@ -2991,7 +3033,7 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                   </p>
                 </div>
                 <span style={{ fontSize: 12, fontWeight: 600, color: '#3A3A6E', backgroundColor: 'rgba(58, 58, 110, 0.08)', padding: '4px 10px', borderRadius: 8 }}>
-                  End-to-End Conversion: {analytics?.funnel?.conversionRate || analytics?.summary?.conversionRate || '2.84%'}
+                  End-to-End Conversion: {analytics?.funnel?.conversionRate || analytics?.summary?.conversionRate || '0.00%'}
                 </span>
               </div>
 
@@ -3000,7 +3042,7 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                 {[
                   {
                     step: '1. Discovery & Visits',
-                    val: analytics?.funnel?.visits || 1420,
+                    val: analytics?.funnel?.visits ?? 0,
                     rate: '100%',
                     desc: 'Seekers landed on platform',
                     bg: '#F5F5F7',
@@ -3008,32 +3050,32 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                   },
                   {
                     step: '2. Kundli Signups',
-                    val: analytics?.funnel?.signups || 18,
-                    rate: `${(((analytics?.funnel?.signups || 18) / Math.max(1, analytics?.funnel?.visits || 1420)) * 100).toFixed(1)}%`,
+                    val: analytics?.funnel?.signups ?? 0,
+                    rate: `${(((analytics?.funnel?.signups ?? 0) / Math.max(1, analytics?.funnel?.visits || 1)) * 100).toFixed(1)}%`,
                     desc: 'Created birth chart profile',
                     bg: '#F5F5F7',
                     color: '#1D1D1F'
                   },
                   {
                     step: '3. Booking Inquiries',
-                    val: analytics?.funnel?.bookingRequests || 6,
-                    rate: `${(((analytics?.funnel?.bookingRequests || 6) / Math.max(1, analytics?.funnel?.signups || 18)) * 100).toFixed(1)}%`,
+                    val: analytics?.funnel?.bookingRequests ?? 0,
+                    rate: `${(((analytics?.funnel?.bookingRequests ?? 0) / Math.max(1, analytics?.funnel?.signups || 1)) * 100).toFixed(1)}%`,
                     desc: 'Submitted consultation slot',
                     bg: '#F5F5F7',
                     color: '#1D1D1F'
                   },
                   {
                     step: '4. Confirmed Slots',
-                    val: analytics?.funnel?.confirmed || 4,
-                    rate: `${(((analytics?.funnel?.confirmed || 4) / Math.max(1, analytics?.funnel?.bookingRequests || 6)) * 100).toFixed(1)}%`,
+                    val: analytics?.funnel?.confirmed ?? 0,
+                    rate: `${(((analytics?.funnel?.confirmed ?? 0) / Math.max(1, analytics?.funnel?.bookingRequests || 1)) * 100).toFixed(1)}%`,
                     desc: 'Approved by Astrologer Amit',
                     bg: 'rgba(58, 58, 110, 0.06)',
                     color: '#3A3A6E'
                   },
                   {
                     step: '5. Paid & Completed',
-                    val: analytics?.funnel?.paid || 3,
-                    rate: `${(((analytics?.funnel?.paid || 3) / Math.max(1, analytics?.funnel?.confirmed || 4)) * 100).toFixed(1)}%`,
+                    val: analytics?.funnel?.paid ?? 0,
+                    rate: `${(((analytics?.funnel?.paid ?? 0) / Math.max(1, analytics?.funnel?.confirmed || 1)) * 100).toFixed(1)}%`,
                     desc: 'Verified payment received',
                     bg: 'rgba(39, 201, 63, 0.1)',
                     color: '#15803D'
@@ -3089,42 +3131,38 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {(analytics?.audience?.countries && analytics.audience.countries.length > 0
-                    ? analytics.audience.countries
-                    : [
-                        { country: 'India', country_code: 'IN', visitors: 940, percentage: 66.2 },
-                        { country: 'United States', country_code: 'US', visitors: 210, percentage: 14.8 },
-                        { country: 'United Kingdom', country_code: 'GB', visitors: 95, percentage: 6.7 },
-                        { country: 'United Arab Emirates', country_code: 'AE', visitors: 78, percentage: 5.5 },
-                        { country: 'Canada', country_code: 'CA', visitors: 52, percentage: 3.7 },
-                        { country: 'Australia', country_code: 'AU', visitors: 30, percentage: 2.1 }
-                      ]
-                  ).map((c: any, idx: number) => {
-                    const flag = getCountryFlag(c.country_code);
-                    return (
-                      <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13 }}>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 500, color: '#1D1D1F' }}>
-                            <span style={{ fontSize: 15 }}>{flag}</span>
-                            <span>{c.country}</span>
-                          </span>
-                          <span style={{ fontSize: 12, color: '#6E6E73', fontWeight: 600 }}>
-                            {c.visitors.toLocaleString()} seekers ({c.percentage}%)
-                          </span>
+                  {analytics?.audience?.countries && analytics.audience.countries.length > 0 ? (
+                    analytics.audience.countries.map((c: any, idx: number) => {
+                      const flag = getCountryFlag(c.country_code);
+                      return (
+                        <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13 }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 500, color: '#1D1D1F' }}>
+                              <span style={{ fontSize: 15 }}>{flag}</span>
+                              <span>{c.country || 'Direct'}</span>
+                            </span>
+                            <span style={{ fontSize: 12, color: '#6E6E73', fontWeight: 600 }}>
+                              {Number(c.visitors).toLocaleString()} seekers ({c.percentage}%)
+                            </span>
+                          </div>
+                          <div style={{ height: 6, width: '100%', backgroundColor: '#F2F2F7', borderRadius: 9999, overflow: 'hidden' }}>
+                            <div 
+                              style={{ 
+                                height: '100%', 
+                                width: `${Math.min(100, Math.max(4, Number(c.percentage)))}%`, 
+                                backgroundColor: idx === 0 ? '#3A3A6E' : '#818CF8', 
+                                borderRadius: 9999 
+                              }} 
+                            />
+                          </div>
                         </div>
-                        <div style={{ height: 6, width: '100%', backgroundColor: '#F2F2F7', borderRadius: 9999, overflow: 'hidden' }}>
-                          <div 
-                            style={{ 
-                              height: '100%', 
-                              width: `${Math.min(100, Math.max(4, c.percentage))}%`, 
-                              backgroundColor: idx === 0 ? '#3A3A6E' : '#818CF8', 
-                              borderRadius: 9999 
-                            }} 
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  ) : (
+                    <div style={{ padding: '24px 0', textAlign: 'center', color: '#8E8E93', fontSize: 13 }}>
+                      No country telemetry logged in selected time window.
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -3143,40 +3181,35 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {(analytics?.audience?.cities && analytics.audience.cities.length > 0
-                    ? analytics.audience.cities
-                    : [
-                        { city: 'Mumbai', country: 'India', count: 320 },
-                        { city: 'New Delhi', country: 'India', count: 285 },
-                        { city: 'Bengaluru', country: 'India', count: 190 },
-                        { city: 'Pune', country: 'India', count: 110 },
-                        { city: 'Jaipur', country: 'India', count: 95 },
-                        { city: 'London', country: 'United Kingdom', count: 72 },
-                        { city: 'Dubai', country: 'UAE', count: 65 }
-                      ]
-                  ).map((city: any, idx: number) => (
-                    <div
-                      key={idx}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '9px 12px',
-                        backgroundColor: '#F9FAFB',
-                        borderRadius: 10,
-                        fontSize: 13
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', width: 18 }}>#{idx + 1}</span>
-                        <span style={{ fontWeight: 600, color: '#1F2937' }}>{city.city}</span>
-                        <span style={{ fontSize: 11, color: '#9CA3AF' }}>({city.country})</span>
+                  {analytics?.audience?.cities && analytics.audience.cities.length > 0 ? (
+                    analytics.audience.cities.map((city: any, idx: number) => (
+                      <div
+                        key={idx}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '9px 12px',
+                          backgroundColor: '#F9FAFB',
+                          borderRadius: 10,
+                          fontSize: 13
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', width: 18 }}>#{idx + 1}</span>
+                          <span style={{ fontWeight: 600, color: '#1F2937' }}>{city.city || 'Direct Area'}</span>
+                          {city.country && <span style={{ fontSize: 11, color: '#9CA3AF' }}>({city.country})</span>}
+                        </div>
+                        <span style={{ fontWeight: 700, color: '#3A3A6E', fontSize: 12.5 }}>
+                          {city.count} seekers
+                        </span>
                       </div>
-                      <span style={{ fontWeight: 700, color: '#3A3A6E', fontSize: 12.5 }}>
-                        {city.count} seekers
-                      </span>
+                    ))
+                  ) : (
+                    <div style={{ padding: '24px 0', textAlign: 'center', color: '#8E8E93', fontSize: 13 }}>
+                      No city telemetry logged in selected time window.
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
             </div>
@@ -3198,39 +3231,36 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {(analytics?.acquisition?.sources && analytics.acquisition.sources.length > 0
-                    ? analytics.acquisition.sources
-                    : [
-                        { channel: 'Google Search (Organic & IndexJump)', visitors: 680 },
-                        { channel: 'WhatsApp Direct & Family Referrals', visitors: 340 },
-                        { channel: 'Instagram Vedic Content', visitors: 220 },
-                        { channel: 'Direct & Bookmarks', visitors: 110 },
-                        { channel: 'YouTube Vedic Astrology', visitors: 70 }
-                      ]
-                  ).map((src: any, idx: number) => {
-                    const totalVis = analytics?.summary?.totalVisits || 1420;
-                    const pct = Math.round((src.visitors / totalVis) * 100);
-                    return (
-                      <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13 }}>
-                          <span style={{ fontWeight: 600, color: '#1D1D1F' }}>{src.channel}</span>
-                          <span style={{ fontSize: 12, color: '#6E6E73', fontWeight: 600 }}>
-                            {src.visitors.toLocaleString()} ({pct}%)
-                          </span>
+                  {analytics?.acquisition?.sources && analytics.acquisition.sources.length > 0 ? (
+                    analytics.acquisition.sources.map((src: any, idx: number) => {
+                      const totalVis = Math.max(1, analytics?.summary?.totalVisits || 1);
+                      const pct = Math.round((src.visitors / totalVis) * 100);
+                      return (
+                        <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13 }}>
+                            <span style={{ fontWeight: 600, color: '#1D1D1F' }}>{src.channel}</span>
+                            <span style={{ fontSize: 12, color: '#6E6E73', fontWeight: 600 }}>
+                              {src.visitors.toLocaleString()} ({pct}%)
+                            </span>
+                          </div>
+                          <div style={{ height: 6, width: '100%', backgroundColor: '#F2F2F7', borderRadius: 9999, overflow: 'hidden' }}>
+                            <div 
+                              style={{ 
+                                height: '100%', 
+                                width: `${Math.min(100, Math.max(5, pct))}%`, 
+                                backgroundColor: idx === 0 ? '#10B981' : '#3B82F6', 
+                                borderRadius: 9999 
+                              }} 
+                            />
+                          </div>
                         </div>
-                        <div style={{ height: 6, width: '100%', backgroundColor: '#F2F2F7', borderRadius: 9999, overflow: 'hidden' }}>
-                          <div 
-                            style={{ 
-                              height: '100%', 
-                              width: `${Math.min(100, Math.max(5, pct))}%`, 
-                              backgroundColor: idx === 0 ? '#10B981' : '#3B82F6', 
-                              borderRadius: 9999 
-                            }} 
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  ) : (
+                    <div style={{ padding: '24px 0', textAlign: 'center', color: '#8E8E93', fontSize: 13 }}>
+                      No acquisition source logged in selected time window.
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -3253,17 +3283,23 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                   <div style={{ padding: '12px 10px', backgroundColor: '#F9FAFB', borderRadius: 10, textAlign: 'center' }}>
                     <Smartphone size={18} color="#4F46E5" style={{ margin: '0 auto 4px' }} />
                     <div style={{ fontSize: 11, color: '#6B7280' }}>Mobile</div>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginTop: 2 }}>68.4%</div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginTop: 2 }}>
+                      {analytics?.technology?.mobilePercentage ?? 0}%
+                    </div>
                   </div>
                   <div style={{ padding: '12px 10px', backgroundColor: '#F9FAFB', borderRadius: 10, textAlign: 'center' }}>
                     <Laptop size={18} color="#2563EB" style={{ margin: '0 auto 4px' }} />
                     <div style={{ fontSize: 11, color: '#6B7280' }}>Desktop</div>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginTop: 2 }}>27.2%</div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginTop: 2 }}>
+                      {analytics?.technology?.desktopPercentage ?? 0}%
+                    </div>
                   </div>
                   <div style={{ padding: '12px 10px', backgroundColor: '#F9FAFB', borderRadius: 10, textAlign: 'center' }}>
                     <Tablet size={18} color="#059669" style={{ margin: '0 auto 4px' }} />
                     <div style={{ fontSize: 11, color: '#6B7280' }}>Tablet</div>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginTop: 2 }}>4.4%</div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginTop: 2 }}>
+                      {analytics?.technology?.tabletPercentage ?? 0}%
+                    </div>
                   </div>
                 </div>
 
@@ -3272,20 +3308,18 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                   <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#86868B' }}>
                     Top Browsers
                   </div>
-                  {(analytics?.technology?.browsers && analytics.technology.browsers.length > 0
-                    ? analytics.technology.browsers
-                    : [
-                        { browser: 'Chrome / WebKit', count: 860 },
-                        { browser: 'Mobile Safari', count: 390 },
-                        { browser: 'Edge / Chromium', count: 110 },
-                        { browser: 'Firefox', count: 60 }
-                      ]
-                  ).map((b: any, idx: number) => (
-                    <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12.5, borderBottom: '1px solid #F3F4F6', paddingBottom: 5 }}>
-                      <span style={{ color: '#374151', fontWeight: 500 }}>{b.browser}</span>
-                      <span style={{ color: '#6B7280', fontWeight: 600 }}>{b.count} sessions</span>
+                  {analytics?.technology?.browsers && analytics.technology.browsers.length > 0 ? (
+                    analytics.technology.browsers.map((b: any, idx: number) => (
+                      <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12.5, borderBottom: '1px solid #F3F4F6', paddingBottom: 5 }}>
+                        <span style={{ color: '#374151', fontWeight: 500 }}>{b.browser || 'Standard Browser'}</span>
+                        <span style={{ color: '#6B7280', fontWeight: 600 }}>{b.count} sessions</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ padding: '12px 0', textAlign: 'center', color: '#8E8E93', fontSize: 12 }}>
+                      No browser telemetry recorded yet.
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
             </div>
@@ -3307,39 +3341,37 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {(analytics?.content?.topPages && analytics.content.topPages.length > 0
-                    ? analytics.content.topPages
-                    : [
-                        { page_title: 'Kundli Matching & 36 Gun Milan Deep Guide', page_path: '/blog/kundli', views: 820, avg_duration: 240 },
-                        { page_title: 'Sade Sati Phase Analysis & Saturn Shani Remedies', page_path: '/blog/transits', views: 560, avg_duration: 195 },
-                        { page_title: 'Vastu Shastra for Prosperity & Home Harmony', page_path: '/blog/vastu', views: 430, avg_duration: 210 },
-                        { page_title: 'Navagraha Gemstone Recommendation Protocol', page_path: '/blog/gemstones', views: 310, avg_duration: 160 }
-                      ]
-                  ).map((p: any, idx: number) => (
-                    <div 
-                      key={idx}
-                      style={{
-                        padding: '10px 12px',
-                        backgroundColor: '#F9FAFB',
-                        borderRadius: 10,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: 12
-                      }}
-                    >
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {p.page_title || p.page_path}
+                  {analytics?.content?.topPages && analytics.content.topPages.length > 0 ? (
+                    analytics.content.topPages.map((p: any, idx: number) => (
+                      <div 
+                        key={idx}
+                        style={{
+                          padding: '10px 12px',
+                          backgroundColor: '#F9FAFB',
+                          borderRadius: 10,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 12
+                        }}
+                      >
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {p.page_title || p.page_path}
+                          </div>
+                          <div style={{ fontSize: 11, color: '#9CA3AF' }}>{p.page_path}</div>
                         </div>
-                        <div style={{ fontSize: 11, color: '#9CA3AF' }}>{p.page_path}</div>
+                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#3A3A6E' }}>{p.views} views</div>
+                          <div style={{ fontSize: 10.5, color: '#6B7280' }}>~{p.avg_duration || 0}s read</div>
+                        </div>
                       </div>
-                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#3A3A6E' }}>{p.views} views</div>
-                        <div style={{ fontSize: 10.5, color: '#6B7280' }}>~{p.avg_duration || 180}s read</div>
-                      </div>
+                    ))
+                  ) : (
+                    <div style={{ padding: '24px 0', textAlign: 'center', color: '#8E8E93', fontSize: 13 }}>
+                      No pageviews logged in selected time window.
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
 
@@ -3358,35 +3390,33 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {(analytics?.content?.packages && analytics.content.packages.length > 0
-                    ? analytics.content.packages
-                    : [
-                        { name: 'Deep Life Reading & 5-Year Roadmap', price: 2100, booking_count: 5 },
-                        { name: 'Kundli Milan (Marriage & Relationship)', price: 1500, booking_count: 4 },
-                        { name: 'Career & Business Vastu Consultation', price: 3100, booking_count: 2 },
-                        { name: 'Gemstone & Ratna Recommendation', price: 1100, booking_count: 2 }
-                      ]
-                  ).map((pkg: any, idx: number) => (
-                    <div
-                      key={idx}
-                      style={{
-                        padding: '10px 12px',
-                        backgroundColor: '#F9FAFB',
-                        borderRadius: 10,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between'
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>{pkg.name}</div>
-                        <div style={{ fontSize: 11, color: '#C9A24B', fontWeight: 600 }}>₹{pkg.price}</div>
+                  {analytics?.content?.packages && analytics.content.packages.length > 0 ? (
+                    analytics.content.packages.map((pkg: any, idx: number) => (
+                      <div
+                        key={idx}
+                        style={{
+                          padding: '10px 12px',
+                          backgroundColor: '#F9FAFB',
+                          borderRadius: 10,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between'
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>{pkg.name}</div>
+                          <div style={{ fontSize: 11, color: '#C9A24B', fontWeight: 600 }}>₹{pkg.price}</div>
+                        </div>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: '#3A3A6E', backgroundColor: '#EEF2FF', padding: '3px 8px', borderRadius: 6 }}>
+                          {pkg.booking_count} Bookings
+                        </span>
                       </div>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: '#3A3A6E', backgroundColor: '#EEF2FF', padding: '3px 8px', borderRadius: 6 }}>
-                        {pkg.booking_count} Bookings
-                      </span>
+                    ))
+                  ) : (
+                    <div style={{ padding: '24px 0', textAlign: 'center', color: '#8E8E93', fontSize: 13 }}>
+                      No packages loaded.
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
             </div>

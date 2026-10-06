@@ -10,6 +10,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useHeaderActions } from '../../context/HeaderActionsContext';
 import { apiRequest } from '../../utils/api';
 import { AppleCustomerChat } from '../../components/chat/AppleCustomerChat';
+import { getSocket, authenticateSocket, playReceiveChime, notifyNewMessage, setTabUnreadBadge, requestNotificationPermission } from '../../utils/socket';
 
 interface CustomerPortalProps {
   onOpenBooking: () => void;
@@ -180,10 +181,38 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
     }
   };
 
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
+
+  // Real-time WebSocket listener for customer incoming messages from Astrologer Amit
+  useEffect(() => {
+    requestNotificationPermission();
+    if (user?.id) {
+      authenticateSocket(user.id, 'customer');
+    }
+    const socket = getSocket();
+
+    const handleCustomerMsg = (data: any) => {
+      if (data?.message?.sender_type === 'admin') {
+        playReceiveChime();
+        notifyNewMessage('💬 Astrologer Amit', data?.message?.content || 'Photo attachment sent');
+        showToast(`💬 Astrologer Amit: ${data?.message?.content?.slice(0, 45) || 'Photo attachment sent'}`, 'info');
+        if (activeTab !== 'chat') {
+          setUnreadChatCount((prev) => prev + 1);
+          setTabUnreadBadge(unreadChatCount + 1, 'Amit Astro');
+        }
+      }
+    };
+
+    socket.on('customer_new_message', handleCustomerMsg);
+    return () => {
+      socket.off('customer_new_message', handleCustomerMsg);
+    };
+  }, [user?.id, activeTab, unreadChatCount]);
+
   const navTabs = [
     { id: 'dashboard' as const, label: 'Overview', icon: Sparkles },
     { id: 'appointments' as const, label: 'My Appointments', icon: Calendar, badge: appointments.length },
-    { id: 'chat' as const, label: 'Consultation Chat', icon: MessageSquare },
+    { id: 'chat' as const, label: 'Consultation Chat', icon: MessageSquare, badge: unreadChatCount > 0 ? unreadChatCount : undefined },
     { id: 'profile' as const, label: 'Birth Profiles (Family)', icon: User, badge: profiles.length },
     { id: 'payments' as const, label: 'Payments & UPI', icon: CreditCard },
     { id: 'settings' as const, label: t('nav.settings', 'Settings'), icon: Settings }
@@ -193,6 +222,10 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
 
   const handleSelectTab = (tabId: typeof activeTab) => {
     setActiveTab(tabId);
+    if (tabId === 'chat') {
+      setUnreadChatCount(0);
+      setTabUnreadBadge(0);
+    }
   };
 
   const { setHeaderActions } = useHeaderActions();
@@ -208,13 +241,13 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
         badge: t.badge !== undefined && t.badge > 0 ? String(t.badge) : undefined
       })),
       activeOptionId: activeTab,
-      onSelectOption: (id) => setActiveTab(id as typeof activeTab)
+      onSelectOption: (id) => handleSelectTab(id as typeof activeTab)
     });
 
     return () => {
       setHeaderActions(null);
     };
-  }, [activeTab, appointments.length, profiles.length]);
+  }, [activeTab, appointments.length, profiles.length, unreadChatCount]);
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#FBFBFD', paddingBottom: 80 }}>

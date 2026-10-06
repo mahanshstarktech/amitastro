@@ -374,16 +374,15 @@ export const getAnalytics = async (req: AuthRequest, res: Response) => {
       [sinceDate]
     );
     const paidCount = Number(paidRow?.count || 0);
-    const finalPaid = paidCount > 0 ? paidCount : 3;
-    const finalRevenue = Number(paidRow?.revenue || 0) > 0 ? Number(paidRow?.revenue) : (finalPaid * 1799);
-    const conversionRate = totalVisits > 0 ? ((finalPaid / totalVisits) * 100).toFixed(2) : '3.14';
+    const revenue = Number(paidRow?.revenue || 0);
+    const conversionRate = totalVisits > 0 ? ((paidCount / totalVisits) * 100).toFixed(2) : '0.00';
 
     const funnel = {
-      visits: totalVisits || 1420,
-      signups: signups || 18,
-      bookingRequests: bookingRequests || 6,
-      confirmed: confirmed || 4,
-      paid: finalPaid,
+      visits: totalVisits,
+      signups,
+      bookingRequests,
+      confirmed,
+      paid: paidCount,
       conversionRate
     };
 
@@ -435,6 +434,10 @@ export const getAnalytics = async (req: AuthRequest, res: Response) => {
       ORDER BY count DESC
     `, [sinceDate, sinceDate]);
 
+    const mobileRow = devices.find((d: any) => d.device_type?.toLowerCase() === 'mobile');
+    const desktopRow = devices.find((d: any) => d.device_type?.toLowerCase() === 'desktop');
+    const tabletRow = devices.find((d: any) => d.device_type?.toLowerCase() === 'tablet');
+
     const browsers = await getAll<any>(`
       SELECT browser, COUNT(*) as count
       FROM analytics_events
@@ -485,18 +488,39 @@ export const getAnalytics = async (req: AuthRequest, res: Response) => {
       SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 20
     `);
 
-    // 10. Summary KPIs
+    // 10. Real Duration & Bounce Rate Calculation
+    const durRow = await getOne<any>(
+      `SELECT AVG(duration_seconds) as avg_duration FROM analytics_events WHERE created_at >= ?`,
+      [sinceDate]
+    );
+    const avgSec = Math.round(Number(durRow?.avg_duration || 0));
+    const avgSessionDuration = avgSec > 0 ? `${Math.floor(avgSec / 60)}m ${avgSec % 60}s` : '0m 0s';
+
+    const bounceRow = await getOne<any>(`
+      SELECT ROUND(COUNT(CASE WHEN sc.c = 1 THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0), 1) as bounce_rate
+      FROM (
+        SELECT session_id, COUNT(*) as c
+        FROM analytics_events
+        WHERE created_at >= ?
+        GROUP BY session_id
+      ) sc
+    `, [sinceDate]);
+    const bounceRate = bounceRow?.bounce_rate !== null && bounceRow?.bounce_rate !== undefined 
+      ? `${bounceRow.bounce_rate}%` 
+      : '0.0%';
+
+    // 11. Summary KPIs
     const summary = {
       activeNow,
-      totalVisits: totalVisits || 1420,
-      totalPageviews: totalPageviews || 4680,
-      signups: signups || 18,
-      bookingRequests: bookingRequests || 6,
-      confirmed: confirmed || 4,
-      paidConsultations: finalPaid,
-      revenue: finalRevenue,
-      avgSessionDuration: '3m 48s',
-      bounceRate: '28.4%',
+      totalVisits,
+      totalPageviews,
+      signups,
+      bookingRequests,
+      confirmed,
+      paidConsultations: paidCount,
+      revenue,
+      avgSessionDuration,
+      bounceRate,
       conversionRate: `${conversionRate}%`
     };
 
@@ -512,6 +536,9 @@ export const getAnalytics = async (req: AuthRequest, res: Response) => {
       },
       technology: {
         devices,
+        mobilePercentage: mobileRow ? Number(mobileRow.percentage) : 0,
+        desktopPercentage: desktopRow ? Number(desktopRow.percentage) : 0,
+        tabletPercentage: tabletRow ? Number(tabletRow.percentage) : 0,
         browsers,
         os: osList
       },

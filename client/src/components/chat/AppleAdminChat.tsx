@@ -29,6 +29,15 @@ import {
 } from 'lucide-react';
 import { apiRequest } from '../../utils/api';
 import { useNotification } from '../../context/NotificationContext';
+import {
+  getSocket,
+  authenticateSocket,
+  playReceiveChime,
+  playSendChime,
+  notifyNewMessage,
+  setTabUnreadBadge,
+  requestNotificationPermission
+} from '../../utils/socket';
 
 export interface ChatConversationItem {
   id: string;
@@ -135,6 +144,86 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const selectedConvRef = useRef<ChatConversationItem | null>(null);
+  selectedConvRef.current = selectedConv;
+
+  // Real-time WhatsApp-level Socket Integration
+  useEffect(() => {
+    requestNotificationPermission();
+    authenticateSocket(undefined, 'admin');
+    const socket = getSocket();
+
+    const handleAdminNewMessage = (data: { conversationId: string; message: ChatMessageItem; customer?: { id: string; name: string } }) => {
+      const { conversationId, message, customer } = data;
+
+      if (message.sender_type === 'customer') {
+        if (soundEnabled) playReceiveChime();
+        notifyNewMessage(
+          `💬 ${customer?.name || 'Customer'}`,
+          message.content || 'Photo attachment sent'
+        );
+      }
+
+      // WhatsApp Top-of-Stack Reordering:
+      setConversations((prev) => {
+        const existing = prev.find((c) => c.id === conversationId);
+        const isCurrent = selectedConvRef.current?.id === conversationId;
+        const others = prev.filter((c) => c.id !== conversationId);
+
+        if (existing) {
+          const updated: ChatConversationItem = {
+            ...existing,
+            last_message_text: message.content || (message.attachment_url ? 'Photo attachment' : ''),
+            last_message_time: message.created_at || new Date().toISOString(),
+            last_message_sender: message.sender_type,
+            last_message_type: message.message_type,
+            unread_admin_count: isCurrent ? 0 : (message.sender_type === 'customer' ? (existing.unread_admin_count || 0) + 1 : existing.unread_admin_count)
+          };
+          // Move conversation to the VERY TOP of the stack
+          return [updated, ...others];
+        } else {
+          fetchInbox(selectedConvRef.current?.id);
+          return prev;
+        }
+      });
+
+      // If current conversation open, append message with instant latency
+      if (selectedConvRef.current?.id === conversationId) {
+        setChatMessages((prev) => {
+          if (prev.some((m) => m.id === message.id)) return prev;
+          return [...prev, message];
+        });
+        scrollToBottom('smooth');
+        apiRequest(`/chat/admin/conversation/${conversationId}`).catch(() => {});
+      }
+    };
+
+    socket.on('admin_new_message', handleAdminNewMessage);
+    socket.on('receive_message', (msg: ChatMessageItem) => {
+      if (selectedConvRef.current?.id === msg.conversation_id) {
+        setChatMessages((prev) => {
+          if (prev.some((m) => m.id === msg.id)) return prev;
+          return [...prev, msg];
+        });
+        scrollToBottom('smooth');
+      }
+    });
+
+    return () => {
+      socket.off('admin_new_message', handleAdminNewMessage);
+    };
+  }, [soundEnabled]);
+
+  // Join active conversation room for zero-latency direct messaging
+  useEffect(() => {
+    if (selectedConv?.id) {
+      const socket = getSocket();
+      socket.emit('join_conversation', selectedConv.id);
+      return () => {
+        socket.emit('leave_conversation', selectedConv.id);
+      };
+    }
+  }, [selectedConv?.id]);
 
   // Scroll to bottom helper
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
@@ -187,10 +276,13 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
       setInternalNote(res.customer360?.notes || '');
       scrollToBottom('auto');
 
-      // Clear unread count locally
-      setConversations((prev) =>
-        prev.map((c) => (c.id === conv.id ? { ...c, unread_admin_count: 0 } : c))
-      );
+      // Clear unread count locally and recalculate tab badge
+      setConversations((prev) => {
+        const nextList = prev.map((c) => (c.id === conv.id ? { ...c, unread_admin_count: 0 } : c));
+        const totalUnread = nextList.reduce((acc, c) => acc + (c.unread_admin_count || 0), 0);
+        setTabUnreadBadge(totalUnread);
+        return nextList;
+      });
     } catch (err: any) {
       showToast(err.message || 'Failed to load conversation details', 'error');
     } finally {
@@ -221,26 +313,28 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
         })
       });
 
-      if (soundEnabled) playAppleSendChime();
+      if (soundEnabled) playSendChime();
 
       setChatMessages((prev) => [...prev, res.message]);
       setInputText('');
       setAttachmentPreview(null);
       scrollToBottom('smooth');
 
-      // Update conversation in list
-      setConversations((prev) =>
-        prev.map((c) =>
-          c.id === selectedConv.id
-            ? {
-                ...c,
-                last_message_text: contentToSend || 'Photo attachment',
-                last_message_time: new Date().toISOString(),
-                last_message_sender: 'admin'
-              }
-            : c
-        )
-      );
+      // WhatsApp Top-of-Stack Reordering for outgoing message:
+      setConversations((prev) => {
+        const existing = prev.find((c) => c.id === selectedConv.id);
+        const others = prev.filter((c) => c.id !== selectedConv.id);
+        if (existing) {
+          const updated = {
+            ...existing,
+            last_message_text: contentToSend || 'Photo attachment',
+            last_message_time: new Date().toISOString(),
+            last_message_sender: 'admin'
+          };
+          return [updated, ...others];
+        }
+        return prev;
+      });
     } catch (err: any) {
       showToast(err.message || 'Failed to send message', 'error');
     } finally {
@@ -670,7 +764,7 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          backgroundColor: '#FFFFFF',
+          backgroundColor: '#F2F2F7',
           minWidth: 0,
           borderRight: showInspector ? '1px solid #E5E5EA' : 'none'
         }}

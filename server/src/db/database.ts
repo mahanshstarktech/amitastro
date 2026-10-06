@@ -846,6 +846,74 @@ The South-East is governed by the Fire element (*Agni*). Placing your cooking ar
 
   // Always verify analytics events exist, seed realistic telemetry if empty
   await seedAnalyticsEvents();
+  await seedPlatformDemoCustomers();
+}
+
+async function seedPlatformDemoCustomers() {
+  try {
+    const custCountRow = await getOne<any>("SELECT COUNT(*) as count FROM users WHERE role = 'customer'");
+    if (Number(custCountRow?.count || 0) >= 5) return;
+
+    const salt = await bcrypt.genSalt(10);
+    const pwdHash = await bcrypt.hash('Customer@123', salt);
+    const now = Date.now();
+
+    const demoCustomers = [
+      { id: 'cust-aarav-patel', name: 'Aarav Patel', email: 'aarav.patel@example.com', phone: '+919820011223', city: 'Mumbai', ageHours: 2, pkg: 'pkg-premium', amount: 1799, status: 'Approved' },
+      { id: 'cust-ananya-verma', name: 'Ananya Verma', email: 'ananya.verma@example.com', phone: '+919810033445', city: 'New Delhi', ageHours: 18, pkg: 'pkg-standard', amount: 999, status: 'Approved' },
+      { id: 'cust-rohit-iyer', name: 'Rohit Iyer', email: 'rohit.iyer@example.com', phone: '+919845055667', city: 'Bengaluru', ageHours: 42, pkg: 'pkg-premium', amount: 1799, status: 'Approved' },
+      { id: 'cust-sneha-kulkarni', name: 'Sneha Kulkarni', email: 'sneha.k@example.com', phone: '+919822077889', city: 'Pune', ageHours: 72, pkg: 'pkg-standard', amount: 999, status: 'Approved' },
+      { id: 'cust-karan-singhania', name: 'Karan Singhania', email: 'karan.s@example.com', phone: '+919829099001', city: 'Jaipur', ageHours: 120, pkg: 'pkg-premium', amount: 1799, status: 'Approved' },
+      { id: 'cust-pooja-nair', name: 'Pooja Nair', email: 'pooja.nair@example.com', phone: '+919847012345', city: 'Kochi', ageHours: 168, pkg: 'pkg-standard', amount: 999, status: 'Approved' },
+      { id: 'cust-vikram-rathore', name: 'Vikram Rathore', email: 'vikram.r@example.com', phone: '+919829123456', city: 'Jodhpur', ageHours: 240, pkg: 'pkg-premium', amount: 1799, status: 'Approved' },
+      { id: 'cust-riya-malhotra', name: 'Riya Malhotra', email: 'riya.m@example.com', phone: '+919811234567', city: 'Chandigarh', ageHours: 320, pkg: 'pkg-standard', amount: 999, status: 'Approved' },
+      { id: 'cust-dev-sharma', name: 'Dev Sharma', email: 'dev.sharma@example.com', phone: '+919820345678', city: 'London', ageHours: 400, pkg: 'pkg-premium', amount: 1799, status: 'Approved' },
+      { id: 'cust-tanvi-joshi', name: 'Tanvi Joshi', email: 'tanvi.j@example.com', phone: '+919822456789', city: 'Dubai', ageHours: 500, pkg: 'pkg-standard', amount: 999, status: 'Approved' },
+      { id: 'cust-arjun-mehta', name: 'Arjun Mehta', email: 'arjun.mehta@example.com', phone: '+919820567890', city: 'Ahmedabad', ageHours: 600, pkg: 'pkg-premium', amount: 1799, status: 'Approved' },
+      { id: 'cust-meera-reddy', name: 'Meera Reddy', email: 'meera.r@example.com', phone: '+919849678901', city: 'Hyderabad', ageHours: 700, pkg: 'pkg-standard', amount: 999, status: 'Approved' }
+    ];
+
+    for (const c of demoCustomers) {
+      const createdAt = new Date(now - c.ageHours * 3600 * 1000).toISOString();
+      await runQuery(`
+        INSERT OR IGNORE INTO users (id, name, email, phone, password_hash, role, is_phone_verified, is_new_customer, created_at)
+        VALUES (?, ?, ?, ?, ?, 'customer', 1, 0, ?)
+      `, [c.id, c.name, c.email, c.phone, pwdHash, createdAt]);
+
+      const bpId = `bp-${c.id}`;
+      await runQuery(`
+        INSERT OR IGNORE INTO birth_profiles (id, user_id, relation, full_name, dob, tob, tob_uncertain, pob, pob_lat, pob_lng, pob_timezone, created_at)
+        VALUES (?, ?, 'self', ?, '1995-05-12', '10:30', 0, ?, 26.9124, 75.7873, 'Asia/Kolkata', ?)
+      `, [bpId, c.id, c.name, `${c.city}, India`, createdAt]);
+
+      const apptId = `appt-${c.id}`;
+      await runQuery(`
+        INSERT OR IGNORE INTO appointments (id, customer_id, birth_profile_id, package_id, requested_date, requested_time_window, status, created_at)
+        VALUES (?, ?, ?, ?, ?, '08:00 PM - 12:00 Midnight', 'Confirmed', ?)
+      `, [apptId, c.id, bpId, c.pkg, createdAt.split('T')[0], createdAt]);
+
+      const payId = `pay-${c.id}`;
+      await runQuery(`
+        INSERT OR IGNORE INTO payments (id, appointment_id, user_id, amount, payment_method, utr_reference, status, created_at)
+        VALUES (?, ?, ?, ?, 'upi_qr', ?, ?, ?)
+      `, [payId, apptId, c.id, c.amount, `UPI${Math.floor(100000000000 + Math.random() * 900000000000)}`, c.status, createdAt]);
+
+      // Seed chat conversation
+      const convId = `conv-${c.id}`;
+      await runQuery(`
+        INSERT OR IGNORE INTO chat_conversations (id, customer_id, admin_id, unread_admin_count, unread_customer_count, last_message_at)
+        VALUES (?, ?, 'admin-amit', 0, 0, ?)
+      `, [convId, c.id, createdAt]);
+
+      await runQuery(`
+        INSERT OR IGNORE INTO chat_messages (id, conversation_id, sender_type, sender_id, message_type, content, is_read, created_at)
+        VALUES (?, ?, 'customer', ?, 'text', 'Pranam Amit Ji, I have booked a consultation and looking forward to your reading.', 1, ?)
+      `, [`msg-${c.id}-1`, convId, c.id, createdAt]);
+    }
+    console.log('Seeded platform demo customers, appointments, payments & conversations successfully!');
+  } catch (err: any) {
+    console.error('Error seeding demo customers:', err.message);
+  }
 }
 
 async function seedAnalyticsEvents() {

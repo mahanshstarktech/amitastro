@@ -1695,7 +1695,7 @@ body {
 :root {
   --chat-font-bubble: clamp(14px, 3.8vw, 15.5px);
   --chat-font-meta: clamp(10.5px, 2.7vw, 11.5px);
-  --chat-bg-canvas: #EFEAE2;
+  --chat-bg-canvas: #F2F2F7;
   --chat-bubble-in: #FFFFFF;
   --chat-bubble-out: #E7FFDB;
   --chat-bubble-out-text: #111B21;
@@ -2009,10 +2009,10 @@ body {
 }
 
 .hybrid-chat-canvas {
-  background-color: #EFEAE2;
+  background-color: #F2F2F7;
   background-image: 
-    radial-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px),
-    radial-gradient(rgba(58, 58, 110, 0.03) 1px, transparent 1px);
+    radial-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+    radial-gradient(rgba(0, 0, 0, 0.015) 1px, transparent 1px);
   background-size: 24px 24px, 48px 48px;
   background-position: 0 0, 12px 12px;
 }

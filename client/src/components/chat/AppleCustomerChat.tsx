@@ -23,6 +23,14 @@ import {
 import { apiRequest } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
+import {
+  getSocket,
+  authenticateSocket,
+  playReceiveChime,
+  playSendChime,
+  notifyNewMessage,
+  requestNotificationPermission
+} from '../../utils/socket';
 
 export interface CustomerChatMessage {
   id: string;
@@ -118,14 +126,75 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
     }
   };
 
+  // Real-time WhatsApp-level Socket Integration for Customer
   useEffect(() => {
+    requestNotificationPermission();
+    if (user?.id) {
+      authenticateSocket(user.id, 'customer');
+    }
     fetchChat(false);
-    // Real-time polling every 6 seconds for new replies from Amit
+
+    const socket = getSocket();
+
+    const handleReceive = (msg: CustomerChatMessage) => {
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === msg.id)) return prev;
+        return [...prev, msg];
+      });
+      scrollToBottom('smooth');
+
+      if (msg.sender_type === 'admin') {
+        if (soundEnabled) playReceiveChime();
+        notifyNewMessage(
+          '💬 Astrologer Amit',
+          msg.content || 'Photo attachment sent'
+        );
+      }
+    };
+
+    const handleCustomerNew = (data: { conversationId: string; message: CustomerChatMessage }) => {
+      if (data?.message) {
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === data.message.id)) return prev;
+          return [...prev, data.message];
+        });
+        scrollToBottom('smooth');
+
+        if (data.message.sender_type === 'admin') {
+          if (soundEnabled) playReceiveChime();
+          notifyNewMessage(
+            '💬 Astrologer Amit',
+            data.message.content || 'Photo attachment sent'
+          );
+        }
+      }
+    };
+
+    socket.on('receive_message', handleReceive);
+    socket.on('customer_new_message', handleCustomerNew);
+
+    // Keep gentle fallback poll every 20 seconds
     const interval = setInterval(() => {
       fetchChat(true);
-    }, 6000);
-    return () => clearInterval(interval);
-  }, []);
+    }, 20000);
+
+    return () => {
+      socket.off('receive_message', handleReceive);
+      socket.off('customer_new_message', handleCustomerNew);
+      clearInterval(interval);
+    };
+  }, [user?.id, soundEnabled]);
+
+  // Join active conversation room for zero latency
+  useEffect(() => {
+    if (conversation?.id) {
+      const socket = getSocket();
+      socket.emit('join_conversation', conversation.id);
+      return () => {
+        socket.emit('leave_conversation', conversation.id);
+      };
+    }
+  }, [conversation?.id]);
 
   // 2. Handle Image Attachment Pick
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -248,7 +317,7 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
         flexDirection: 'column',
         borderRadius: 22,
         overflow: 'hidden',
-        backgroundColor: '#FFFFFF',
+        backgroundColor: '#F2F2F7',
         boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
         border: '1px solid #E5E5EA',
         position: 'relative'

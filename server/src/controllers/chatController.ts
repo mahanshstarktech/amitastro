@@ -37,6 +37,11 @@ export const getOrCreateConversation = async (req: AuthRequest, res: Response) =
 
     await runQuery('UPDATE chat_conversations SET unread_customer_count = 0 WHERE id = ?', [conversation.id]);
 
+    const io = req.app.get('io');
+    if (io) {
+      io.to(conversation.id).emit('conversation_read', { conversationId: conversation.id, reader: 'customer' });
+    }
+
     return res.json({ conversation, messages });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
@@ -88,6 +93,32 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
     }
 
     const message = await getOne<any>('SELECT * FROM chat_messages WHERE id = ?', [msgId]);
+
+    // Real-time WhatsApp-level WebSocket broadcast
+    const io = req.app.get('io');
+    if (io) {
+      // 1. Emit to active conversation room
+      io.to(conversationId).emit('receive_message', message);
+
+      // 2. Emit global event to administrator sockets for instant sound, unread badge increment & stacking on top
+      io.to('admin_room').emit('admin_new_message', {
+        conversationId,
+        message,
+        customer: {
+          id: conversation.customer_id,
+          name: sender.name
+        }
+      });
+
+      // 3. Emit targeted event to recipient customer
+      if (senderType === 'admin') {
+        io.to(`user_${conversation.customer_id}`).emit('customer_new_message', {
+          conversationId,
+          message
+        });
+      }
+    }
+
     return res.status(201).json({ success: true, message });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
@@ -218,6 +249,11 @@ export const getAdminConversationDetails = async (req: AuthRequest, res: Respons
     `, [conversationId]);
 
     await runQuery('UPDATE chat_conversations SET unread_admin_count = 0 WHERE id = ?', [conversationId]);
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(conversationId).emit('conversation_read', { conversationId, reader: 'admin' });
+    }
 
     return res.json({
       conversation,
