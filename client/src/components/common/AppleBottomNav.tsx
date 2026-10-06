@@ -1,5 +1,14 @@
 import React from 'react';
-import { Compass, Calendar, BookOpen, Settings as SettingsIcon, User, ShieldCheck } from 'lucide-react';
+import {
+  Compass,
+  Calendar,
+  BookOpen,
+  Settings as SettingsIcon,
+  User,
+  ShieldCheck,
+  MessageSquare,
+  MessageCircle
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -26,6 +35,38 @@ export const AppleBottomNav: React.FC<AppleBottomNavProps> = ({
   const isHome = currentPath === '/';
   const isArticles = currentPath.startsWith('/blog');
   const isPortal = currentPath.startsWith('/app') || currentPath.startsWith('/admin');
+
+  // Center button role:
+  // 1. Admin -> Open Admin Customer Chats
+  // 2. Active Plan Customer -> Open Chat with Amit
+  // 3. Inactive / Guest -> Acts as Book Consultation to start chat
+  const hasActivePlan = Boolean(
+    isAuthenticated && !isAdmin && (
+      (!user?.trialUsed && user?.isNewCustomer) ||
+      (user?.trialSecondsRemaining && user.trialSecondsRemaining > 0) ||
+      (typeof window !== 'undefined' && localStorage.getItem('amitastro_has_active_plan') === 'true')
+    )
+  );
+
+  const handleCenterClick = () => {
+    if (isAdmin) {
+      if (currentPath.startsWith('/admin')) {
+        window.location.hash = 'chat';
+        window.dispatchEvent(new HashChangeEvent('hashchange'));
+      } else {
+        onNavigate('/admin#chat');
+      }
+    } else if (hasActivePlan) {
+      if (currentPath.startsWith('/app')) {
+        window.location.hash = 'chat';
+        window.dispatchEvent(new HashChangeEvent('hashchange'));
+      } else {
+        onNavigate('/app#chat');
+      }
+    } else {
+      onOpenBooking();
+    }
+  };
 
   return (
     <nav
@@ -94,9 +135,9 @@ export const AppleBottomNav: React.FC<AppleBottomNavProps> = ({
         </span>
       </button>
 
-      {/* 3. Consult / Book (Center Highlight CTA) */}
+      {/* 3. Dynamic Center Action: Messages (Admin) / Chat Amit (Active Plan) / Consult (Others) */}
       <button
-        onClick={onOpenBooking}
+        onClick={handleCenterClick}
         className="nav-tab-btn"
         style={{
           background: 'none',
@@ -111,22 +152,34 @@ export const AppleBottomNav: React.FC<AppleBottomNavProps> = ({
       >
         <div
           style={{
-            width: 42,
-            height: 42,
+            width: 44,
+            height: 44,
             borderRadius: '50%',
-            background: 'linear-gradient(135deg, #3A3A6E, #282850)',
+            background: 'linear-gradient(135deg, #007AFF, #0056B3)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             color: '#FFFFFF',
-            boxShadow: '0 4px 14px rgba(58, 58, 110, 0.35)',
-            marginTop: -16
+            boxShadow: '0 4px 14px rgba(0, 122, 255, 0.4)',
+            marginTop: -16,
+            transition: 'transform 0.15s ease'
           }}
         >
-          <Calendar size={19} strokeWidth={2} />
+          {isAdmin ? (
+            <MessageSquare size={19} strokeWidth={2.2} />
+          ) : (
+            <MessageCircle size={19} strokeWidth={2.2} />
+          )}
         </div>
-        <span style={{ fontSize: 10.5, fontWeight: 600, color: '#3A3A6E', marginTop: -2 }}>
-          {t('nav.book_now', 'Consult')}
+        <span
+          style={{
+            fontSize: 10.5,
+            fontWeight: 600,
+            color: '#007AFF',
+            marginTop: -2
+          }}
+        >
+          {isAdmin ? 'Chats' : 'Chat Amit'}
         </span>
       </button>
 

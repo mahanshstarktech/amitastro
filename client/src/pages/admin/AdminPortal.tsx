@@ -9,15 +9,43 @@ import { apiRequest } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import { useHeaderActions } from '../../context/HeaderActionsContext';
+import { AppleAdminChat } from '../../components/chat/AppleAdminChat';
 
-export const AdminPortal: React.FC = () => {
+export type AdminTab = 'dashboard' | 'customers' | 'appointments' | 'chat' | 'payments' | 'blog' | 'broadcast' | 'analytics' | 'settings';
+
+interface AdminPortalProps {
+  initialTab?: AdminTab;
+}
+
+export const AdminPortal: React.FC<AdminPortalProps> = ({ initialTab }) => {
   const { user, logout } = useAuth();
   const { showToast } = useNotification();
 
-  const [activeTab, setActiveTab] = useState<
-    'dashboard' | 'customers' | 'appointments' | 'chat' | 'payments' | 'blog' | 'broadcast' | 'analytics' | 'settings'
-  >('dashboard');
+  const getStartingTab = (): AdminTab => {
+    if (initialTab) return initialTab;
+    if (typeof window !== 'undefined' && window.location.hash) {
+      const h = window.location.hash.replace('#', '');
+      if (['dashboard', 'customers', 'appointments', 'chat', 'payments', 'blog', 'broadcast', 'analytics', 'settings'].includes(h)) {
+        return h as AdminTab;
+      }
+    }
+    return 'dashboard';
+  };
+
+  const [activeTab, setActiveTab] = useState<AdminTab>(getStartingTab);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Listen to hash changes (e.g. from mobile bottom nav #chat)
+  useEffect(() => {
+    const handleHashChange = () => {
+      const h = window.location.hash.replace('#', '');
+      if (['dashboard', 'customers', 'appointments', 'chat', 'payments', 'blog', 'broadcast', 'analytics', 'settings'].includes(h)) {
+        setActiveTab(h as AdminTab);
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   const [metrics, setMetrics] = useState<any>(null);
   const [appointments, setAppointments] = useState<any[]>([]);
@@ -38,6 +66,9 @@ export const AdminPortal: React.FC = () => {
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const [chatInput, setChatInput] = useState('');
   const [adminNote, setAdminNote] = useState('');
+  const [selectedChatConvId, setSelectedChatConvId] = useState<string | undefined>(undefined);
+  const [customerToDelete, setCustomerToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [isDeletingCustomer, setIsDeletingCustomer] = useState(false);
 
   // Blog CMS & AI Editorial Studio
   const [blogPosts, setBlogPosts] = useState<any[]>([]);
@@ -215,16 +246,29 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
     }
   };
 
-  const openCustomerChatFromCrm = (customer: any) => {
+  const openCustomerChatFromCrm = async (customer: any) => {
+    try {
+      const res = await apiRequest<any>(`/chat/admin/start-conversation/${customer.id}`, 'POST');
+      if (res.conversation?.id) {
+        setSelectedChatConvId(res.conversation.id);
+      }
+    } catch (_) {}
     setActiveTab('chat');
-    // Find conversation if exists, or select it
-    const existingConv = chatConversations.find((c) => c.customer_id === customer.id);
-    if (existingConv) {
-      selectConversation(existingConv);
-    } else {
-      apiRequest(`/admin/customers/${customer.id}/full-context`).then((res) => {
-        setCustomerFullContext(res);
-      }).catch(() => {});
+  };
+
+  const handleDeleteCustomerFromCrm = async () => {
+    if (!customerToDelete) return;
+    setIsDeletingCustomer(true);
+    try {
+      await apiRequest(`/admin/customers/${customerToDelete.id}`, { method: 'DELETE' });
+      showToast(`Client "${customerToDelete.name}" and all records permanently deleted`, 'success');
+      setCustomerToDelete(null);
+      fetchCustomers();
+      fetchMetrics();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to delete client', 'error');
+    } finally {
+      setIsDeletingCustomer(false);
     }
   };
 
@@ -1086,393 +1130,15 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
           </div>
         )}
 
-        {/* 3. UNIFIED CHAT INBOX WITH ADVANCED CUSTOMER 360 & FAMILY PANEL (Section 10) */}
+        {/* 3. UNIFIED CHAT INBOX - APPLE MESSAGES ENGINE */}
         {activeTab === 'chat' && (
-          <div
-            className="apple-card"
-            style={{
-              height: 680,
-              display: 'grid',
-              gridTemplateColumns: '290px 1fr 340px',
-              overflow: 'hidden',
-              backgroundColor: '#FFF'
+          <AppleAdminChat
+            initialConversationId={selectedChatConvId}
+            onCustomerDeleted={() => {
+              fetchCustomers();
+              fetchMetrics();
             }}
-          >
-            {/* Left Conversation List */}
-            <div style={{ borderRight: '1px solid #E5E5EA', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-              <div style={{ padding: '14px 16px', borderBottom: '1px solid #E5E5EA', fontWeight: 600, fontSize: 14 }}>
-                Active Inquiries ({filteredConversations.length})
-              </div>
-
-              {/* Conversation search */}
-              <div style={{ padding: '10px 12px', borderBottom: '1px solid #E5E5EA', backgroundColor: '#FAF9F6' }}>
-                <div style={{ position: 'relative' }}>
-                  <Search size={14} color="#8E8E93" style={{ position: 'absolute', left: 10, top: 9 }} />
-                  <input
-                    type="text"
-                    value={chatSearch}
-                    onChange={(e) => setChatSearch(e.target.value)}
-                    placeholder="Search client or phone..."
-                    className="apple-input"
-                    style={{ paddingLeft: 30, fontSize: 12.5, padding: '5px 8px 5px 30px', width: '100%', borderRadius: 8 }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ flex: 1, overflowY: 'auto' }}>
-                {filteredConversations.length === 0 ? (
-                  <div style={{ padding: 24, textAlign: 'center', color: '#86868B', fontSize: 13 }}>
-                    No conversations found.
-                  </div>
-                ) : (
-                  filteredConversations.map((conv) => {
-                    const isSelected = activeChatConv?.id === conv.id;
-                    return (
-                      <div
-                        key={conv.id}
-                        onClick={() => selectConversation(conv)}
-                        style={{
-                          padding: '12px 14px',
-                          borderBottom: '1px solid #F0F0F2',
-                          cursor: 'pointer',
-                          backgroundColor: isSelected ? '#F5F5F7' : '#FFFFFF',
-                          transition: 'background-color 0.15s'
-                        }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                          <strong style={{ fontSize: 13.5, color: '#1D1D1F' }}>{conv.customer_name}</strong>
-                          {conv.unread_admin_count > 0 && (
-                            <span style={{ backgroundColor: '#D64545', color: '#FFF', fontSize: 10, padding: '2px 6px', borderRadius: 9999, fontWeight: 700 }}>
-                              {conv.unread_admin_count}
-                            </span>
-                          )}
-                        </div>
-                        <div style={{ fontSize: 12, color: '#8E8E93', marginBottom: 2 }}>
-                          {conv.customer_phone}
-                        </div>
-                        <div style={{ fontSize: 12, color: '#6E6E73', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {conv.last_message_text || 'No messages yet'}
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-
-            {/* Middle Chat Messages Window */}
-            <div style={{ display: 'flex', flexDirection: 'column', backgroundColor: '#FAF9F6', borderRight: '1px solid #E5E5EA' }}>
-              {/* Header */}
-              <div style={{ padding: '12px 18px', backgroundColor: '#FFF', borderBottom: '1px solid #E5E5EA', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <strong style={{ fontSize: 15, color: '#1D1D1F' }}>{activeChatConv?.customer_name || 'Select Inquiry'}</strong>
-                    {customerFullContext?.customer && (
-                      customerFullContext.customer.is_new_customer && !customerFullContext.customer.trial_used ? (
-                        <span className="apple-badge-success" style={{ fontSize: 10 }}>New Client</span>
-                      ) : customerFullContext.customer.trial_used ? (
-                        <span style={{ fontSize: 10, backgroundColor: '#F2E7FE', color: '#6A1B9A', padding: '1px 6px', borderRadius: 4, fontWeight: 600 }}>Trial Used</span>
-                      ) : (
-                        <span style={{ fontSize: 10, backgroundColor: '#F5F5F7', color: '#6E6E73', padding: '1px 6px', borderRadius: 4, fontWeight: 600 }}>Old Client</span>
-                      )
-                    )}
-                  </div>
-                  <span style={{ fontSize: 12, color: '#6E6E73' }}>{activeChatConv?.customer_phone}</span>
-                </div>
-                {activeChatConv?.customer_phone && (
-                  <a
-                    href={`tel:${activeChatConv.customer_phone}`}
-                    className="apple-btn-secondary"
-                    style={{ padding: '4px 10px', fontSize: 12, textDecoration: 'none', color: '#3A3A6E' }}
-                  >
-                    <Phone size={12} /> Dial
-                  </a>
-                )}
-              </div>
-
-              {/* Messages Scroll Area */}
-              <div style={{ flex: 1, padding: '16px 20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {chatDetails?.messages?.length === 0 && (
-                  <div style={{ textAlign: 'center', padding: '40px 0', color: '#86868B', fontSize: 13 }}>
-                    No consultation messages exchanged yet with this client.
-                  </div>
-                )}
-                {chatDetails?.messages?.map((m: any) => {
-                  const isMe = m.sender_type === 'admin';
-                  return (
-                    <div
-                      key={m.id}
-                      style={{
-                        alignSelf: isMe ? 'flex-end' : 'flex-start',
-                        maxWidth: '78%',
-                        backgroundColor: isMe ? '#E8F5E9' : '#FFFFFF',
-                        borderRadius: 14,
-                        padding: '10px 14px',
-                        border: '1px solid #E5E5EA',
-                        fontSize: 13.5
-                      }}
-                    >
-                      <div style={{ fontSize: 11, fontWeight: 600, color: isMe ? '#247D3B' : '#3A3A6E', marginBottom: 2 }}>
-                        {isMe ? 'Amit' : activeChatConv?.customer_name || 'Client'}
-                      </div>
-                      <div style={{ color: '#1D1D1F', lineHeight: 1.45 }}>{m.content}</div>
-                      <div style={{ fontSize: 10, color: '#86868B', textAlign: 'right', marginTop: 4 }}>
-                        {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    </div>
-                  );
-                })}
-                <div ref={chatBottomRef} />
-              </div>
-
-              {/* Quick Reply Templates */}
-              <div style={{ padding: '6px 14px', backgroundColor: '#FFF', borderTop: '1px solid #E5E5EA', display: 'flex', gap: 6, overflowX: 'auto' }}>
-                {[
-                  'Namaste! Your slot is confirmed.',
-                  'Please send the birth time and birth city of your family member.',
-                  'Kindly upload a photo of your palms for Rekha Vichar.',
-                  'Our consultation will commence in 10 minutes.'
-                ].map((txt) => (
-                  <button
-                    key={txt}
-                    onClick={() => handleQuickReply(txt)}
-                    style={{ background: '#F5F5F7', border: '1px solid #E5E5EA', borderRadius: 9999, padding: '4px 10px', fontSize: 11.5, cursor: 'pointer', whiteSpace: 'nowrap' }}
-                  >
-                    {txt}
-                  </button>
-                ))}
-              </div>
-
-              {/* Input */}
-              <form onSubmit={handleAdminChatSend} style={{ padding: '10px 16px', backgroundColor: '#FFF', borderTop: '1px solid #E5E5EA', display: 'flex', gap: 8 }}>
-                <input
-                  type="text"
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  placeholder="Reply as Amit..."
-                  className="apple-input"
-                  style={{ borderRadius: 9999, padding: '8px 14px', fontSize: 13.5 }}
-                />
-                <button type="submit" className="apple-btn-primary" style={{ padding: '8px 18px', fontSize: 13.5 }}>
-                  <Send size={14} /> Send
-                </button>
-              </form>
-            </div>
-
-            {/* Right Customer 360 Sidebar — WHOLE FAMILY DETAILS & CONTROLS */}
-            <div style={{ overflowY: 'auto', padding: '16px 16px', backgroundColor: '#FFF', display: 'flex', flexDirection: 'column', gap: 18 }}>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <h4 style={{ fontSize: 13, fontWeight: 700, color: '#1D1D1F', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Customer 360 View
-                  </h4>
-                  {customerFullContext?.customer && (
-                    <span style={{ fontSize: 11, color: '#86868B' }}>
-                      ID: {customerFullContext.customer.id.substring(0, 8)}
-                    </span>
-                  )}
-                </div>
-
-                {/* Customer Account Status & New Client Toggle */}
-                {customerFullContext?.customer && (
-                  <div style={{ backgroundColor: '#F8F8FA', padding: '12px 14px', borderRadius: 12, border: '1px solid #E5E5EA' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                      <span style={{ fontSize: 12, color: '#6E6E73', fontWeight: 500 }}>Client Status</span>
-                      {customerFullContext.customer.is_new_customer && !customerFullContext.customer.trial_used ? (
-                        <span className="apple-badge-success" style={{ fontSize: 10.5 }}>New (Trial Enabled)</span>
-                      ) : customerFullContext.customer.trial_used ? (
-                        <span style={{ fontSize: 10.5, backgroundColor: '#F2E7FE', color: '#6A1B9A', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>Trial Used</span>
-                      ) : (
-                        <span style={{ fontSize: 10.5, backgroundColor: '#E5E5EA', color: '#48484A', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>Old (Trial Revoked)</span>
-                      )}
-                    </div>
-
-                    {/* Admin Toggle button */}
-                    <button
-                      onClick={() => handleToggleNewCustomer(customerFullContext.customer.id, !customerFullContext.customer.is_new_customer)}
-                      className="apple-btn-secondary"
-                      style={{
-                        width: '100%',
-                        padding: '6px 10px',
-                        fontSize: 11.5,
-                        fontWeight: 600,
-                        color: customerFullContext.customer.is_new_customer ? '#D64545' : '#2FA84F',
-                        borderColor: customerFullContext.customer.is_new_customer ? '#F5C6CB' : '#C3E6CB'
-                      }}
-                    >
-                      {customerFullContext.customer.is_new_customer
-                        ? 'Revoke 5-Min Trial (Mark Old)'
-                        : 'Grant 5-Min Trial (Mark New)'}
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* WHOLE FAMILY DETAILS & BIRTH PROFILES PANEL */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <span style={{ fontSize: 12.5, fontWeight: 700, color: '#3A3A6E', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                    Family Kundli Profiles ({customerFullContext?.birthProfiles?.length || 0})
-                  </span>
-                </div>
-
-                {(!customerFullContext?.birthProfiles || customerFullContext.birthProfiles.length === 0) ? (
-                  <div style={{ fontSize: 12.5, color: '#86868B', padding: '12px 10px', backgroundColor: '#F5F5F7', borderRadius: 10, textAlign: 'center' }}>
-                    No family profiles added yet by client.
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {customerFullContext.birthProfiles.map((p: any) => {
-                      const rel = (p.relation || 'self').toLowerCase();
-                      const relColor =
-                        rel === 'self' ? '#3A3A6E' :
-                        rel === 'spouse' ? '#C9A24B' :
-                        ['son', 'daughter', 'child'].includes(rel) ? '#2FA84F' :
-                        ['father', 'mother', 'parent'].includes(rel) ? '#8A4AF3' : '#007AFF';
-
-                      const isExpanded = !!expandedProfileIds[p.id];
-
-                      return (
-                        <div
-                          key={p.id}
-                          style={{
-                            border: '1px solid #E5E5EA',
-                            borderRadius: 12,
-                            padding: '10px 12px',
-                            backgroundColor: '#FAFAFC',
-                            transition: 'border-color 0.15s'
-                          }}
-                        >
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                            <span
-                              style={{
-                                fontSize: 10.5,
-                                fontWeight: 700,
-                                textTransform: 'uppercase',
-                                padding: '2px 7px',
-                                borderRadius: 4,
-                                backgroundColor: `${relColor}15`,
-                                color: relColor
-                              }}
-                            >
-                              {p.relation}
-                            </span>
-
-                            <div style={{ display: 'flex', gap: 6 }}>
-                              <button
-                                onClick={() => handleCopyProfile(p)}
-                                className="apple-btn-secondary"
-                                style={{ padding: '3px 8px', fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 3 }}
-                                title="Copy chart data for Jagannatha Hora or astrology tool"
-                              >
-                                {copiedProfileId === p.id ? <Check size={11} color="#2FA84F" /> : <Copy size={11} />}
-                                {copiedProfileId === p.id ? 'Copied' : 'Copy'}
-                              </button>
-
-                              <button
-                                onClick={() => toggleExpandProfile(p.id)}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8E8E93', padding: 2 }}
-                              >
-                                {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                              </button>
-                            </div>
-                          </div>
-
-                          <div style={{ fontWeight: 600, fontSize: 13.5, color: '#1D1D1F', marginBottom: 3 }}>
-                            {p.full_name}
-                          </div>
-
-                          <div style={{ fontSize: 12, color: '#48484A', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            <div>📅 DOB: <strong>{p.dob}</strong></div>
-                            <div>⏰ TOB: <strong>{p.tob}</strong> {p.tob_uncertain ? '<span style="color:#D98E04">(Approx)</span>' : ''}</div>
-                            <div>📍 POB: <strong>{p.pob}</strong></div>
-                          </div>
-
-                          {isExpanded && (
-                            <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px dashed #E5E5EA', fontSize: 11.5, color: '#6E6E73' }}>
-                              <div>Profile ID: <code style={{ fontSize: 10.5 }}>{p.id}</code></div>
-                              {p.notes && <div style={{ marginTop: 4 }}>Notes: <em>{p.notes}</em></div>}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* APPOINTMENT & FOLLOW-UP HISTORY */}
-              <div>
-                <span style={{ fontSize: 12.5, fontWeight: 700, color: '#3A3A6E', textTransform: 'uppercase', letterSpacing: '0.03em', display: 'block', marginBottom: 8 }}>
-                  Consultation History ({customerFullContext?.appointments?.length || 0})
-                </span>
-
-                {(!customerFullContext?.appointments || customerFullContext.appointments.length === 0) ? (
-                  <div style={{ fontSize: 12, color: '#86868B' }}>No consultations booked yet.</div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {customerFullContext.appointments.slice(0, 4).map((a: any) => (
-                      <div key={a.id} style={{ border: '1px solid #E5E5EA', borderRadius: 10, padding: '8px 10px', fontSize: 12, backgroundColor: '#FAF9F6' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
-                          <strong>{a.package_name}</strong>
-                          <span className={a.status === 'Confirmed' ? 'apple-badge-success' : 'apple-badge-gold'} style={{ fontSize: 10 }}>
-                            {a.status}
-                          </span>
-                        </div>
-                        <div style={{ color: '#6E6E73' }}>
-                          {a.requested_date} ({a.requested_time_window})
-                        </div>
-
-                        {a.followup_days > 0 && (
-                          <div style={{ marginTop: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: 10.5, color: a.followup_active ? '#247D3B' : '#8E8E93', fontWeight: 600 }}>
-                              {a.followup_days}d Follow-up: {a.followup_active ? 'Active' : 'Ended'}
-                            </span>
-                            {a.status === 'Confirmed' && (
-                              <button
-                                onClick={() => openFollowupThread(a)}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3A3A6E', fontSize: 11, fontWeight: 600, textDecoration: 'underline' }}
-                              >
-                                View Thread
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* FINANCIAL SUMMARY */}
-              <div style={{ backgroundColor: '#F0F9F1', padding: '10px 12px', borderRadius: 10, border: '1px solid #C3E6CB' }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: '#247D3B', textTransform: 'uppercase' }}>Verified Lifetime Spending</div>
-                <div style={{ fontSize: 20, fontWeight: 700, color: '#1D1D1F', marginTop: 2 }}>
-                  ₹{(customerFullContext?.totalSpent || 0).toLocaleString('en-IN')}
-                </div>
-              </div>
-
-              {/* PRIVATE ASTROLOGER NOTES */}
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#86868B', marginBottom: 4, textTransform: 'uppercase' }}>Private Astrologer Notes</div>
-                <textarea
-                  rows={3}
-                  value={adminNote}
-                  onChange={(e) => setAdminNote(e.target.value)}
-                  placeholder="Private notes (remedies prescribed, gems, birth chart insights)..."
-                  className="apple-input"
-                  style={{ fontSize: 12, padding: 8, width: '100%' }}
-                />
-                <button
-                  onClick={handleSaveNotes}
-                  className="apple-btn-secondary"
-                  style={{ width: '100%', marginTop: 6, padding: '6px 10px', fontSize: 12 }}
-                >
-                  Save Internal Notes
-                </button>
-              </div>
-            </div>
-          </div>
+          />
         )}
 
         {/* 4. PAYMENT VERIFICATION QUEUE (Section 14) */}
@@ -1727,6 +1393,18 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                         >
                           <MessageSquare size={13} /> Chat & Family 360
                         </button>
+
+                        {c.id !== user?.id && (
+                          <button
+                            type="button"
+                            onClick={() => setCustomerToDelete({ id: c.id, name: c.name })}
+                            className="apple-btn-secondary"
+                            style={{ fontSize: 12, padding: '7px 12px', color: '#D64545', borderColor: '#F5C6CB' }}
+                            title="Permanently delete client and all records"
+                          >
+                            <Trash2 size={13} /> Delete
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -2956,6 +2634,103 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                 <Send size={14} /> Send Reply
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Apple-style Confirmation Modal for Deleting Customer */}
+      {customerToDelete && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.45)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: 16
+          }}
+          onClick={() => !isDeletingCustomer && setCustomerToDelete(null)}
+        >
+          <div
+            className="apple-card"
+            style={{
+              maxWidth: 440,
+              width: '100%',
+              padding: 24,
+              backgroundColor: '#FFFFFF',
+              borderRadius: 20,
+              boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+              <div
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  backgroundColor: '#FFEEEE',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#FF3B30'
+                }}
+              >
+                <AlertTriangle size={24} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: 17, fontWeight: 700, color: '#1D1D1F', margin: 0 }}>
+                  Delete Client?
+                </h3>
+                <p style={{ fontSize: 12.5, color: '#86868B', margin: '2px 0 0 0' }}>
+                  Action cannot be undone
+                </p>
+              </div>
+            </div>
+
+            <p style={{ fontSize: 14, color: '#3A3A3C', lineHeight: 1.5, marginBottom: 20 }}>
+              Are you sure you want to permanently delete <strong>{customerToDelete.name}</strong>?
+              This will erase all appointments, payment records, Kundli birth charts, and chat history.
+            </p>
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                disabled={isDeletingCustomer}
+                onClick={() => setCustomerToDelete(null)}
+                className="apple-btn-secondary"
+                style={{ fontSize: 13, padding: '8px 16px' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeletingCustomer}
+                onClick={handleDeleteCustomerFromCrm}
+                style={{
+                  backgroundColor: '#FF3B30',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: 10,
+                  padding: '8px 18px',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6
+                }}
+              >
+                {isDeletingCustomer ? 'Deleting...' : 'Delete Client'}
+              </button>
+            </div>
           </div>
         </div>
       )}

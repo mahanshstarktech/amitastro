@@ -9,6 +9,7 @@ import { useNotification } from '../../context/NotificationContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useHeaderActions } from '../../context/HeaderActionsContext';
 import { apiRequest } from '../../utils/api';
+import { AppleCustomerChat } from '../../components/chat/AppleCustomerChat';
 
 interface CustomerPortalProps {
   onOpenBooking: () => void;
@@ -55,12 +56,33 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
 
   const selfProfile = profiles.find((p) => p.relation === 'self') || profiles[0];
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'appointments' | 'chat' | 'profile' | 'payments' | 'settings'>(initialTab);
+  const getStartingTab = (): 'dashboard' | 'appointments' | 'chat' | 'profile' | 'payments' | 'settings' => {
+    if (initialTab && initialTab !== 'dashboard') return initialTab;
+    if (typeof window !== 'undefined' && window.location.hash) {
+      const h = window.location.hash.replace('#', '');
+      if (['dashboard', 'appointments', 'chat', 'profile', 'payments', 'settings'].includes(h)) {
+        return h as any;
+      }
+    }
+    return initialTab;
+  };
+
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'appointments' | 'chat' | 'profile' | 'payments' | 'settings'>(getStartingTab);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      if (typeof window !== 'undefined' && window.location.hash) {
+        const h = window.location.hash.replace('#', '');
+        if (['dashboard', 'appointments', 'chat', 'profile', 'payments', 'settings'].includes(h)) {
+          setActiveTab(h as any);
+        }
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [appointments, setAppointments] = useState<any[]>([]);
-  const [chatMessages, setChatMessages] = useState<any[]>([]);
-  const [conversation, setConversation] = useState<any>(null);
-  const [msgInput, setMsgInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   // Follow-up appointment chat state
@@ -115,41 +137,20 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
     pob: ''
   });
 
-  // Fetch appointments and chat data
+  // Fetch appointments and sync active plan state
   useEffect(() => {
     apiRequest<{ appointments: any[] }>('/appointments/my')
-      .then((res) => setAppointments(res.appointments || []))
-      .catch(() => {});
-
-    apiRequest<{ conversation: any; messages: any[] }>('/chat/conversation')
       .then((res) => {
-        setConversation(res.conversation);
-        setChatMessages(res.messages || []);
+        const appts = res.appointments || [];
+        setAppointments(appts);
+        const hasActive = appts.some((a) => a.status === 'confirmed' || a.followup_active);
+        if (typeof window !== 'undefined') {
+          if (hasActive) localStorage.setItem('amitastro_has_active_plan', 'true');
+          else localStorage.removeItem('amitastro_has_active_plan');
+        }
       })
       .catch(() => {});
   }, [activeTab]);
-
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!msgInput.trim() || !conversation) return;
-
-    const text = msgInput;
-    setMsgInput('');
-
-    try {
-      const res = await apiRequest<{ message: any }>('/chat/message', {
-        method: 'POST',
-        body: JSON.stringify({
-          conversationId: conversation.id,
-          content: text,
-          messageType: 'text'
-        })
-      });
-      setChatMessages((prev) => [...prev, res.message]);
-    } catch (err: any) {
-      showToast(err.message, 'error');
-    }
-  };
 
   const handleCreateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -755,148 +756,9 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
           </div>
         )}
 
-        {/* 3. WHATSAPP-STYLE IN-APP CHAT (Section 10) */}
+        {/* 3. APPLE MESSAGES CLIENT - DIRECT CHAT WITH AMIT */}
         {activeTab === 'chat' && (
-          <div
-            className="apple-card"
-            style={{
-              height: 600,
-              display: 'flex',
-              flexDirection: 'column',
-              overflow: 'hidden',
-              borderRadius: 20
-            }}
-          >
-            {/* WhatsApp Header */}
-            <div
-              style={{
-                backgroundColor: '#F5F5F7',
-                borderBottom: '1px solid #E5E5EA',
-                padding: '14px 20px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: '50%',
-                    backgroundColor: '#FFFFFF',
-                    border: '1px solid #E5E5EA',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: 5,
-                    overflow: 'hidden',
-                    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.06)'
-                  }}
-                >
-                  <img
-                    src="/icons/logo-mark.png"
-                    alt="Amit"
-                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                  />
-                </div>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 15, color: '#1D1D1F' }}>
-                    Amit (Astrologer)
-                  </div>
-                  <div style={{ fontSize: 12, color: '#2FA84F', display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#2FA84F' }} />
-                    Available on Desk
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ fontSize: 12.5, color: '#86868B' }}>
-                End-to-End Private Consultation
-              </div>
-            </div>
-
-            {/* Chat Messages Body */}
-            <div
-              style={{
-                flex: 1,
-                padding: '20px 24px',
-                overflowY: 'auto',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 12,
-                backgroundColor: '#FAF9F6' // Warm subtle off-white
-              }}
-            >
-              {chatMessages.map((m) => {
-                const isMe = m.sender_type === 'customer';
-                return (
-                  <div
-                    key={m.id}
-                    style={{
-                      alignSelf: isMe ? 'flex-end' : 'flex-start',
-                      maxWidth: '75%',
-                      backgroundColor: isMe ? '#E8F5E9' : '#FFFFFF',
-                      borderRadius: 16,
-                      borderBottomRightRadius: isMe ? 4 : 16,
-                      borderBottomLeftRadius: isMe ? 16 : 4,
-                      padding: '12px 16px',
-                      boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
-                      border: '1px solid #E5E5EA'
-                    }}
-                  >
-                    <div style={{ fontSize: 14.5, color: '#1D1D1F', lineHeight: 1.5 }}>
-                      {m.content}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: '#86868B',
-                        textAlign: 'right',
-                        marginTop: 4,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'flex-end',
-                        gap: 4
-                      }}
-                    >
-                      {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      {isMe && <CheckCircle2 size={12} color="#2FA84F" />}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Chat Composer */}
-            <form
-              onSubmit={handleSendMessage}
-              style={{
-                backgroundColor: '#FFFFFF',
-                borderTop: '1px solid #E5E5EA',
-                padding: '12px 18px',
-                display: 'flex',
-                gap: 10,
-                alignItems: 'center'
-              }}
-            >
-              <input
-                type="text"
-                value={msgInput}
-                onChange={(e) => setMsgInput(e.target.value)}
-                placeholder="Type a message or question for Amit..."
-                className="apple-input"
-                style={{ borderRadius: 9999, padding: '10px 18px', fontSize: 14 }}
-              />
-              <button
-                type="submit"
-                className="apple-btn-primary"
-                style={{ borderRadius: '50%', width: 42, height: 42, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              >
-                <Send size={16} />
-              </button>
-            </form>
-          </div>
+          <AppleCustomerChat onOpenBooking={onOpenBooking} />
         )}
 
         {/* 4. BIRTH PROFILES (FAMILY MEMBERS) (Section 7) */}

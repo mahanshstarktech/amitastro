@@ -60,6 +60,7 @@ router.get('/chat/conversation', authenticateToken, chatCtrl.getOrCreateConversa
 router.post('/chat/message', authenticateToken, chatCtrl.sendMessage);
 router.get('/chat/admin/inbox', authenticateToken, requireAdmin, chatCtrl.getAdminInbox);
 router.get('/chat/admin/conversation/:conversationId', authenticateToken, requireAdmin, chatCtrl.getAdminConversationDetails);
+router.post('/chat/admin/start-conversation/:customerId', authenticateToken, requireAdmin, chatCtrl.adminStartCustomerConversation);
 router.post('/chat/admin/crm/:customerId', authenticateToken, requireAdmin, chatCtrl.updateCustomerCrm);
 
 // 7. Trial
@@ -82,6 +83,7 @@ router.get('/admin/dashboard', authenticateToken, requireAdmin, adminCtrl.getDas
 router.get('/admin/customers', authenticateToken, requireAdmin, adminCtrl.getCustomersCrm);
 router.get('/admin/customers/:id/full-context', authenticateToken, requireAdmin, adminCtrl.getCustomerFullContext);
 router.get('/admin/customers/:id', authenticateToken, requireAdmin, adminCtrl.getCustomerDetails);
+router.delete('/admin/customers/:id', authenticateToken, requireAdmin, adminCtrl.adminDeleteCustomer);
 router.patch('/admin/customers/:id/new-customer-status', authenticateToken, requireAdmin, adminCtrl.toggleNewCustomerStatus);
 router.patch('/admin/users/:id/role', authenticateToken, requireAdmin, adminCtrl.adminUpdateUserRole);
 router.patch('/admin/packages/:id', authenticateToken, requireAdmin, adminCtrl.updatePackage);

@@ -385,3 +385,61 @@ export const adminUpdateUserRole = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({ error: err.message });
   }
 };
+
+export const adminDeleteCustomer = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const user = await getOne<any>('SELECT * FROM users WHERE id = ?', [id]);
+    if (!user) {
+      return res.status(404).json({ error: 'Customer not found' });
+    }
+
+    if (user.id === 'admin-amit' || user.email === 'admin@amitastro.com') {
+      return res.status(400).json({ error: 'Cannot delete the primary root astrologer account.' });
+    }
+
+    // 1. Delete followup messages
+    await runQuery(`
+      DELETE FROM followup_messages 
+      WHERE appointment_id IN (SELECT id FROM appointments WHERE customer_id = ?)
+    `, [id]);
+
+    // 2. Delete appointments
+    await runQuery('DELETE FROM appointments WHERE customer_id = ?', [id]);
+
+    // 3. Delete payments
+    await runQuery('DELETE FROM payments WHERE user_id = ?', [id]);
+
+    // 4. Delete chat messages
+    await runQuery(`
+      DELETE FROM chat_messages 
+      WHERE conversation_id IN (SELECT id FROM chat_conversations WHERE customer_id = ?) 
+         OR sender_id = ?
+    `, [id, id]);
+
+    // 5. Delete chat conversations
+    await runQuery('DELETE FROM chat_conversations WHERE customer_id = ?', [id]);
+
+    // 6. Delete birth profiles
+    await runQuery('DELETE FROM birth_profiles WHERE user_id = ?', [id]);
+
+    // 7. Delete customer crm meta
+    await runQuery('DELETE FROM customer_crm_meta WHERE user_id = ?', [id]);
+
+    // 8. Delete user record
+    await runQuery('DELETE FROM users WHERE id = ?', [id]);
+
+    // 9. Audit log
+    await runQuery(`
+      INSERT INTO audit_logs (id, admin_id, action, target_type, target_id, details)
+      VALUES (?, ?, 'CUSTOMER_DELETED', 'user', ?, ?)
+    `, [`audit-${uuidv4().substring(0, 8)}`, req.user!.id, id, `Permanently deleted customer ${user.name} (${user.email || user.phone})`]);
+
+    return res.json({
+      success: true,
+      message: `Customer "${user.name}" and all associated records deleted permanently.`
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+};

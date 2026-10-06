@@ -96,25 +96,75 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
 
 export const getAdminInbox = async (req: AuthRequest, res: Response) => {
   try {
+    // 1. Ensure all registered customers have a conversation row
+    const customersWithoutConv = await getAll<any>(`
+      SELECT u.id FROM users u
+      LEFT JOIN chat_conversations c ON c.customer_id = u.id
+      WHERE u.role = 'customer' AND c.id IS NULL
+    `);
+
+    for (const c of customersWithoutConv) {
+      const convId = `conv-${uuidv4().substring(0, 8)}`;
+      await runQuery(`
+        INSERT INTO chat_conversations (id, customer_id, admin_id, unread_admin_count, unread_customer_count)
+        VALUES (?, ?, 'admin-amit', 0, 0)
+      `, [convId, c.id]);
+
+      await runQuery(`
+        INSERT INTO chat_messages (id, conversation_id, sender_type, sender_id, message_type, content, is_read)
+        VALUES (?, ?, 'admin', 'admin-amit', 'text', 'Namaste! Welcome to Amit Astro. You can share your birth queries or photos of your palm/kundli here.', 1)
+      `, [`msg-${uuidv4().substring(0, 8)}`, convId]);
+    }
+
     const conversations = await getAll<any>(`
       SELECT 
         c.*,
         u.name as customer_name,
         u.phone as customer_phone,
         u.email as customer_email,
+        u.photo_url as customer_photo,
         u.trial_used,
         u.trial_seconds_remaining,
+        u.is_new_customer,
         crm.internal_notes,
         crm.tags_json,
         (SELECT content FROM chat_messages WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) as last_message_text,
-        (SELECT created_at FROM chat_messages WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) as last_message_time
+        (SELECT created_at FROM chat_messages WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) as last_message_time,
+        (SELECT sender_type FROM chat_messages WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) as last_message_sender,
+        (SELECT message_type FROM chat_messages WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) as last_message_type
       FROM chat_conversations c
       JOIN users u ON c.customer_id = u.id
       LEFT JOIN customer_crm_meta crm ON crm.user_id = u.id
-      ORDER BY c.last_message_at DESC
+      ORDER BY COALESCE(c.last_message_at, datetime('now')) DESC
     `);
 
     return res.json({ conversations });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+export const adminStartCustomerConversation = async (req: AuthRequest, res: Response) => {
+  try {
+    const { customerId } = req.params;
+    let conversation = await getOne<any>('SELECT * FROM chat_conversations WHERE customer_id = ?', [customerId]);
+
+    if (!conversation) {
+      const convId = `conv-${uuidv4().substring(0, 8)}`;
+      await runQuery(`
+        INSERT INTO chat_conversations (id, customer_id, admin_id)
+        VALUES (?, ?, 'admin-amit')
+      `, [convId, customerId]);
+
+      await runQuery(`
+        INSERT INTO chat_messages (id, conversation_id, sender_type, sender_id, message_type, content, is_read)
+        VALUES (?, ?, 'admin', 'admin-amit', 'text', 'Namaste! I am Amit. Welcome to Amit Astro. You can share your queries or photos of your palm/kundli here.', 1)
+      `, [`msg-${uuidv4().substring(0, 8)}`, convId]);
+
+      conversation = await getOne<any>('SELECT * FROM chat_conversations WHERE id = ?', [convId]);
+    }
+
+    return res.json({ success: true, conversation });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }
@@ -125,7 +175,7 @@ export const getAdminConversationDetails = async (req: AuthRequest, res: Respons
     const { conversationId } = req.params;
 
     const conversation = await getOne<any>(`
-      SELECT c.*, u.id as user_id, u.name, u.phone, u.email, u.trial_used, u.trial_seconds_remaining,
+      SELECT c.*, u.id as user_id, u.name, u.phone, u.email, u.photo_url, u.trial_used, u.trial_seconds_remaining,
              crm.internal_notes, crm.tags_json
       FROM chat_conversations c
       JOIN users u ON c.customer_id = u.id

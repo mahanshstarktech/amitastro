@@ -37,6 +37,7 @@ export const App: React.FC = () => {
   useEffect(() => {
     const handlePopState = () => {
       setCurrentPath(window.location.pathname);
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -44,7 +45,8 @@ export const App: React.FC = () => {
 
   const navigateTo = (path: string) => {
     window.history.pushState({}, '', path);
-    setCurrentPath(path);
+    setCurrentPath(window.location.pathname);
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
