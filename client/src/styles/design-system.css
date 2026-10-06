@@ -1762,6 +1762,169 @@ body {
   }
 }
 
+/* Hide back button on desktop screens */
+.mobile-back-btn {
+  display: none !important;
+}
+
+/* Chat Header Action Buttons (WhatsApp / macOS style) */
+.chat-header-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #54656F;
+  background: #F0F2F5;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.chat-header-action-btn:hover {
+  background: #E9EDEF;
+  color: #111B21;
+}
+
+.chat-header-action-btn.active {
+  background: #EBF3FE;
+  color: #007AFF;
+  border-color: #B6D7FE;
+}
+
+.chat-header-action-btn.danger {
+  color: #D64545;
+  background: #FFF1F0;
+  border-color: #FFCCC7;
+}
+
+.chat-header-action-btn.danger:hover {
+  background: #FFEBEA;
+  color: #B71C1C;
+}
+
+@media (max-width: 1280px) {
+  .header-btn-label {
+    display: none !important;
+  }
+  .chat-header-action-btn {
+    padding: 7px !important;
+    border-radius: 50% !important;
+  }
+}
+
+/* WhatsApp macOS Style Left Icon Rail & Full-Window Layout */
+.admin-app-workspace {
+  display: flex;
+  flex: 1;
+  width: 100vw;
+  height: calc(100vh - 42px);
+  overflow: hidden;
+  background-color: #F0F2F5;
+}
+
+.portal-app-rail {
+  background-color: #F0F2F5;
+  border-right: 1px solid #E5E5EA;
+  display: flex;
+  flex-direction: column;
+  justifyContent: space-between;
+  flex-shrink: 0;
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  z-index: 30;
+}
+
+.rail-item-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 10px 14px;
+  color: #54656F;
+  border-radius: 8px;
+  position: relative;
+  transition: all 0.15s ease;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.rail-item-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #111B21;
+}
+
+.rail-item-btn.active {
+  background-color: #FFFFFF;
+  color: #111B21;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.rail-item-collapsed-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0;
+}
+
+.rail-item-btn-collapsed {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #54656F;
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.rail-item-btn-collapsed:hover {
+  background-color: rgba(0, 0, 0, 0.06);
+  color: #111B21;
+}
+
+.rail-item-btn-collapsed.active {
+  background-color: #E7FFDB;
+  color: #0F5132;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.rail-badge-collapsed {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  background-color: #25D366;
+  color: #FFFFFF;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  border: 1.5px solid #F0F2F5;
+}
+
+.rail-badge-collapsed.danger {
+  background-color: #D64545;
+}
+
 .hybrid-chat-canvas {
   background-color: #EFEAE2;
   background-image: 

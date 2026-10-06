@@ -33,7 +33,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ initialTab }) => {
   };
 
   const [activeTab, setActiveTab] = useState<AdminTab>(getStartingTab);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => getStartingTab() === 'chat');
 
   // Listen to hash changes (e.g. from mobile bottom nav #chat)
   useEffect(() => {
@@ -41,6 +41,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ initialTab }) => {
       const h = window.location.hash.replace('#', '');
       if (['dashboard', 'customers', 'appointments', 'chat', 'payments', 'blog', 'broadcast', 'analytics', 'settings'].includes(h)) {
         setActiveTab(h as AdminTab);
+        if (h === 'chat') {
+          setSidebarCollapsed(true);
+        }
       }
     };
     window.addEventListener('hashchange', handleHashChange);
@@ -802,6 +805,9 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
 
   const handleSelectAdminTab = (tabId: typeof activeTab) => {
     setActiveTab(tabId);
+    if (tabId === 'chat') {
+      setSidebarCollapsed(true);
+    }
   };
 
   const { setHeaderActions } = useHeaderActions();
@@ -826,77 +832,138 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
   }, [activeTab, metrics]);
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#F5F5F7', display: 'flex', flexDirection: 'column' }}>
-      {/* Admin Top Header (Desktop only) */}
+    <div style={{ height: '100vh', width: '100vw', backgroundColor: '#F0F2F5', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      {/* macOS-Style Admin Top Header */}
       <header
         className="desktop-header-controls"
         style={{
-          backgroundColor: '#1D1D1F',
+          backgroundColor: '#1C1C1E',
           color: '#FFFFFF',
-          padding: '14px 24px',
+          padding: '0 16px',
+          height: 42,
+          display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'center'
+          alignItems: 'center',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          userSelect: 'none',
+          flexShrink: 0
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ backgroundColor: '#C9A24B', color: '#FFF', fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 4, textTransform: 'uppercase' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          {/* macOS Window Controls */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginRight: 6 }}>
+            <span style={{ width: 11, height: 11, borderRadius: '50%', backgroundColor: '#FF5F56', display: 'inline-block' }} />
+            <span style={{ width: 11, height: 11, borderRadius: '50%', backgroundColor: '#FFBD2E', display: 'inline-block' }} />
+            <span style={{ width: 11, height: 11, borderRadius: '50%', backgroundColor: '#27C93F', display: 'inline-block' }} />
+          </div>
+
+          <span style={{ backgroundColor: '#C9A24B', color: '#1C1C1E', fontSize: 10, fontWeight: 800, padding: '2px 7px', borderRadius: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
             Astrologer Admin
           </span>
-          <span style={{ fontWeight: 600, fontSize: 16 }}>Amit Astro Command Center</span>
-          <span style={{ fontSize: 13, color: '#A1A1A6' }}>· Amit</span>
+          <span style={{ fontWeight: 600, fontSize: 13.5, color: '#F5F5F7', letterSpacing: '-0.01em' }}>Amit Astro Command Center</span>
+          <span style={{ fontSize: 12, color: '#8E8E93' }}>· Astrologer Amit</span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button
             onClick={() => (window.location.href = '/')}
-            style={{ background: 'none', border: '1px solid #3A3A3C', color: '#FFFFFF', padding: '6px 12px', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}
+            style={{
+              background: 'rgba(255, 255, 255, 0.08)',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              color: '#FFFFFF',
+              padding: '4px 10px',
+              borderRadius: 6,
+              fontSize: 12,
+              fontWeight: 500,
+              cursor: 'pointer',
+              transition: 'background 0.15s ease'
+            }}
           >
-            View Public Site
+            View Public Site ↗
           </button>
           <button
             onClick={logout}
-            style={{ background: 'none', border: 'none', color: '#D64545', fontSize: 13, cursor: 'pointer' }}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#FF453A',
+              fontSize: 12,
+              fontWeight: 500,
+              cursor: 'pointer',
+              padding: '4px 8px'
+            }}
           >
             Sign Out
           </button>
         </div>
       </header>
 
-      {/* Main Layout Container (Desktop Sidebar + Admin Body) */}
-      <div className={`container ${activeTab === 'chat' ? 'admin-chat-container-mobile' : ''}`} style={{ maxWidth: 1440, marginTop: activeTab === 'chat' ? 0 : 24, paddingBottom: activeTab === 'chat' ? 0 : 80 }}>
-        <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
-          {/* Desktop Left Sidebar */}
-          <aside
-            style={{
-              width: sidebarCollapsed ? 72 : 280,
-              flexShrink: 0,
-              backgroundColor: '#FFFFFF',
-              border: '1px solid #E5E5EA',
-              borderRadius: 20,
-              padding: sidebarCollapsed ? '16px 10px' : '20px 16px',
-              boxShadow: '0 2px 12px rgba(0, 0, 0, 0.03)',
-              position: 'sticky',
-              top: 24,
-              transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
-            }}
-            className="portal-desktop-sidebar"
-          >
+      {/* Admin App Workspace (Full-window app layout, 0 empty space, smooth transition) */}
+      <div
+        className="admin-app-workspace"
+        style={{
+          display: 'flex',
+          flex: 1,
+          height: 'calc(100vh - 42px)',
+          width: '100vw',
+          overflow: 'hidden',
+          backgroundColor: '#FFFFFF'
+        }}
+      >
+        {/* WhatsApp macOS Style Left Icon Rail (Smooth CSS Transition 68px <-> 240px) */}
+        <aside
+          className="portal-app-rail"
+          style={{
+            width: sidebarCollapsed ? 68 : 240,
+            flexShrink: 0,
+            backgroundColor: '#F0F2F5',
+            borderRight: '1px solid #E5E5EA',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            transition: 'width 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+            overflow: 'hidden',
+            zIndex: 30
+          }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {/* Top Logo & Rail Header */}
             <div
               style={{
+                height: 60,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: sidebarCollapsed ? 'center' : 'space-between',
-                marginBottom: 16,
-                paddingBottom: 12,
-                borderBottom: '1px solid #E5E5EA'
+                padding: sidebarCollapsed ? '0 10px' : '0 16px',
+                borderBottom: '1px solid #E5E5EA',
+                flexShrink: 0
               }}
             >
-              {!sidebarCollapsed && (
-                <span style={{ fontWeight: 700, fontSize: 15, color: '#1D1D1F', letterSpacing: '-0.01em' }}>
+              {!sidebarCollapsed ? (
+                <span style={{ fontWeight: 700, fontSize: 15, color: '#111B21', letterSpacing: '-0.01em' }}>
                   Admin Modules
                 </span>
+              ) : (
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
+                    background: 'linear-gradient(135deg, #C9A24B, #E5C378)',
+                    color: '#1C1C1E',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 800,
+                    fontSize: 14
+                  }}
+                  title="Amit Astro Admin"
+                >
+                  अ
+                </div>
               )}
               <button
+                type="button"
                 onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
                 style={{
                   background: 'none',
@@ -904,39 +971,48 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                   cursor: 'pointer',
                   padding: 6,
                   borderRadius: 8,
-                  color: '#3A3A6E',
-                  display: 'flex',
-                  alignItems: 'center',
-                  transition: 'background 0.15s ease'
+                  color: '#54656F',
+                  display: sidebarCollapsed ? 'none' : 'flex',
+                  alignItems: 'center'
                 }}
                 title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               >
-                <PanelLeft size={19} />
+                <PanelLeft size={18} />
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {/* Nav Items List (WhatsApp style) */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: sidebarCollapsed ? '10px 0' : '10px 10px' }}>
               {adminTabs.map((item) => {
                 const Icon = item.icon;
                 const active = activeTab === item.id;
-                return (
+                return sidebarCollapsed ? (
+                  <div key={item.id} style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectAdminTab(item.id)}
+                      className={`rail-item-btn-collapsed ${active ? 'active' : ''}`}
+                      title={item.label}
+                    >
+                      <Icon size={20} color={active ? '#0F5132' : '#54656F'} />
+                      {item.badge !== undefined && item.badge > 0 && (
+                        <span className={`rail-badge-collapsed ${item.id === 'chat' ? '' : 'danger'}`}>
+                          {item.badge}
+                        </span>
+                      )}
+                    </button>
+                  </div>
+                ) : (
                   <button
                     key={item.id}
+                    type="button"
                     onClick={() => handleSelectAdminTab(item.id)}
-                    className={`sidebar-nav-item ${active ? 'active' : ''}`}
-                    title={sidebarCollapsed ? item.label : undefined}
-                    style={{
-                      justifyContent: sidebarCollapsed ? 'center' : 'space-between',
-                      padding: sidebarCollapsed ? '12px' : '10px 12px'
-                    }}
+                    className={`rail-item-btn ${active ? 'active' : ''}`}
                   >
-                    <div className="sidebar-nav-item-content">
-                      <Icon size={18} color={active ? '#3A3A6E' : '#6E6E73'} />
-                      {!sidebarCollapsed && <span>{item.label}</span>}
-                    </div>
-                    {!sidebarCollapsed && item.badge !== undefined && item.badge > 0 && (
-                      <span style={{ backgroundColor: '#D64545', color: '#FFF', fontSize: 10.5, fontWeight: 700, padding: '2px 7px', borderRadius: 9999 }}>
+                    <Icon size={18} color={active ? '#111B21' : '#54656F'} />
+                    <span style={{ flex: 1 }}>{item.label}</span>
+                    {item.badge !== undefined && item.badge > 0 && (
+                      <span style={{ backgroundColor: item.id === 'chat' ? '#25D366' : '#D64545', color: '#FFF', fontSize: 10.5, fontWeight: 700, padding: '2px 7px', borderRadius: 9999 }}>
                         {item.badge}
                       </span>
                     )}
@@ -944,10 +1020,75 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                 );
               })}
             </div>
-          </aside>
+          </div>
 
-          {/* Right Main Content Area */}
-          <main style={{ flex: 1, minWidth: 0 }}>
+          {/* Bottom Profile & Toggle Control */}
+          <div
+            style={{
+              padding: sidebarCollapsed ? '12px 0' : '12px 14px',
+              borderTop: '1px solid #E5E5EA',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: sidebarCollapsed ? 'center' : 'stretch',
+              gap: 8,
+              backgroundColor: '#F0F2F5'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: sidebarCollapsed ? 'center' : 'flex-start' }}>
+              <div style={{ position: 'relative' }}>
+                <div style={{ width: 34, height: 34, borderRadius: '50%', backgroundColor: '#3A3A6E', color: '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13 }}>
+                  A
+                </div>
+                <div style={{ position: 'absolute', bottom: 0, right: 0, width: 9, height: 9, borderRadius: '50%', backgroundColor: '#25D366', border: '2px solid #F0F2F5' }} />
+              </div>
+              {!sidebarCollapsed && (
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: '#111B21', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    Astrologer Amit
+                  </div>
+                  <div style={{ fontSize: 11, color: '#25D366', fontWeight: 500 }}>Online</div>
+                </div>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+                gap: 8,
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#54656F',
+                padding: '6px 0',
+                fontSize: 12,
+                borderRadius: 6
+              }}
+              title={sidebarCollapsed ? 'Expand navigation' : 'Collapse navigation'}
+            >
+              <PanelLeft size={16} />
+              {!sidebarCollapsed && <span>Collapse Sidebar</span>}
+            </button>
+          </div>
+        </aside>
+
+        {/* Right Main Content Area */}
+        <main
+          style={{
+            flex: 1,
+            minWidth: 0,
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: activeTab === 'chat' ? 'hidden' : 'auto',
+            padding: activeTab === 'chat' ? 0 : '24px 32px',
+            backgroundColor: activeTab === 'chat' ? '#FFFFFF' : '#F5F5F7'
+          }}
+        >
             {/* 1. DASHBOARD METRICS */}
         {activeTab === 'dashboard' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -2489,7 +2630,6 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
         )}
           </main>
         </div>
-      </div>
 
       {/* Admin Follow-up Consultation Thread Modal */}
       {activeFollowupThread && (

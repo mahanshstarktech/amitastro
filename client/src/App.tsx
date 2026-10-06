@@ -227,18 +227,22 @@ export const App: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#FBFBFD' }}>
-      {/* Apple Header */}
-      <AppleHeader
-        onOpenAuth={handleOpenAuth}
-        onOpenBooking={() => handleOpenBooking()}
-        onOpenTrial={handleOpenTrial}
-        onOpenSettings={() => setSettingsModalOpen(true)}
-        currentPage={currentPath === '/' ? 'home' : currentPath.substring(1)}
-        onNavigate={navigateTo}
-      />
+      {/* Apple Header (Hidden on admin to give full-window app experience) */}
+      {!currentPath.startsWith('/admin') && (
+        <AppleHeader
+          onOpenAuth={handleOpenAuth}
+          onOpenBooking={() => handleOpenBooking()}
+          onOpenTrial={handleOpenTrial}
+          onOpenSettings={() => setSettingsModalOpen(true)}
+          currentPage={currentPath === '/' ? 'home' : currentPath.substring(1)}
+          onNavigate={navigateTo}
+        />
+      )}
 
       {/* Main Content Area */}
-      <main style={{ flex: 1 }}>{renderRoute()}</main>
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', height: currentPath.startsWith('/admin') ? '100vh' : undefined, overflow: currentPath.startsWith('/admin') ? 'hidden' : undefined }}>
+        {renderRoute()}
+      </main>
 
       {/* iOS Mobile Bottom Navigation Bar */}
       <AppleBottomNav
