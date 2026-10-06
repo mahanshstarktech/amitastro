@@ -107,7 +107,7 @@ export const getCustomerDetails = async (req: AuthRequest, res: Response) => {
     const profiles = await getAll<any>('SELECT * FROM birth_profiles WHERE user_id = ? ORDER BY created_at ASC', [id]);
     const appointments = await getAll<any>(`
       SELECT a.*, p.name as package_name, p.price, p.duration_minutes,
-        CASE WHEN a.followup_chat_expires_at IS NOT NULL AND a.followup_chat_expires_at > datetime('now') THEN 1 ELSE 0 END as followup_active
+        CASE WHEN a.followup_chat_expires_at IS NOT NULL AND a.followup_chat_expires_at > CURRENT_TIMESTAMP THEN 1 ELSE 0 END as followup_active
       FROM appointments a
       JOIN packages p ON a.package_id = p.id
       WHERE a.customer_id = ?
@@ -165,7 +165,7 @@ export const getCustomerFullContext = async (req: AuthRequest, res: Response) =>
       getAll<any>('SELECT * FROM birth_profiles WHERE user_id = ? ORDER BY relation ASC', [id]),
       getAll<any>(`
         SELECT a.*, p.name as package_name, p.price, p.duration_minutes, p.slug as package_slug,
-          CASE WHEN a.followup_chat_expires_at IS NOT NULL AND a.followup_chat_expires_at > datetime('now') THEN 1 ELSE 0 END as followup_active,
+          CASE WHEN a.followup_chat_expires_at IS NOT NULL AND a.followup_chat_expires_at > CURRENT_TIMESTAMP THEN 1 ELSE 0 END as followup_active,
           (SELECT COUNT(*) FROM followup_messages fm WHERE fm.appointment_id = a.id AND fm.is_read = 0 AND fm.sender_type = 'customer') as followup_unread
         FROM appointments a
         JOIN packages p ON a.package_id = p.id

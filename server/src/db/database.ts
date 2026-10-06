@@ -31,11 +31,13 @@ if (isPostgres) {
   });
 }
 
-// Convert SQLite '?' placeholders to PostgreSQL '$1, $2, ...'
+// Convert SQLite '?' placeholders to PostgreSQL '$1, $2, ...' and functions
 function formatSqlForEngine(sql: string): string {
   if (!isPostgres) return sql;
   let count = 1;
-  return sql.replace(/\?/g, () => `$${count++}`);
+  let formatted = sql.replace(/\?/g, () => `$${count++}`);
+  formatted = formatted.replace(/datetime\('now'\)/gi, 'CURRENT_TIMESTAMP');
+  return formatted;
 }
 
 // Universal Query Runners

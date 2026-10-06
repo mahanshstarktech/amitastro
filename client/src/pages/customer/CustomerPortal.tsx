@@ -219,7 +219,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#FBFBFD', paddingBottom: 80 }}>
       {/* Top Welcome Bar */}
-      <div style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid #E5E5EA', padding: '24px 0' }}>
+      <div className={`portal-header-banner ${activeTab === 'chat' ? 'hide-on-mobile-chat' : ''}`} style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid #E5E5EA', padding: '24px 0' }}>
         <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
             {/* User Profile Avatar with Pencil Edit Option */}
@@ -319,7 +319,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
       </div>
 
       {/* Main Layout Container (Desktop Sidebar + Tab Content) */}
-      <div className="container" style={{ maxWidth: 1380, marginTop: 32 }}>
+      <div className={`container ${activeTab === 'chat' ? 'portal-chat-container-mobile' : ''}`} style={{ maxWidth: 1380, marginTop: activeTab === 'chat' ? 0 : 32 }}>
         <div style={{ display: 'flex', gap: 28, alignItems: 'flex-start' }}>
           {/* Desktop Left Sidebar */}
           <aside

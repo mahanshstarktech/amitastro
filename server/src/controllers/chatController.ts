@@ -76,13 +76,13 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
     if (senderType === 'customer') {
       await runQuery(`
         UPDATE chat_conversations 
-        SET last_message_at = datetime('now'), unread_admin_count = unread_admin_count + 1
+        SET last_message_at = CURRENT_TIMESTAMP, unread_admin_count = unread_admin_count + 1
         WHERE id = ?
       `, [conversationId]);
     } else {
       await runQuery(`
         UPDATE chat_conversations 
-        SET last_message_at = datetime('now'), unread_customer_count = unread_customer_count + 1
+        SET last_message_at = CURRENT_TIMESTAMP, unread_customer_count = unread_customer_count + 1
         WHERE id = ?
       `, [conversationId]);
     }
@@ -135,7 +135,7 @@ export const getAdminInbox = async (req: AuthRequest, res: Response) => {
       FROM chat_conversations c
       JOIN users u ON c.customer_id = u.id
       LEFT JOIN customer_crm_meta crm ON crm.user_id = u.id
-      ORDER BY COALESCE(c.last_message_at, datetime('now')) DESC
+      ORDER BY COALESCE(c.last_message_at, CURRENT_TIMESTAMP) DESC
     `);
 
     return res.json({ conversations });
@@ -242,11 +242,11 @@ export const updateCustomerCrm = async (req: AuthRequest, res: Response) => {
 
     await runQuery(`
       INSERT INTO customer_crm_meta (user_id, internal_notes, tags_json, updated_at)
-      VALUES (?, ?, ?, datetime('now'))
+      VALUES (?, ?, ?, CURRENT_TIMESTAMP)
       ON CONFLICT(user_id) DO UPDATE SET
         internal_notes = COALESCE(?, internal_notes),
         tags_json = COALESCE(?, tags_json),
-        updated_at = datetime('now')
+        updated_at = CURRENT_TIMESTAMP
     `, [customerId, notes || '', JSON.stringify(tags || []), notes || '', JSON.stringify(tags || [])]);
 
     return res.json({ success: true, message: 'CRM metadata updated' });

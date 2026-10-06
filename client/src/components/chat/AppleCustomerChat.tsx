@@ -239,7 +239,7 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
 
   return (
     <div
-      className="apple-card"
+      className="apple-card hybrid-chat-wrapper hybrid-customer-chat"
       style={{
         height: 'calc(100vh - 180px)',
         minHeight: 560,
@@ -255,12 +255,12 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
       }}
     >
       {/* ======================================================== */}
-      {/* 1. TOP HEADER: APPLE MESSAGES CONTACT PROFILE            */}
+      {/* 1. TOP HEADER: APPLE + WHATSAPP HYBRID BAR               */}
       {/* ======================================================== */}
       <div
         style={{
-          padding: '12px 20px',
-          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          padding: '10px 16px',
+          backgroundColor: 'rgba(255, 255, 255, 0.94)',
           backdropFilter: 'blur(20px) saturate(180%)',
           WebkitBackdropFilter: 'blur(20px) saturate(180%)',
           borderBottom: '1px solid #E5E5EA',
@@ -271,20 +271,20 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
         }}
       >
         {/* Left Contact Info */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ position: 'relative' }}>
             <div
               style={{
-                width: 44,
-                height: 44,
+                width: 42,
+                height: 42,
                 borderRadius: '50%',
                 background: 'linear-gradient(135deg, #FAF8F5, #EDE6D8)',
                 border: '1.5px solid #D6B97A',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: 5,
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)'
+                padding: 4,
+                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)'
               }}
             >
               <img
@@ -299,19 +299,19 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
                 position: 'absolute',
                 bottom: 0,
                 right: 0,
-                width: 12,
-                height: 12,
+                width: 11,
+                height: 11,
                 borderRadius: '50%',
-                backgroundColor: '#34C759',
+                backgroundColor: '#25D366',
                 border: '2px solid #FFFFFF',
-                boxShadow: '0 0 4px rgba(52, 199, 89, 0.6)'
+                boxShadow: '0 0 4px rgba(37, 211, 102, 0.6)'
               }}
             />
           </div>
 
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontWeight: 700, fontSize: 16, color: '#1D1D1F', letterSpacing: '-0.02em' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <span style={{ fontWeight: 700, fontSize: 15.5, color: '#1D1D1F', letterSpacing: '-0.01em' }}>
                 Amit (Astrologer)
               </span>
               <span
@@ -322,25 +322,25 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
                   backgroundColor: '#FCF8ED',
                   border: '1px solid #E6D2A7',
                   color: '#9E741F',
-                  fontSize: 10.5,
+                  fontSize: 10,
                   fontWeight: 600,
-                  padding: '1px 6px',
+                  padding: '1px 5px',
                   borderRadius: 9999
                 }}
               >
-                <ShieldCheck size={11} /> Verified
+                <ShieldCheck size={10} /> Verified
               </span>
             </div>
-            <div style={{ fontSize: 12, color: '#6E6E73', display: 'flex', alignItems: 'center', gap: 6, marginTop: 1 }}>
-              <span style={{ color: '#34C759', fontWeight: 600 }}>Active Desk</span>
+            <div style={{ fontSize: 11.5, color: '#6E6E73', display: 'flex', alignItems: 'center', gap: 5, marginTop: 1 }}>
+              <span style={{ color: '#25D366', fontWeight: 600 }}>Active Desk</span>
               <span>·</span>
-              <span>End-to-End Private Vedic Guidance</span>
+              <span>Private Vedic Guidance</span>
             </div>
           </div>
         </div>
 
         {/* Right Action Icons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <button
             type="button"
             onClick={() => setSoundEnabled(!soundEnabled)}
@@ -348,32 +348,34 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              color: soundEnabled ? '#007AFF' : '#8E8E93',
+              color: soundEnabled ? '#3A3A6E' : '#8E8E93',
               padding: 6,
               borderRadius: 8
             }}
             title={soundEnabled ? 'Chime sound enabled' : 'Mute send chime'}
           >
-            {soundEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
+            {soundEnabled ? <Volume2 size={17} /> : <VolumeX size={17} />}
           </button>
 
           <button
             type="button"
             onClick={onOpenBooking}
-            className="apple-btn-secondary"
             style={{
+              backgroundColor: '#F5F5F7',
+              border: '1px solid #D2D2D7',
+              borderRadius: 20,
               padding: '6px 12px',
-              fontSize: 12.5,
+              fontSize: 12,
               fontWeight: 600,
               color: '#3A3A6E',
-              borderColor: '#D2D2D7',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 6
+              gap: 5,
+              cursor: 'pointer'
             }}
           >
             <Calendar size={13} />
-            <span className="btn-label-desktop">Book Video/Voice Call</span>
+            <span>Consultation</span>
           </button>
         </div>
       </div>
@@ -386,35 +388,35 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
           style={{
             backgroundColor: '#F3FAF3',
             borderBottom: '1px solid #D8EED8',
-            padding: '7px 18px',
+            padding: '6px 14px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            fontSize: 12.5,
+            fontSize: 12,
             color: '#1E682E'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Sparkles size={14} color="#34C759" />
+            <Sparkles size={13} color="#25D366" />
             <span>
-              <strong>Free 5-Min Introductory Vedic Chat Active!</strong> Send your birth query or palm chart directly to Amit ji.
+              <strong>Free 5-Min Vedic Chat Active:</strong> Share your birth query or palm chart directly with Amit ji.
             </span>
           </div>
         </div>
       )}
 
       {/* ======================================================== */}
-      {/* 3. MESSAGE BODY: APPLE iMESSAGE THREAD                   */}
+      {/* 3. MESSAGE BODY: WHATSAPP + APPLE HYBRID CANVAS          */}
       {/* ======================================================== */}
       <div
+        className="hybrid-chat-canvas"
         style={{
           flex: 1,
-          padding: '20px 20px',
+          padding: '14px 14px',
           overflowY: 'auto',
           display: 'flex',
           flexDirection: 'column',
-          gap: 14,
-          backgroundColor: '#FAF9F6' // Apple subtle warm off-white canvas
+          gap: 10
         }}
       >
         {isLoading ? (
@@ -453,94 +455,69 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
               idx === 0 ||
               new Date(m.created_at).getTime() - new Date(messages[idx - 1].created_at).getTime() > 10 * 60 * 1000;
 
+            const timeStr = new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
             return (
               <React.Fragment key={m.id || idx}>
                 {showTimestamp && (
-                  <div
-                    style={{
-                      textAlign: 'center',
-                      fontSize: 11,
-                      color: '#8E8E93',
-                      margin: '8px 0',
-                      fontWeight: 500
-                    }}
-                  >
+                  <div className="hybrid-date-pill">
                     {new Date(m.created_at).toLocaleDateString([], {
                       weekday: 'short',
                       month: 'short',
                       day: 'numeric'
-                    })}{' '}
-                    · {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    })}
                   </div>
                 )}
 
                 <div
                   style={{
                     alignSelf: isMe ? 'flex-end' : 'flex-start',
-                    maxWidth: '82%',
+                    maxWidth: '85%',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: isMe ? 'flex-end' : 'flex-start'
                   }}
                 >
-                  {/* Sender label for incoming */}
-                  {!isMe && (
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: '#6E6E73',
-                        fontWeight: 600,
-                        marginLeft: 12,
-                        marginBottom: 3
-                      }}
-                    >
-                      Amit Soni
-                    </div>
-                  )}
-
                   {/* Message Type 1: Astrological Remedy Card */}
                   {m.message_type === 'astrological_remedy' ? (
                     <div
                       style={{
-                        backgroundColor: '#FFFBF2',
+                        backgroundColor: '#FFFDF9',
                         border: '1.5px solid #E8D3A7',
-                        borderRadius: 18,
-                        padding: '16px 18px',
+                        borderRadius: 14,
+                        padding: '14px 16px',
                         maxWidth: 420,
-                        boxShadow: '0 4px 16px rgba(201, 162, 75, 0.12)'
+                        boxShadow: '0 2px 8px rgba(201, 162, 75, 0.12)'
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                         <span style={{ fontSize: 18 }}>🕉️</span>
                         <div>
-                          <div style={{ fontSize: 13.5, fontWeight: 700, color: '#875C0C' }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#875C0C' }}>
                             Prescribed Vedic Remedy
                           </div>
-                          <div style={{ fontSize: 11, color: '#A07829' }}>Astrologer Recommendation</div>
+                          <div style={{ fontSize: 10.5, color: '#A07829' }}>Astrologer Recommendation</div>
                         </div>
                       </div>
-                      <div style={{ fontSize: 13.5, color: '#2C200C', lineHeight: 1.55 }}>
+                      <div style={{ fontSize: 'var(--chat-font-bubble)', color: '#2C200C', lineHeight: 1.45 }}>
                         {m.content}
+                      </div>
+                      <div className="hybrid-bubble-time" style={{ float: 'right', marginTop: 6 }}>
+                        {timeStr}
                       </div>
                     </div>
                   ) : m.message_type === 'image' || m.attachment_url ? (
-                    /* Message Type 2: Image Attachment with Lightbox Zoom */
+                    /* Message Type 2: Image Attachment */
                     <div
-                      style={{
-                        backgroundColor: isMe ? '#007AFF' : '#E9E9EB',
-                        borderRadius: 18,
-                        borderBottomRightRadius: isMe ? 4 : 18,
-                        borderBottomLeftRadius: isMe ? 18 : 4,
-                        padding: 6,
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
-                      }}
+                      className={`hybrid-bubble ${isMe ? 'hybrid-bubble-out' : 'hybrid-bubble-in'}`}
+                      style={{ padding: 4 }}
                     >
                       {m.attachment_url && (
                         <div
                           onClick={() => setZoomedImage(m.attachment_url || null)}
                           style={{
                             cursor: 'pointer',
-                            borderRadius: 14,
+                            borderRadius: 12,
                             overflow: 'hidden',
                             position: 'relative'
                           }}
@@ -549,19 +526,20 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
                             src={m.attachment_url}
                             alt="Attachment"
                             style={{
-                              maxWidth: 320,
-                              maxHeight: 280,
+                              maxWidth: 300,
+                              maxHeight: 260,
                               width: '100%',
                               objectFit: 'cover',
-                              display: 'block'
+                              display: 'block',
+                              borderRadius: 12
                             }}
                           />
                           <div
                             style={{
                               position: 'absolute',
-                              bottom: 8,
-                              right: 8,
-                              backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                              bottom: 6,
+                              right: 6,
+                              backgroundColor: 'rgba(0, 0, 0, 0.65)',
                               borderRadius: 6,
                               padding: '2px 6px',
                               color: '#FFF',
@@ -571,33 +549,32 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
                               gap: 3
                             }}
                           >
-                            <ImageIcon size={10} /> Click to zoom
+                            <ImageIcon size={10} /> Zoom
                           </div>
                         </div>
                       )}
                       {m.content && m.content !== 'Sent an attachment' && (
                         <div
                           style={{
-                            padding: '8px 10px 4px 10px',
-                            fontSize: 14,
-                            color: isMe ? '#FFFFFF' : '#000000',
-                            lineHeight: 1.45
+                            padding: '6px 8px 2px 8px',
+                            fontSize: 'var(--chat-font-bubble)',
+                            color: '#111B21',
+                            lineHeight: 1.4
                           }}
                         >
                           {m.content}
                         </div>
                       )}
+                      <div className="hybrid-bubble-time" style={{ padding: '0 6px 4px 0' }}>
+                        {timeStr} {isMe && <span className="hybrid-read-ticks">✓✓</span>}
+                      </div>
                     </div>
                   ) : m.message_type === 'voice' ? (
                     /* Message Type 3: Voice Note Message */
                     <div
+                      className={`hybrid-bubble ${isMe ? 'hybrid-bubble-out' : 'hybrid-bubble-in'}`}
                       style={{
-                        backgroundColor: isMe ? '#007AFF' : '#E9E9EB',
-                        color: isMe ? '#FFFFFF' : '#000000',
-                        borderRadius: 18,
-                        borderBottomRightRadius: isMe ? 4 : 18,
-                        borderBottomLeftRadius: isMe ? 18 : 4,
-                        padding: '10px 14px',
+                        padding: '8px 12px',
                         display: 'flex',
                         alignItems: 'center',
                         gap: 10,
@@ -611,61 +588,40 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
                           width: 32,
                           height: 32,
                           borderRadius: '50%',
-                          backgroundColor: isMe ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.08)',
+                          backgroundColor: isMe ? '#25D366' : '#3A3A6E',
                           border: 'none',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          color: isMe ? '#FFFFFF' : '#007AFF'
+                          color: '#FFFFFF'
                         }}
                       >
                         {playingVoiceId === m.id ? <Pause size={14} /> : <Play size={14} style={{ marginLeft: 2 }} />}
                       </button>
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 600 }}>
-                          {playingVoiceId === m.id ? 'Playing audio...' : m.content || 'Voice Query'}
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#111B21' }}>
+                          {playingVoiceId === m.id ? 'Playing voice note...' : m.content || 'Voice Query'}
                         </div>
-                        <div style={{ fontSize: 10, opacity: 0.8 }}>0:15 · Audio recording</div>
+                        <div style={{ fontSize: 10.5, color: '#667781' }}>0:15 · Audio query</div>
+                      </div>
+                      <div className="hybrid-bubble-time">
+                        {timeStr} {isMe && <span className="hybrid-read-ticks">✓✓</span>}
                       </div>
                     </div>
                   ) : (
-                    /* Message Type 4: Standard iMessage Bubble */
+                    /* Message Type 4: Text Message Bubble */
                     <div
-                      style={{
-                        backgroundColor: isMe ? '#007AFF' : '#E9E9EB',
-                        backgroundImage: isMe ? 'linear-gradient(180deg, #007AFF 0%, #0062D2 100%)' : 'none',
-                        color: isMe ? '#FFFFFF' : '#000000',
-                        borderRadius: 18,
-                        borderBottomRightRadius: isMe ? 4 : 18,
-                        borderBottomLeftRadius: isMe ? 18 : 4,
-                        padding: '10px 16px',
-                        fontSize: 14.5,
-                        lineHeight: 1.45,
-                        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
-                        wordBreak: 'break-word'
-                      }}
+                      className={`hybrid-bubble ${isMe ? 'hybrid-bubble-out' : 'hybrid-bubble-in'}`}
                     >
-                      {m.content}
+                      <div style={{ fontSize: 'var(--chat-font-bubble)', color: '#111B21', lineHeight: 1.45 }}>
+                        {m.content}
+                      </div>
+                      <div className="hybrid-bubble-time">
+                        {timeStr} {isMe && <span className="hybrid-read-ticks">✓✓</span>}
+                      </div>
                     </div>
                   )}
-
-                  {/* Status & Timestamp */}
-                  <div
-                    style={{
-                      fontSize: 10.5,
-                      color: '#8E8E93',
-                      marginTop: 3,
-                      marginRight: isMe ? 4 : 0,
-                      marginLeft: isMe ? 0 : 4,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 4
-                    }}
-                  >
-                    <span>{new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                    {isMe && <span style={{ color: '#007AFF' }}>Delivered</span>}
-                  </div>
                 </div>
               </React.Fragment>
             );
@@ -752,18 +708,9 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
       </div>
 
       {/* ======================================================== */}
-      {/* 6. APPLE iMESSAGE COMPOSER BAR                           */}
+      {/* 6. APPLE + WHATSAPP HYBRID COMPOSER BAR                  */}
       {/* ======================================================== */}
-      <div
-        style={{
-          backgroundColor: '#FFFFFF',
-          borderTop: '1px solid #E5E5EA',
-          padding: '10px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10
-        }}
-      >
+      <div className="hybrid-chat-composer">
         {/* Hidden File Input */}
         <input
           ref={fileInputRef}
@@ -777,21 +724,10 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: '#8E8E93',
-            cursor: 'pointer',
-            padding: 6,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: '50%',
-            transition: 'color 0.15s ease'
-          }}
+          className="hybrid-action-icon-btn"
           title="Attach Kundli / Palm photo"
         >
-          <ImageIcon size={20} />
+          <Paperclip size={20} />
         </button>
 
         {/* Input Pill or Voice Recording Active */}
@@ -800,7 +736,7 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
             style={{
               flex: 1,
               backgroundColor: '#FFEAEA',
-              borderRadius: 20,
+              borderRadius: 22,
               padding: '6px 14px',
               display: 'flex',
               alignItems: 'center',
@@ -839,7 +775,7 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
                 type="button"
                 onClick={handleSendVoiceNote}
                 style={{
-                  backgroundColor: '#007AFF',
+                  backgroundColor: '#25D366',
                   color: '#FFF',
                   border: 'none',
                   borderRadius: 14,
@@ -858,33 +794,15 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
             onSubmit={handleSendMessage}
             style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}
           >
-            <div
-              style={{
-                flex: 1,
-                display: 'flex',
-                alignItems: 'center',
-                backgroundColor: '#F2F2F7',
-                borderRadius: 20,
-                padding: '4px 14px',
-                border: '1px solid #E5E5EA'
-              }}
-            >
+            <div className="hybrid-input-capsule">
               <input
                 type="text"
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                placeholder="iMessage · Message Amit..."
-                style={{
-                  flex: 1,
-                  background: 'none',
-                  border: 'none',
-                  outline: 'none',
-                  fontSize: 14,
-                  color: '#1D1D1F',
-                  padding: '6px 0'
-                }}
+                placeholder="Message Amit..."
+                className="hybrid-input-field"
               />
-              {/* Mic shortcut */}
+              {/* Mic shortcut inside capsule */}
               <button
                 type="button"
                 onClick={handleStartVoiceRecord}
@@ -893,34 +811,29 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
                   border: 'none',
                   color: '#8E8E93',
                   cursor: 'pointer',
-                  padding: 4
+                  padding: 4,
+                  display: 'flex',
+                  alignItems: 'center'
                 }}
                 title="Record voice note"
               >
-                <Mic size={17} />
+                <Mic size={18} />
               </button>
             </div>
 
-            {/* Apple Blue Circular Send Button */}
+            {/* Circular Send Button */}
             <button
               type="submit"
               disabled={(!inputText.trim() && !attachmentPreview) || isSending}
+              className="hybrid-send-btn"
               style={{
-                width: 32,
-                height: 32,
-                borderRadius: '50%',
-                backgroundColor: (inputText.trim() || attachmentPreview) && !isSending ? '#007AFF' : '#C7C7CC',
-                border: 'none',
-                color: '#FFFFFF',
+                backgroundColor: (inputText.trim() || attachmentPreview) && !isSending ? '#25D366' : '#C7C7CC',
                 cursor: (inputText.trim() || attachmentPreview) && !isSending ? 'pointer' : 'default',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'background-color 0.15s ease'
+                opacity: (inputText.trim() || attachmentPreview) && !isSending ? 1 : 0.6
               }}
               title="Send"
             >
-              <ArrowUp size={16} strokeWidth={2.6} />
+              <ArrowUp size={19} strokeWidth={2.4} />
             </button>
           </form>
         )}

@@ -172,7 +172,7 @@ export const getMyAppointments = async (req: AuthRequest, res: Response) => {
         pay.status as payment_status,
         pay.utr_reference,
         CASE 
-          WHEN a.followup_chat_expires_at IS NOT NULL AND a.followup_chat_expires_at > datetime('now') THEN 1
+          WHEN a.followup_chat_expires_at IS NOT NULL AND a.followup_chat_expires_at > CURRENT_TIMESTAMP THEN 1
           ELSE 0
         END as followup_active,
         (SELECT COUNT(*) FROM followup_messages fm WHERE fm.appointment_id = a.id AND fm.is_read = 0 AND fm.sender_type = 'admin') as followup_unread
@@ -211,7 +211,7 @@ export const getAllAppointments = async (req: AuthRequest, res: Response) => {
         pay.utr_reference,
         pay.screenshot_url,
         CASE 
-          WHEN a.followup_chat_expires_at IS NOT NULL AND a.followup_chat_expires_at > datetime('now') THEN 1
+          WHEN a.followup_chat_expires_at IS NOT NULL AND a.followup_chat_expires_at > CURRENT_TIMESTAMP THEN 1
           ELSE 0
         END as followup_active,
         (SELECT COUNT(*) FROM followup_messages fm WHERE fm.appointment_id = a.id AND fm.is_read = 0 AND fm.sender_type = 'customer') as followup_unread_admin
@@ -386,7 +386,7 @@ export const getActiveFollowups = async (req: AuthRequest, res: Response) => {
       JOIN users u ON a.customer_id = u.id
       JOIN packages p ON a.package_id = p.id
       WHERE a.followup_chat_expires_at IS NOT NULL
-        AND a.followup_chat_expires_at > datetime('now')
+        AND a.followup_chat_expires_at > CURRENT_TIMESTAMP
       ORDER BY a.followup_chat_expires_at ASC
     `);
     return res.json({ followups });

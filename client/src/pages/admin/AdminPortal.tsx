@@ -863,7 +863,7 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
       </header>
 
       {/* Main Layout Container (Desktop Sidebar + Admin Body) */}
-      <div className="container" style={{ maxWidth: 1440, marginTop: 24, paddingBottom: 80 }}>
+      <div className={`container ${activeTab === 'chat' ? 'admin-chat-container-mobile' : ''}`} style={{ maxWidth: 1440, marginTop: activeTab === 'chat' ? 0 : 24, paddingBottom: activeTab === 'chat' ? 0 : 80 }}>
         <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
           {/* Desktop Left Sidebar */}
           <aside

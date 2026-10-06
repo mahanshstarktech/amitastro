@@ -127,7 +127,7 @@ export const verifyPayment = async (req: AuthRequest, res: Response) => {
       UPDATE payments SET
         status = 'Verified',
         verified_by = ?,
-        verified_at = datetime('now')
+        verified_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `, [adminId, id]);
 
@@ -166,7 +166,7 @@ export const rejectPayment = async (req: AuthRequest, res: Response) => {
         status = 'Rejected',
         rejection_reason = ?,
         verified_by = ?,
-        verified_at = datetime('now')
+        verified_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `, [reason || 'UTR could not be matched with bank statements', adminId, id]);
 

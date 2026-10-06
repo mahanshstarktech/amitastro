@@ -358,7 +358,7 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
 
   return (
     <div
-      className="apple-card apple-messages-container"
+      className="apple-card apple-messages-container hybrid-chat-wrapper hybrid-admin-chat"
       style={{
         height: 'calc(100vh - 160px)',
         minHeight: 650,
@@ -382,32 +382,32 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
       />
 
       {/* ======================================================== */}
-      {/* 1. LEFT PANE: APPLE MESSAGES CONVERSATION LIST (320px)   */}
+      {/* 1. LEFT PANE: WHATSAPP-STYLE INBOX LIST (340px)          */}
       {/* ======================================================== */}
       <div
         className={`apple-messages-sidebar ${mobileView === 'thread' ? 'mobile-hidden' : ''}`}
         style={{
-          width: 320,
+          width: 340,
           borderRight: '1px solid #E5E5EA',
           display: 'flex',
           flexDirection: 'column',
-          backgroundColor: '#FBFBFD',
+          backgroundColor: '#FFFFFF',
           flexShrink: 0
         }}
       >
-        {/* Apple Messages Top Header */}
-        <div style={{ padding: '16px 16px 12px 16px', borderBottom: '1px solid #E5E5EA' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        {/* WhatsApp + Apple iOS Style Chats Header */}
+        <div style={{ padding: '14px 16px 10px 16px', borderBottom: '1px solid #F0F0F2' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 20, fontWeight: 700, color: '#1D1D1F', letterSpacing: '-0.02em' }}>
-                Messages
+              <span style={{ fontSize: 24, fontWeight: 700, color: '#1D1D1F', letterSpacing: '-0.025em' }}>
+                Chats
               </span>
               <span
                 style={{
                   fontSize: 12,
                   fontWeight: 600,
-                  backgroundColor: '#E5E5EA',
-                  color: '#6E6E73',
+                  backgroundColor: '#EBF3FE',
+                  color: '#3A3A6E',
                   padding: '2px 8px',
                   borderRadius: 9999
                 }}
@@ -542,7 +542,7 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
                 <div
                   key={conv.id}
                   onClick={() => selectConversation(conv)}
-                  className={`apple-conversation-item ${isSelected ? 'selected' : ''}`}
+                  className={`hybrid-chat-list-item ${isSelected ? 'selected' : ''}`}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -551,7 +551,7 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
                     borderBottom: '1px solid #F0F0F2',
                     cursor: 'pointer',
                     backgroundColor: isSelected ? '#EBF3FE' : '#FFFFFF',
-                    borderLeft: isSelected ? '4px solid #007AFF' : '4px solid transparent',
+                    borderLeft: isSelected ? '4px solid #3A3A6E' : '4px solid transparent',
                     transition: 'all 0.15s ease',
                     position: 'relative'
                   }}
@@ -563,23 +563,23 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
                         src={conv.customer_photo}
                         alt={conv.customer_name}
                         style={{
-                          width: 44,
-                          height: 44,
+                          width: 46,
+                          height: 46,
                           borderRadius: '50%',
                           objectFit: 'cover',
-                          border: isSelected ? '2px solid #007AFF' : '1px solid #E5E5EA'
+                          border: isSelected ? '2px solid #3A3A6E' : '1px solid #E5E5EA'
                         }}
                       />
                     ) : (
                       <div
                         style={{
-                          width: 44,
-                          height: 44,
+                          width: 46,
+                          height: 46,
                           borderRadius: '50%',
                           background: isSelected
-                            ? 'linear-gradient(135deg, #007AFF, #0056B3)'
-                            : 'linear-gradient(135deg, #3A3A6E, #2A2A5E)',
-                          color: '#FFFFFF',
+                            ? 'linear-gradient(135deg, #3A3A6E, #2A2A5E)'
+                            : 'linear-gradient(135deg, #E5E5EA, #D1D1D6)',
+                          color: isSelected ? '#FFFFFF' : '#1D1D1F',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -590,17 +590,17 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
                         {initials}
                       </div>
                     )}
-                    {/* Unread dot indicator */}
+                    {/* Unread green dot */}
                     {hasUnread && (
                       <div
                         style={{
                           position: 'absolute',
-                          top: -2,
-                          right: -2,
+                          bottom: 0,
+                          right: 0,
                           width: 12,
                           height: 12,
                           borderRadius: '50%',
-                          backgroundColor: '#007AFF',
+                          backgroundColor: '#25D366',
                           border: '2px solid #FFFFFF'
                         }}
                       />
@@ -613,7 +613,7 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
                       <span
                         style={{
                           fontWeight: hasUnread ? 700 : 600,
-                          fontSize: 13.5,
+                          fontSize: 14.5,
                           color: '#1D1D1F',
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
@@ -622,7 +622,7 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
                       >
                         {conv.customer_name}
                       </span>
-                      <span style={{ fontSize: 11, color: hasUnread ? '#007AFF' : '#8E8E93', fontWeight: hasUnread ? 600 : 400 }}>
+                      <span style={{ fontSize: 11, color: hasUnread ? '#25D366' : '#8E8E93', fontWeight: hasUnread ? 600 : 400 }}>
                         {conv.last_message_time
                           ? new Date(conv.last_message_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                           : ''}
@@ -632,30 +632,21 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span
                         style={{
-                          fontSize: 12,
+                          fontSize: 12.5,
                           color: hasUnread ? '#1D1D1F' : '#6E6E73',
                           fontWeight: hasUnread ? 600 : 400,
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
-                          maxWidth: 180
+                          maxWidth: 200
                         }}
                       >
-                        {conv.last_message_sender === 'admin' ? 'You: ' : ''}
+                        {conv.last_message_sender === 'admin' ? '✓✓ You: ' : ''}
                         {conv.last_message_text || 'No messages yet'}
                       </span>
 
                       {hasUnread && (
-                        <span
-                          style={{
-                            backgroundColor: '#007AFF',
-                            color: '#FFFFFF',
-                            fontSize: 10.5,
-                            fontWeight: 700,
-                            padding: '1px 6px',
-                            borderRadius: 9999
-                          }}
-                        >
+                        <span className="hybrid-unread-badge">
                           {conv.unread_admin_count}
                         </span>
                       )}
@@ -705,18 +696,17 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
                   onClick={() => setMobileView('list')}
                   className="mobile-back-btn"
                   style={{
-                    display: 'none',
                     background: 'none',
                     border: 'none',
-                    color: '#007AFF',
-                    fontSize: 14,
+                    color: '#3A3A6E',
+                    fontSize: 15,
                     fontWeight: 600,
                     cursor: 'pointer',
-                    padding: 0,
-                    marginRight: 4
+                    padding: '4px 6px',
+                    marginRight: 6
                   }}
                 >
-                  ‹ Back
+                  ‹ Chats
                 </button>
 
                 {selectedConv.customer_photo ? (
@@ -813,14 +803,14 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
 
             {/* Chat Messages Body */}
             <div
+              className="hybrid-chat-canvas"
               style={{
                 flex: 1,
-                padding: '20px 24px',
+                padding: '14px 16px',
                 overflowY: 'auto',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 12,
-                backgroundColor: '#FAF9F6' // Apple subtle warm background
+                gap: 10
               }}
             >
               {isLoadingMessages ? (
@@ -830,7 +820,7 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
               ) : chatMessages.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '60px 20px', color: '#8E8E93', fontSize: 13.5 }}>
                   <div style={{ width: 48, height: 48, borderRadius: '50%', backgroundColor: '#EBF3FE', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
-                    <MessageSquare size={22} color="#007AFF" />
+                    <MessageSquare size={22} color="#3A3A6E" />
                   </div>
                   <div style={{ fontWeight: 600, color: '#1D1D1F', marginBottom: 4 }}>
                     Start Consultation with {selectedConv.customer_name}
@@ -847,64 +837,32 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
                     new Date(m.created_at).toDateString() !==
                       new Date(chatMessages[idx - 1].created_at).toDateString();
 
+                  const timeStr = new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
                   return (
                     <React.Fragment key={m.id}>
                       {showDateDivider && (
-                        <div style={{ display: 'flex', justifyContent: 'center', margin: '8px 0' }}>
-                          <span
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 500,
-                              color: '#86868B',
-                              backgroundColor: '#EDEDF0',
-                              padding: '2px 10px',
-                              borderRadius: 9999
-                            }}
-                          >
-                            {new Date(m.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
-                          </span>
+                        <div className="hybrid-date-pill">
+                          {new Date(m.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
                         </div>
                       )}
 
                       <div
                         style={{
                           alignSelf: isMe ? 'flex-end' : 'flex-start',
-                          maxWidth: '74%',
+                          maxWidth: '82%',
                           display: 'flex',
                           flexDirection: 'column',
                           alignItems: isMe ? 'flex-end' : 'flex-start'
                         }}
                       >
-                        {/* Sender Label (Customer or Amit) */}
-                        <div
-                          style={{
-                            fontSize: 10.5,
-                            fontWeight: 600,
-                            color: isMe ? '#007AFF' : '#6E6E73',
-                            marginBottom: 2,
-                            paddingLeft: isMe ? 0 : 4,
-                            paddingRight: isMe ? 4 : 0
-                          }}
-                        >
-                          {isMe ? 'Amit (Astrologer)' : selectedConv.customer_name}
-                        </div>
-
                         {/* Speech Bubble */}
                         <div
-                          style={{
-                            backgroundColor: isMe ? '#007AFF' : '#E9E9EB',
-                            color: isMe ? '#FFFFFF' : '#000000',
-                            borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-                            padding: '10px 15px',
-                            fontSize: 14,
-                            lineHeight: 1.45,
-                            boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-                            wordBreak: 'break-word'
-                          }}
+                          className={`hybrid-bubble ${isMe ? 'hybrid-bubble-out' : 'hybrid-bubble-in'}`}
                         >
                           {/* Attachment Image Preview if present */}
                           {m.attachment_url && (
-                            <div style={{ marginBottom: 8 }}>
+                            <div style={{ marginBottom: 6 }}>
                               <img
                                 src={m.attachment_url}
                                 alt="Attachment"
@@ -920,24 +878,14 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
                             </div>
                           )}
 
-                          {m.content}
-                        </div>
+                          <div style={{ fontSize: 'var(--chat-font-bubble)', color: '#111B21', lineHeight: 1.45 }}>
+                            {m.content}
+                          </div>
 
-                        {/* Timestamp & Read Receipt */}
-                        <div
-                          style={{
-                            fontSize: 10,
-                            color: '#8E8E93',
-                            marginTop: 3,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 4,
-                            paddingLeft: isMe ? 0 : 4,
-                            paddingRight: isMe ? 4 : 0
-                          }}
-                        >
-                          <span>{new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                          {isMe && <CheckCheck size={12} color="#007AFF" />}
+                          <div className="hybrid-bubble-time">
+                            {timeStr}
+                            {isMe && <span className="hybrid-read-ticks">✓✓</span>}
+                          </div>
                         </div>
                       </div>
                     </React.Fragment>
@@ -1020,83 +968,56 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
               </div>
             )}
 
-            {/* Apple Input Bar */}
+            {/* Apple + WhatsApp Hybrid Input Bar */}
             <form
               onSubmit={(e) => handleSendMessage(e)}
+              className="hybrid-chat-composer"
               style={{
-                padding: '12px 18px',
-                backgroundColor: '#FFFFFF',
-                borderTop: '1px solid #E5E5EA',
-                display: 'flex',
                 flexDirection: 'column',
                 gap: 6
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
                 {/* Paperclip Attachment Button */}
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#007AFF',
-                    cursor: 'pointer',
-                    padding: 6,
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
+                  className="hybrid-action-icon-btn"
                   title="Attach Kundli chart, palm photo, or document"
                 >
-                  <Paperclip size={19} />
+                  <Paperclip size={20} />
                 </button>
 
                 {/* Capsule Text Input */}
-                <input
-                  type="text"
-                  value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
-                  placeholder="iMessage as Amit..."
-                  className="apple-input"
-                  style={{
-                    flex: 1,
-                    borderRadius: 9999,
-                    padding: '9px 18px',
-                    fontSize: 14,
-                    backgroundColor: '#FAF9F6',
-                    borderColor: '#E5E5EA'
-                  }}
-                />
+                <div className="hybrid-input-capsule">
+                  <input
+                    type="text"
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    placeholder="Message as Amit..."
+                    className="hybrid-input-field"
+                  />
+                </div>
 
-                {/* Apple Blue Circular Send Button */}
+                {/* Circular Send Button */}
                 <button
                   type="submit"
                   disabled={isSending || (!inputText.trim() && !attachmentPreview)}
+                  className="hybrid-send-btn"
                   style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: '50%',
-                    backgroundColor: '#007AFF',
-                    border: 'none',
-                    color: '#FFFFFF',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: (inputText.trim() || attachmentPreview) ? 'pointer' : 'default',
-                    opacity: (inputText.trim() || attachmentPreview) ? 1 : 0.4,
-                    transition: 'all 0.15s ease'
+                    backgroundColor: (inputText.trim() || attachmentPreview) && !isSending ? '#25D366' : '#C7C7CC',
+                    cursor: (inputText.trim() || attachmentPreview) && !isSending ? 'pointer' : 'default',
+                    opacity: (inputText.trim() || attachmentPreview) && !isSending ? 1 : 0.6
                   }}
                   title="Send message"
                 >
-                  <ArrowUp size={18} strokeWidth={2.4} />
+                  <ArrowUp size={19} strokeWidth={2.4} />
                 </button>
               </div>
 
               {/* Subtext info */}
               <div style={{ fontSize: 11, color: '#8E8E93', textAlign: 'center', letterSpacing: '-0.01em' }}>
-                Replying on behalf of Astrologer Amit · Unified consultation desk
+                Consultation Desk · Messages sent here appear live to customer
               </div>
             </form>
           </>
