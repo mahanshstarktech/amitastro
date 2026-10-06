@@ -1817,6 +1817,89 @@ body {
   }
 }
 
+/* Responsive rules for Admin Portal Header and Workspace */
+.admin-portal-root {
+  height: 100vh;
+  width: 100vw;
+  background-color: #F0F2F5;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+@media (min-width: 1040px) {
+  .apple-header-admin-portal {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1039px) {
+  .apple-header-admin-portal {
+    display: block !important;
+  }
+  .desktop-header-controls {
+    display: none !important;
+  }
+  .portal-app-rail {
+    display: none !important;
+  }
+  .admin-portal-root {
+    height: auto !important;
+    min-height: calc(100dvh - 62px) !important;
+    width: 100% !important;
+    overflow: visible !important;
+  }
+  .admin-app-workspace {
+    height: auto !important;
+    min-height: calc(100dvh - 62px) !important;
+    width: 100% !important;
+    overflow: visible !important;
+    flex-direction: column !important;
+  }
+  .admin-portal-main-content {
+    height: auto !important;
+    overflow: visible !important;
+    padding: 16px 14px 96px !important;
+    width: 100% !important;
+  }
+  .admin-portal-main-content.chat-mode {
+    height: calc(100dvh - 62px - 64px) !important;
+    min-height: calc(100dvh - 62px - 64px) !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+  }
+}
+
+@keyframes radarPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(39, 201, 63, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(39, 201, 63, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(39, 201, 63, 0);
+  }
+}
+
+.radar-pulse-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background-color: #27C93F;
+  display: inline-block;
+  animation: radarPulse 1.8s infinite;
+}
+
+@keyframes eventTickerFade {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.analytics-live-event-row {
+  animation: eventTickerFade 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 /* WhatsApp macOS Style Left Icon Rail & Full-Window Layout */
 .admin-app-workspace {
   display: flex;

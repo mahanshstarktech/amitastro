@@ -93,5 +93,7 @@ router.post('/admin/blackout-dates', authenticateToken, requireAdmin, adminCtrl.
 router.delete('/admin/blackout-dates/:date', authenticateToken, requireAdmin, adminCtrl.removeBlackoutDate);
 router.post('/admin/broadcast', authenticateToken, requireAdmin, adminCtrl.sendBroadcast);
 router.get('/admin/analytics', authenticateToken, requireAdmin, adminCtrl.getAnalytics);
+router.get('/admin/analytics/realtime', authenticateToken, requireAdmin, adminCtrl.getRealtimeAnalytics);
+router.post('/analytics/track', adminCtrl.trackAnalyticsEvent);
 
 export default router;

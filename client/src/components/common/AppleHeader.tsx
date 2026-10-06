@@ -33,6 +33,7 @@ interface AppleHeaderProps {
   onOpenSettings?: () => void;
   currentPage?: string;
   onNavigate: (path: string) => void;
+  className?: string;
 }
 
 export const AppleHeader: React.FC<AppleHeaderProps> = ({
@@ -41,7 +42,8 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
   onOpenTrial,
   onOpenSettings,
   currentPage = 'home',
-  onNavigate
+  onNavigate,
+  className = ''
 }) => {
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
   const { language, setLanguage, t } = useLanguage();
@@ -158,7 +160,8 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
   return (
     <>
       <header
-      style={{
+        className={`apple-header ${className}`}
+        style={{
         position: 'sticky',
         top: 0,
         zIndex: 1100,
@@ -1138,6 +1141,61 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
                 })
               ) : null}
             </div>
+
+            {isAdmin && (currentPage === 'admin' || (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin'))) && (
+              <div style={{ marginTop: 28, paddingTop: 18, borderTop: '1px solid #E5E5EA', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOptionsDrawerOpen(false);
+                    onNavigate('/');
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    width: '100%',
+                    padding: '12px 16px',
+                    borderRadius: 12,
+                    backgroundColor: '#F5F5F7',
+                    border: '1px solid #E5E5EA',
+                    color: '#1D1D1F',
+                    fontSize: 14,
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <ExternalLink size={16} />
+                  View Public Customer Site
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOptionsDrawerOpen(false);
+                    logout();
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    width: '100%',
+                    padding: '12px 16px',
+                    borderRadius: 12,
+                    backgroundColor: 'rgba(255, 69, 58, 0.08)',
+                    border: '1px solid rgba(255, 69, 58, 0.2)',
+                    color: '#FF453A',
+                    fontSize: 14,
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <LogOut size={16} />
+                  Sign Out of Admin Portal
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </>,

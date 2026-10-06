@@ -18,6 +18,7 @@ import { BookingModal } from './components/booking/BookingModal';
 import { TrialCutoffModal } from './components/trial/TrialCutoffModal';
 import { MobileSettingsModal } from './components/common/MobileSettingsModal';
 import { useAuth } from './context/AuthContext';
+import { initAnalyticsHeartbeat, trackEvent } from './utils/analytics';
 
 export const App: React.FC = () => {
   const { isAuthenticated, isAdmin, user } = useAuth();
@@ -28,6 +29,15 @@ export const App: React.FC = () => {
   const [bookingModalOpen, setBookingModalOpen] = useState<boolean>(false);
   const [selectedPkgId, setSelectedPkgId] = useState<string>('pkg-premium');
   const [trialModalOpen, setTrialModalOpen] = useState<boolean>(false);
+
+  // Initialize Big-Tech Grade Live Analytics Tracking
+  useEffect(() => {
+    initAnalyticsHeartbeat();
+  }, []);
+
+  useEffect(() => {
+    trackEvent('pageview', { path: currentPath });
+  }, [currentPath]);
   const [settingsModalOpen, setSettingsModalOpen] = useState<boolean>(false);
 
   // Trial eligibility: must be authenticated, new customer, and trial not yet used
@@ -227,20 +237,19 @@ export const App: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#FBFBFD' }}>
-      {/* Apple Header (Hidden on admin to give full-window app experience) */}
-      {!currentPath.startsWith('/admin') && (
-        <AppleHeader
-          onOpenAuth={handleOpenAuth}
-          onOpenBooking={() => handleOpenBooking()}
-          onOpenTrial={handleOpenTrial}
-          onOpenSettings={() => setSettingsModalOpen(true)}
-          currentPage={currentPath === '/' ? 'home' : currentPath.substring(1)}
-          onNavigate={navigateTo}
-        />
-      )}
+      {/* Apple Header: On desktop admin it is hidden via CSS for full-window app view; on mobile/tablet it provides the 2-line Apple hamburger curtain menu */}
+      <AppleHeader
+        className={currentPath.startsWith('/admin') ? 'apple-header-admin-portal' : ''}
+        onOpenAuth={handleOpenAuth}
+        onOpenBooking={() => handleOpenBooking()}
+        onOpenTrial={handleOpenTrial}
+        onOpenSettings={() => setSettingsModalOpen(true)}
+        currentPage={currentPath === '/' ? 'home' : currentPath.substring(1)}
+        onNavigate={navigateTo}
+      />
 
       {/* Main Content Area */}
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', height: currentPath.startsWith('/admin') ? '100vh' : undefined, overflow: currentPath.startsWith('/admin') ? 'hidden' : undefined }}>
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         {renderRoute()}
       </main>
 
