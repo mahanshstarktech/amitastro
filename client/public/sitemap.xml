@@ -1,67 +1,67 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://amitastro.com/</loc>
+    <loc>https://amitastro.pages.dev/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://amitastro.com/about</loc>
+    <loc>https://amitastro.pages.dev/about</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://amitastro.com/pricing</loc>
+    <loc>https://amitastro.pages.dev/pricing</loc>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://amitastro.com/blog</loc>
+    <loc>https://amitastro.pages.dev/blog</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://amitastro.com/faq</loc>
+    <loc>https://amitastro.pages.dev/faq</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://amitastro.com/contact</loc>
+    <loc>https://amitastro.pages.dev/contact</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://amitastro.com/legal/privacy</loc>
+    <loc>https://amitastro.pages.dev/legal/privacy</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://amitastro.com/legal/terms</loc>
+    <loc>https://amitastro.pages.dev/legal/terms</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://amitastro.com/legal/disclaimer</loc>
+    <loc>https://amitastro.pages.dev/legal/disclaimer</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://amitastro.com/legal/refund-policy</loc>
+    <loc>https://amitastro.pages.dev/legal/refund-policy</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://amitastro.com/legal/delivery</loc>
+    <loc>https://amitastro.pages.dev/legal/delivery</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://amitastro.com/legal/grievance</loc>
+    <loc>https://amitastro.pages.dev/legal/grievance</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://amitastro.com/legal/ethics</loc>
+    <loc>https://amitastro.pages.dev/legal/ethics</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
