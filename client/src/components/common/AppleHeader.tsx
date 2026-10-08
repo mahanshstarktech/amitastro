@@ -19,12 +19,14 @@ import {
   ExternalLink,
   Search,
   X,
-  Phone
+  Phone,
+  Crown
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useCountry } from '../../context/CountryContext';
 import { useHeaderActions } from '../../context/HeaderActionsContext';
+import { PlanBadge } from './PlanBadge';
 
 interface AppleHeaderProps {
   onOpenAuth: (mode?: 'login' | 'signup') => void;
@@ -682,17 +684,10 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
                 <UserIcon size={18} />
               )}
               {isAuthenticated && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    right: 0,
-                    width: 9,
-                    height: 9,
-                    borderRadius: '50%',
-                    backgroundColor: '#2FA84F',
-                    border: '1.5px solid #FFFFFF'
-                  }}
+                <PlanBadge
+                  badge={isAdmin ? 'Admin' : (user?.planBadge || 'Free(Trial)')}
+                  size="micro"
+                  isAvatarOverlay
                 />
               )}
             </button>
@@ -759,15 +754,29 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
                         <div style={{ fontSize: 12, color: '#86868B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {user.email || user.phone}
                         </div>
-                        <div style={{ marginTop: 3 }}>
-                          {isAdmin ? (
-                            <span className="apple-badge-primary" style={{ fontSize: 10, padding: '2px 7px' }}>
-                              <ShieldCheck size={11} /> Admin Astrologer
-                            </span>
-                          ) : (
-                            <span className="apple-badge-gold" style={{ fontSize: 10, padding: '2px 7px' }}>
-                              <Sparkles size={11} /> Seeker Member
-                            </span>
+                        <div style={{ marginTop: 5, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          <PlanBadge
+                            badge={isAdmin ? 'Admin' : (user.planBadge || 'Free(Trial)')}
+                            size="sm"
+                          />
+                          {!isAdmin && !user.isFamilySubscriber && (
+                            <button
+                              onClick={() => {
+                                onNavigate('/app');
+                                setAccountDropdownOpen(false);
+                              }}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: '#7928CA',
+                                fontSize: 10.5,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                padding: 0
+                              }}
+                            >
+                              Upgrade to Family 360 →
+                            </button>
                           )}
                         </div>
                       </div>
@@ -799,6 +808,33 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
                           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                         >
                           <ShieldCheck size={16} color="#3A3A6E" /> Astrologer Admin Panel
+                        </button>
+                      )}
+
+                      {!isAdmin && (
+                        <button
+                          onClick={() => {
+                            onNavigate('/app');
+                            setAccountDropdownOpen(false);
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 10,
+                            padding: '9px 10px',
+                            borderRadius: 10,
+                            background: 'none',
+                            border: 'none',
+                            fontSize: 13.5,
+                            fontWeight: 600,
+                            color: '#7928CA',
+                            cursor: 'pointer',
+                            textAlign: 'left'
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#FAF5FF')}
+                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                        >
+                          <Crown size={16} color="#7928CA" /> Family 360 & Subscription
                         </button>
                       )}
 

@@ -17,6 +17,12 @@ export interface CountryPackagePrices {
     costPerMin: string;
     label: string;
   };
+  family: {
+    amount: number;
+    formatted: string;
+    costPerMin: string;
+    label: string;
+  };
 }
 
 export interface CountryInfo {
@@ -57,6 +63,12 @@ export const COUNTRIES: Record<string, CountryInfo> = {
         formatted: '₹5,100',
         costPerMin: '₹85.00/min',
         label: '45–60 min in-depth call'
+      },
+      family: {
+        amount: 100000,
+        formatted: '₹1,00,000 / yr',
+        costPerMin: 'Unlimited',
+        label: '1-Year Unlimited Family 360 Plan (Upto 4 Members)'
       }
     }
   },
@@ -86,6 +98,12 @@ export const COUNTRIES: Record<string, CountryInfo> = {
         formatted: '€219',
         costPerMin: '€3.65/min',
         label: '45–60 min in-depth call'
+      },
+      family: {
+        amount: 1100,
+        formatted: '€1,100 / yr',
+        costPerMin: 'Unlimited',
+        label: '1-Year Unlimited Family 360 Plan (Upto 4 Members)'
       }
     }
   },
@@ -115,6 +133,12 @@ export const COUNTRIES: Record<string, CountryInfo> = {
         formatted: '£189',
         costPerMin: '£3.15/min (Highest Value)',
         label: '45–60 min in-depth call'
+      },
+      family: {
+        amount: 950,
+        formatted: '£950 / yr',
+        costPerMin: 'Unlimited',
+        label: '1-Year Unlimited Family 360 Plan (Upto 4 Members)'
       }
     }
   },
@@ -144,6 +168,12 @@ export const COUNTRIES: Record<string, CountryInfo> = {
         formatted: '500 AED',
         costPerMin: '8.33 AED/min',
         label: '45–60 min in-depth call'
+      },
+      family: {
+        amount: 4400,
+        formatted: '4,400 AED / yr',
+        costPerMin: 'Unlimited',
+        label: '1-Year Unlimited Family 360 Plan (Upto 4 Members)'
       }
     }
   },
@@ -173,6 +203,12 @@ export const COUNTRIES: Record<string, CountryInfo> = {
         formatted: '$239',
         costPerMin: '$3.98/min (Highest Value)',
         label: '45–60 min in-depth call'
+      },
+      family: {
+        amount: 1200,
+        formatted: '$1,200 / yr',
+        costPerMin: 'Unlimited',
+        label: '1-Year Unlimited Family 360 Plan (Upto 4 Members)'
       }
     }
   },
@@ -202,6 +238,12 @@ export const COUNTRIES: Record<string, CountryInfo> = {
         formatted: 'A$359',
         costPerMin: 'A$5.98/min',
         label: '45–60 min in-depth call'
+      },
+      family: {
+        amount: 1850,
+        formatted: 'A$1,850 / yr',
+        costPerMin: 'Unlimited',
+        label: '1-Year Unlimited Family 360 Plan (Upto 4 Members)'
       }
     }
   },
@@ -231,6 +273,12 @@ export const COUNTRIES: Record<string, CountryInfo> = {
         formatted: 'C$329',
         costPerMin: 'C$5.48/min',
         label: '45–60 min in-depth call'
+      },
+      family: {
+        amount: 1650,
+        formatted: 'C$1,650 / yr',
+        costPerMin: 'Unlimited',
+        label: '1-Year Unlimited Family 360 Plan (Upto 4 Members)'
       }
     }
   },
@@ -260,6 +308,12 @@ export const COUNTRIES: Record<string, CountryInfo> = {
         formatted: '€219',
         costPerMin: '€3.65/min',
         label: '45–60 min in-depth call'
+      },
+      family: {
+        amount: 1100,
+        formatted: '€1,100 / yr',
+        costPerMin: 'Unlimited',
+        label: '1-Year Unlimited Family 360 Plan (Upto 4 Members)'
       }
     }
   },
@@ -289,6 +343,12 @@ export const COUNTRIES: Record<string, CountryInfo> = {
         formatted: '₽22,000',
         costPerMin: '₽366/min',
         label: '45–60 min in-depth call'
+      },
+      family: {
+        amount: 110000,
+        formatted: '₽1,10,000 / yr',
+        costPerMin: 'Unlimited',
+        label: '1-Year Unlimited Family 360 Plan (Upto 4 Members)'
       }
     }
   }

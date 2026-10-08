@@ -4,13 +4,14 @@ import {
   Send, ShieldCheck, CheckCircle2, XCircle, Clock, Search, Phone, Plus, Trash2, 
   Edit3, ArrowRight, Eye, RefreshCw, AlertTriangle, Copy, Check, ChevronDown, ChevronUp, Sparkles, Filter, X, PanelLeft,
   Wand2, Image as ImageIcon, Languages, Star, ExternalLink, ShieldAlert, UserCheck, UserX, FileText, Upload,
-  Globe, Smartphone, Laptop, Tablet, Activity, TrendingUp, TrendingDown, Zap, Download, Compass, Share2, Layers
+  Globe, Smartphone, Laptop, Tablet, Activity, TrendingUp, TrendingDown, Zap, Download, Compass, Share2, Layers, Crown
 } from 'lucide-react';
 import { apiRequest } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import { useHeaderActions } from '../../context/HeaderActionsContext';
 import { AppleAdminChat } from '../../components/chat/AppleAdminChat';
+import { PlanBadge } from '../../components/common/PlanBadge';
 import { getSocket, authenticateSocket, playReceiveChime, notifyNewMessage, setTabUnreadBadge, requestNotificationPermission } from '../../utils/socket';
 
 export type AdminTab = 'dashboard' | 'customers' | 'appointments' | 'chat' | 'payments' | 'blog' | 'broadcast' | 'analytics' | 'settings';
@@ -267,6 +268,47 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ initialTab }) => {
       }
     } catch (err: any) {
       showToast(err.message || 'Failed to update customer status', 'error');
+    }
+  };
+
+  const handleGrantFamilyPlan = async (customerId: string, customerName: string) => {
+    if (!window.confirm(`Grant 1-year Family 360 Plan (unlimited sessions, up to 4 family members) to ${customerName}?`)) return;
+    try {
+      await apiRequest('/subscription/admin/grant', 'POST', {
+        userId: customerId,
+        durationDays: 365,
+        notes: 'Granted manually by Astrologer Amit from Admin CRM'
+      });
+      showToast(`Family 360 Plan successfully granted to ${customerName}!`, 'success');
+      setCustomers((prev) =>
+        prev.map((c) =>
+          c.id === customerId
+            ? { ...c, plan: 'family', plan_badge: 'Family', is_family_subscriber: 1 }
+            : c
+        )
+      );
+    } catch (err: any) {
+      showToast(err.message || 'Failed to grant Family 360 plan', 'error');
+    }
+  };
+
+  const handleRevokeFamilyPlan = async (customerId: string, customerName: string) => {
+    if (!window.confirm(`Revoke Family 360 Plan from ${customerName}? They will revert to standard account.`)) return;
+    try {
+      await apiRequest('/subscription/admin/revoke', 'POST', {
+        userId: customerId,
+        reason: 'Revoked by admin from CRM'
+      });
+      showToast(`Family 360 Plan revoked for ${customerName}`, 'info');
+      setCustomers((prev) =>
+        prev.map((c) =>
+          c.id === customerId
+            ? { ...c, plan: 'free', plan_badge: 'Free(Trial)', is_family_subscriber: 0 }
+            : c
+        )
+      );
+    } catch (err: any) {
+      showToast(err.message || 'Failed to revoke Family 360 plan', 'error');
     }
   };
 
@@ -1539,11 +1581,11 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                           {c.name}
                         </span>
 
-                        {/* Role Badge */}
-                        {c.role === 'admin' && (
-                          <span className="apple-badge-gold" style={{ fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                            <ShieldCheck size={12} /> Administrator
-                          </span>
+                        {/* Plan / Role Badge */}
+                        {c.role === 'admin' ? (
+                          <PlanBadge badge="Admin" size="sm" />
+                        ) : (
+                          <PlanBadge badge={c.plan_badge || (c.is_family_subscriber ? 'Family' : (c.plan === 'pro' ? 'Pro' : c.plan === 'plus' ? 'Plus' : c.plan === 'lite' ? 'Lite' : 'Free(Trial)'))} size="sm" />
                         )}
 
                         {/* Status Badge */}
@@ -1634,6 +1676,30 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                           >
                             Grant Trial (Mark New)
                           </button>
+                        )}
+
+                        {c.role !== 'admin' && (
+                          c.is_family_subscriber ? (
+                            <button
+                              type="button"
+                              onClick={() => handleRevokeFamilyPlan(c.id, c.name)}
+                              className="apple-btn-secondary"
+                              style={{ fontSize: 12, padding: '7px 12px', color: '#D64545', borderColor: '#F5C6CB' }}
+                              title="Revoke Family 360 subscription from this client"
+                            >
+                              <Crown size={13} /> Revoke Family 360
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleGrantFamilyPlan(c.id, c.name)}
+                              className="apple-btn-secondary"
+                              style={{ fontSize: 12, padding: '7px 12px', color: '#8E6A1C', borderColor: '#C9A24B' }}
+                              title="Grant 1-year Family 360 subscription to this client"
+                            >
+                              <Crown size={13} /> Grant Family 360
+                            </button>
+                          )
                         )}
 
                         <button

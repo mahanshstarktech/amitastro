@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Calendar, MessageSquare, User, CreditCard, Clock, Plus, Trash2, Edit3, 
   CheckCircle2, AlertCircle, ArrowRight, ShieldCheck, Sparkles, Send, Paperclip, X,
-  Settings, Globe, Check, PanelLeft, Pencil
+  Settings, Globe, Check, PanelLeft, Pencil, Crown
 } from 'lucide-react';
 import { useAuth, type BirthProfile } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
@@ -10,12 +10,15 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useHeaderActions } from '../../context/HeaderActionsContext';
 import { apiRequest } from '../../utils/api';
 import { AppleCustomerChat } from '../../components/chat/AppleCustomerChat';
+import { PlanBadge } from '../../components/common/PlanBadge';
+import { FamilyUpgradeModal } from '../../components/subscription/FamilyUpgradeModal';
+import { SubscriptionManagementView } from '../../components/subscription/SubscriptionManagementView';
 import { getSocket, authenticateSocket, playReceiveChime, notifyNewMessage, setTabUnreadBadge, requestNotificationPermission } from '../../utils/socket';
 
 interface CustomerPortalProps {
   onOpenBooking: () => void;
   onOpenTrial: () => void;
-  initialTab?: 'dashboard' | 'appointments' | 'chat' | 'profile' | 'payments' | 'settings';
+  initialTab?: 'dashboard' | 'appointments' | 'chat' | 'profile' | 'payments' | 'settings' | 'subscription';
 }
 
 export const CustomerPortal: React.FC<CustomerPortalProps> = ({
@@ -57,24 +60,25 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
 
   const selfProfile = profiles.find((p) => p.relation === 'self') || profiles[0];
 
-  const getStartingTab = (): 'dashboard' | 'appointments' | 'chat' | 'profile' | 'payments' | 'settings' => {
+  const getStartingTab = (): 'dashboard' | 'appointments' | 'chat' | 'profile' | 'payments' | 'settings' | 'subscription' => {
     if (initialTab && initialTab !== 'dashboard') return initialTab;
     if (typeof window !== 'undefined' && window.location.hash) {
       const h = window.location.hash.replace('#', '');
-      if (['dashboard', 'appointments', 'chat', 'profile', 'payments', 'settings'].includes(h)) {
+      if (['dashboard', 'appointments', 'chat', 'profile', 'payments', 'settings', 'subscription'].includes(h)) {
         return h as any;
       }
     }
     return initialTab;
   };
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'appointments' | 'chat' | 'profile' | 'payments' | 'settings'>(getStartingTab);
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'appointments' | 'chat' | 'profile' | 'payments' | 'settings' | 'subscription'>(getStartingTab);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   useEffect(() => {
     const handleHashChange = () => {
       if (typeof window !== 'undefined' && window.location.hash) {
         const h = window.location.hash.replace('#', '');
-        if (['dashboard', 'appointments', 'chat', 'profile', 'payments', 'settings'].includes(h)) {
+        if (['dashboard', 'appointments', 'chat', 'profile', 'payments', 'settings', 'subscription'].includes(h)) {
           setActiveTab(h as any);
         }
       }
@@ -214,6 +218,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
     { id: 'appointments' as const, label: 'My Appointments', icon: Calendar, badge: appointments.length },
     { id: 'chat' as const, label: 'Consultation Chat', icon: MessageSquare, badge: unreadChatCount > 0 ? unreadChatCount : undefined },
     { id: 'profile' as const, label: 'Birth Profiles (Family)', icon: User, badge: profiles.length },
+    { id: 'subscription' as const, label: 'Family 360 Plan', icon: Crown, badge: user?.isFamilySubscriber ? 'Active' : undefined },
     { id: 'payments' as const, label: 'Payments & UPI', icon: CreditCard },
     { id: 'settings' as const, label: t('nav.settings', 'Settings'), icon: Settings }
   ];
@@ -238,7 +243,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
         id: t.id,
         label: t.label,
         icon: t.icon,
-        badge: t.badge !== undefined && t.badge > 0 ? String(t.badge) : undefined
+        badge: t.badge !== undefined && (typeof t.badge === 'number' ? t.badge > 0 : Boolean(t.badge)) ? String(t.badge) : undefined
       })),
       activeOptionId: activeTab,
       onSelectOption: (id) => handleSelectTab(id as typeof activeTab)
@@ -247,7 +252,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
     return () => {
       setHeaderActions(null);
     };
-  }, [activeTab, appointments.length, profiles.length, unreadChatCount]);
+  }, [activeTab, appointments.length, profiles.length, unreadChatCount, user?.isFamilySubscriber]);
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#FBFBFD', paddingBottom: 80 }}>
@@ -255,7 +260,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
       <div className={`portal-header-banner ${activeTab === 'chat' ? 'hide-on-mobile-chat' : ''}`} style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid #E5E5EA', padding: '24px 0' }}>
         <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-            {/* User Profile Avatar with Pencil Edit Option */}
+            {/* User Profile Avatar with Plan Badge and Pencil Edit Option */}
             <div style={{ position: 'relative', width: 64, height: 64, flexShrink: 0 }}>
               <div
                 style={{
@@ -282,6 +287,10 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                     {(user?.name || 'S').charAt(0).toUpperCase()}
                   </span>
                 )}
+              </div>
+              {/* Micro PlanBadge Overlay on avatar icon */}
+              <div style={{ position: 'absolute', top: -5, right: -6, zIndex: 3 }}>
+                <PlanBadge badge={user?.role === 'admin' ? 'Admin' : (user?.planBadge || 'Free(Trial)')} size="micro" />
               </div>
               <button
                 type="button"
@@ -317,9 +326,12 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
             </div>
 
             <div>
-              <span className="apple-badge-gold" style={{ marginBottom: 6 }}>
-                Seeker Portal
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <span className="apple-badge-gold">
+                  Seeker Portal
+                </span>
+                <PlanBadge badge={user?.role === 'admin' ? 'Admin' : (user?.planBadge || 'Free(Trial)')} size="sm" />
+              </div>
               <h1 className="text-h1" style={{ fontSize: 26, color: '#1D1D1F', marginTop: 4 }}>
                 Namaste, {user?.name || 'Seeker'}
               </h1>
@@ -424,7 +436,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                       <Icon size={18} color={active ? '#3A3A6E' : '#6E6E73'} />
                       {!sidebarCollapsed && <span>{item.label}</span>}
                     </div>
-                    {!sidebarCollapsed && item.badge !== undefined && item.badge > 0 && (
+                    {!sidebarCollapsed && item.badge !== undefined && (typeof item.badge === 'number' ? item.badge > 0 : Boolean(item.badge)) && (
                       <span className="sidebar-nav-item-badge">{item.badge}</span>
                     )}
                   </button>
@@ -795,179 +807,266 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
         )}
 
         {/* 4. BIRTH PROFILES (FAMILY MEMBERS) (Section 7) */}
-        {activeTab === 'profile' && (
-          <div className="apple-card" style={{ padding: '32px 28px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
-              <div>
-                <h2 className="text-h2" style={{ fontSize: 22, marginBottom: 4 }}>
-                  Saved Family Birth Profiles
-                </h2>
-                <p className="text-body" style={{ fontSize: 14 }}>
-                  Save birth details for yourself, spouse, children, or parents under one single account.
-                </p>
-              </div>
+        {/* 4. BIRTH PROFILES (FAMILY MEMBERS) (Section 7) */}
+        {activeTab === 'profile' && (() => {
+          const isFamilyEligible = Boolean(user?.isFamilySubscriber || user?.role === 'admin');
+          const familyCount = profiles.filter((p) => p.relation !== 'self').length;
 
-              <button
-                onClick={() => setShowAddProfileModal(true)}
-                className="apple-btn-primary"
-                style={{ fontSize: 14 }}
-              >
-                <Plus size={15} /> Add Family Member
-              </button>
-            </div>
+          const handleOpenAddFamily = () => {
+            if (!isFamilyEligible) {
+              setShowUpgradeModal(true);
+              return;
+            }
+            if (familyCount >= 4) {
+              showToast('You have already added the maximum 4 family members under Family 360 Plan', 'warning');
+              return;
+            }
+            setShowAddProfileModal(true);
+          };
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
-              {profiles.map((p) => (
+          return (
+            <div className="apple-card" style={{ padding: '32px 28px' }}>
+              {/* Family 360 Privilege Banner for non-family subscribers */}
+              {!isFamilyEligible && (
                 <div
-                  key={p.id}
                   style={{
-                    border: '1px solid #E5E5EA',
-                    borderRadius: 16,
-                    padding: '18px 20px',
+                    background: 'linear-gradient(135deg, rgba(201, 162, 75, 0.12), rgba(58, 58, 110, 0.05))',
+                    border: '1.5px solid rgba(201, 162, 75, 0.35)',
+                    borderRadius: 18,
+                    padding: '20px 24px',
+                    marginBottom: 24,
                     display: 'flex',
-                    flexDirection: 'column',
+                    alignItems: 'center',
                     justifyContent: 'space-between',
-                    backgroundColor: '#F5F5F7'
+                    flexWrap: 'wrap',
+                    gap: 16
                   }}
                 >
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                      <span className={p.relation === 'self' ? 'apple-badge-primary' : 'apple-badge-gold'}>
-                        {p.relation === 'self' ? 'YOU (PRIMARY)' : p.relation.toUpperCase()}
-                      </span>
-                      {p.relation !== 'self' && profiles.length > 1 && (
-                        <button
-                          onClick={() => handleDeleteProfile(p.id)}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#D64545' }}
-                          title="Delete profile"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <div
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 12,
+                        background: 'linear-gradient(135deg, #C9A24B, #8E6A1C)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#FFF',
+                        flexShrink: 0,
+                        boxShadow: '0 4px 12px rgba(201, 162, 75, 0.3)'
+                      }}
+                    >
+                      <Crown size={22} />
                     </div>
-                    <h3 style={{ fontSize: 17, fontWeight: 600, color: '#1D1D1F', marginBottom: 4 }}>
-                      {p.full_name}
-                    </h3>
-                    <div style={{ fontSize: 13, color: '#6E6E73', display: 'flex', flexDirection: 'column', gap: 3 }}>
-                      <div>DOB: <strong>{p.dob}</strong></div>
-                      <div>Time: <strong>{p.tob}</strong> {p.tob_uncertain ? '(Approximate)' : ''}</div>
-                      <div>Place: <strong>{p.pob}</strong></div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#1D1D1F' }}>
+                          Family Member Profiles (Preserved for Family 360)
+                        </h3>
+                        <PlanBadge badge="Family" size="micro" />
+                      </div>
+                      <p style={{ margin: 0, fontSize: 13, color: '#6E6E73', maxWidth: 620 }}>
+                        Adding spouse, children, or parents (up to 4 members) with unlimited consultations for 1 complete year is exclusively reserved for <strong>Family 360 Plan</strong> subscribers.
+                      </p>
                     </div>
                   </div>
+                  <button
+                    onClick={() => setShowUpgradeModal(true)}
+                    className="apple-btn-gold"
+                    style={{ padding: '10px 18px', fontSize: 13.5 }}
+                  >
+                    <Crown size={15} /> Upgrade to Family 360
+                  </button>
                 </div>
-              ))}
-            </div>
+              )}
 
-            {/* Add Profile Modal */}
-            {showAddProfileModal && (
-              <div
-                style={{
-                  position: 'fixed',
-                  inset: 0,
-                  zIndex: 3000,
-                  backgroundColor: 'rgba(0,0,0,0.4)',
-                  backdropFilter: 'blur(8px)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: 16
-                }}
-              >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+                <div>
+                  <h2 className="text-h2" style={{ fontSize: 22, marginBottom: 4 }}>
+                    Saved Family Birth Profiles
+                  </h2>
+                  <p className="text-body" style={{ fontSize: 14 }}>
+                    {isFamilyEligible ? (
+                      <>
+                        Family 360 active: <strong>{familyCount} of 4</strong> family member slots used.
+                      </>
+                    ) : (
+                      'Save birth details for yourself. Family member slots are reserved for Family 360 subscribers.'
+                    )}
+                  </p>
+                </div>
+
+                <button
+                  onClick={handleOpenAddFamily}
+                  className={isFamilyEligible ? "apple-btn-primary" : "apple-btn-gold"}
+                  style={{ fontSize: 14 }}
+                >
+                  <Plus size={15} /> {isFamilyEligible ? 'Add Family Member' : 'Add Family Member (Family 360)'}
+                </button>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+                {profiles.map((p) => (
+                  <div
+                    key={p.id}
+                    style={{
+                      border: '1px solid #E5E5EA',
+                      borderRadius: 16,
+                      padding: '18px 20px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      backgroundColor: '#F5F5F7'
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <span className={p.relation === 'self' ? 'apple-badge-primary' : 'apple-badge-gold'}>
+                          {p.relation === 'self' ? 'YOU (PRIMARY)' : p.relation.toUpperCase()}
+                        </span>
+                        {p.relation !== 'self' && profiles.length > 1 && (
+                          <button
+                            onClick={() => handleDeleteProfile(p.id)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#D64545' }}
+                            title="Delete profile"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
+                      <h3 style={{ fontSize: 17, fontWeight: 600, color: '#1D1D1F', marginBottom: 4 }}>
+                        {p.full_name}
+                      </h3>
+                      <div style={{ fontSize: 13, color: '#6E6E73', display: 'flex', flexDirection: 'column', gap: 3 }}>
+                        <div>DOB: <strong>{p.dob}</strong></div>
+                        <div>Time: <strong>{p.tob}</strong> {p.tob_uncertain ? '(Approximate)' : ''}</div>
+                        <div>Place: <strong>{p.pob}</strong></div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Add Profile Modal */}
+              {showAddProfileModal && (
                 <div
-                  className="apple-card"
                   style={{
-                    width: '100%',
-                    maxWidth: 440,
-                    backgroundColor: '#FFF',
-                    padding: '28px 24px',
-                    borderRadius: 20,
-                    position: 'relative'
+                    position: 'fixed',
+                    inset: 0,
+                    zIndex: 3000,
+                    backgroundColor: 'rgba(0,0,0,0.4)',
+                    backdropFilter: 'blur(8px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 16
                   }}
                 >
-                  <h3 className="text-h2" style={{ fontSize: 20, marginBottom: 16 }}>
-                    Add Family Birth Profile
-                  </h3>
+                  <div
+                    className="apple-card"
+                    style={{
+                      width: '100%',
+                      maxWidth: 440,
+                      backgroundColor: '#FFF',
+                      padding: '28px 24px',
+                      borderRadius: 20,
+                      position: 'relative'
+                    }}
+                  >
+                    <h3 className="text-h2" style={{ fontSize: 20, marginBottom: 16 }}>
+                      Add Family Birth Profile
+                    </h3>
 
-                  <form onSubmit={handleCreateProfile} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4 }}>Relation</label>
-                      <select
-                        value={newProfileData.relation}
-                        onChange={(e) => setNewProfileData({ ...newProfileData, relation: e.target.value })}
-                        className="apple-input"
-                      >
-                        <option value="spouse">Spouse (Husband / Wife)</option>
-                        <option value="child">Child (Son / Daughter)</option>
-                        <option value="parent">Parent (Mother / Father)</option>
-                        <option value="sibling">Sibling (Brother / Sister)</option>
-                        <option value="other">Other Relative</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4 }}>Full Name</label>
-                      <input
-                        type="text"
-                        required
-                        value={newProfileData.fullName}
-                        onChange={(e) => setNewProfileData({ ...newProfileData, fullName: e.target.value })}
-                        className="apple-input"
-                        placeholder="e.g. Anjali Sharma"
-                      />
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <form onSubmit={handleCreateProfile} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                       <div>
-                        <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4 }}>Date of Birth</label>
+                        <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4 }}>Relation</label>
+                        <select
+                          value={newProfileData.relation}
+                          onChange={(e) => setNewProfileData({ ...newProfileData, relation: e.target.value })}
+                          className="apple-input"
+                        >
+                          <option value="spouse">Spouse (Husband / Wife)</option>
+                          <option value="child">Child (Son / Daughter)</option>
+                          <option value="parent">Parent (Mother / Father)</option>
+                          <option value="sibling">Sibling (Brother / Sister)</option>
+                          <option value="other">Other Relative</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4 }}>Full Name</label>
                         <input
-                          type="date"
+                          type="text"
                           required
-                          value={newProfileData.dob}
-                          onChange={(e) => setNewProfileData({ ...newProfileData, dob: e.target.value })}
+                          value={newProfileData.fullName}
+                          onChange={(e) => setNewProfileData({ ...newProfileData, fullName: e.target.value })}
                           className="apple-input"
+                          placeholder="e.g. Anjali Sharma"
                         />
                       </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4 }}>Date of Birth</label>
+                          <input
+                            type="date"
+                            required
+                            value={newProfileData.dob}
+                            onChange={(e) => setNewProfileData({ ...newProfileData, dob: e.target.value })}
+                            className="apple-input"
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4 }}>Time of Birth</label>
+                          <input
+                            type="time"
+                            value={newProfileData.tob}
+                            onChange={(e) => setNewProfileData({ ...newProfileData, tob: e.target.value })}
+                            className="apple-input"
+                          />
+                        </div>
+                      </div>
+
                       <div>
-                        <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4 }}>Time of Birth</label>
+                        <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4 }}>Place of Birth (City, State)</label>
                         <input
-                          type="time"
-                          value={newProfileData.tob}
-                          onChange={(e) => setNewProfileData({ ...newProfileData, tob: e.target.value })}
+                          type="text"
+                          required
+                          value={newProfileData.pob}
+                          onChange={(e) => setNewProfileData({ ...newProfileData, pob: e.target.value })}
                           className="apple-input"
+                          placeholder="e.g. New Delhi, Delhi"
                         />
                       </div>
-                    </div>
 
-                    <div>
-                      <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4 }}>Place of Birth (City, State)</label>
-                      <input
-                        type="text"
-                        required
-                        value={newProfileData.pob}
-                        onChange={(e) => setNewProfileData({ ...newProfileData, pob: e.target.value })}
-                        className="apple-input"
-                        placeholder="e.g. New Delhi, Delhi"
-                      />
-                    </div>
-
-                    <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
-                      <button type="submit" className="apple-btn-primary" style={{ flex: 1, padding: 12 }}>
-                        Save Profile
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowAddProfileModal(false)}
-                        className="apple-btn-secondary"
-                        style={{ flex: 1, padding: 12 }}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </form>
+                      <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
+                        <button type="submit" className="apple-btn-primary" style={{ flex: 1, padding: 12 }}>
+                          Save Profile
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowAddProfileModal(false)}
+                          className="apple-btn-secondary"
+                          style={{ flex: 1, padding: 12 }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* 4B. FAMILY 360 SUBSCRIPTION MANAGEMENT VIEW */}
+        {activeTab === 'subscription' && (
+          <SubscriptionManagementView
+            onOpenUpgrade={() => setShowUpgradeModal(true)}
+            onNavigateTab={(tab: string) => handleSelectTab(tab as any)}
+          />
         )}
 
         {/* 5. PAYMENTS & UPI TAB (Section 14) */}
@@ -1321,6 +1420,14 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
             </form>
           </div>
         </div>
+      )}
+
+      {/* Family 360 Upgrade Modal */}
+      {showUpgradeModal && (
+        <FamilyUpgradeModal
+          isOpen={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+        />
       )}
     </div>
   );

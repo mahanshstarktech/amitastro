@@ -10,9 +10,15 @@ export interface User {
   role: 'customer' | 'admin';
   photoURL?: string;
   isPhoneVerified: boolean;
+  isEmailVerified?: boolean;
   isNewCustomer: boolean;
   trialUsed: boolean;
   trialSecondsRemaining: number;
+  plan?: 'free' | 'lite' | 'plus' | 'pro' | 'family';
+  planBadge?: 'Free(Trial)' | 'Lite' | 'Plus' | 'Pro' | 'Family' | 'Admin';
+  isFamilySubscriber?: boolean;
+  subscriptionExpiresAt?: string | null;
+  subscriptionAutopay?: boolean;
 }
 
 export interface BirthProfile {

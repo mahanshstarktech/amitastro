@@ -10,6 +10,7 @@ import * as trialCtrl from '../controllers/trialController';
 import * as blogCtrl from '../controllers/blogController';
 import * as adminCtrl from '../controllers/adminController';
 import * as youtubeCtrl from '../controllers/youtubeController';
+import * as subCtrl from '../controllers/subscriptionController';
 
 const router = Router();
 
@@ -59,6 +60,17 @@ router.post('/payments/proof', authenticateToken, payCtrl.submitPaymentProof);
 router.get('/payments/pending', authenticateToken, requireAdmin, payCtrl.getPendingPayments);
 router.post('/payments/:id/verify', authenticateToken, requireAdmin, payCtrl.verifyPayment);
 router.post('/payments/:id/reject', authenticateToken, requireAdmin, payCtrl.rejectPayment);
+
+// 5b. Family 360 Subscription & Netflix-Style Autopay Management
+router.get('/subscription/config', subCtrl.getSubscriptionConfig);
+router.get('/subscription/my', authenticateToken, subCtrl.getMySubscription);
+router.post('/subscription/subscribe', authenticateToken, subCtrl.subscribeFamily);
+router.patch('/subscription/autopay', authenticateToken, subCtrl.toggleAutopay);
+router.post('/subscription/cancel', authenticateToken, subCtrl.cancelSubscription);
+router.post('/subscription/resume', authenticateToken, subCtrl.resumeSubscription);
+router.get('/admin/subscriptions', authenticateToken, requireAdmin, subCtrl.adminGetSubscriptions);
+router.post('/admin/subscriptions/grant/:userId', authenticateToken, requireAdmin, subCtrl.adminGrantFamilyPlan);
+router.post('/admin/subscriptions/revoke/:userId', authenticateToken, requireAdmin, subCtrl.adminRevokeFamilyPlan);
 
 // 6. Chat
 router.get('/chat/conversation', authenticateToken, chatCtrl.getOrCreateConversation);

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Sparkles, Calendar, ArrowRight, ShieldCheck, Star, Users, Award, 
   Compass, CheckCircle2, ChevronRight, ChevronLeft, MessageSquare, Phone, BookOpen, 
-  HelpCircle, ChevronDown, Check, Clock
+  HelpCircle, ChevronDown, Check, Clock, Crown
 } from 'lucide-react';
 import { apiRequest } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
@@ -1011,7 +1011,74 @@ export const HomePage: React.FC<HomePageProps> = ({
             </div>
           </div>
 
-          <div style={{ textAlign: 'center', marginTop: 32 }}>
+          {/* Family 360 Plan Flagship Callout Banner */}
+          <div
+            style={{
+              marginTop: 36,
+              background: 'linear-gradient(135deg, #1D1D1F 0%, #2C2C2E 100%)',
+              borderRadius: 20,
+              padding: '24px 28px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 20,
+              boxShadow: '0 12px 32px rgba(0, 0, 0, 0.12)',
+              color: '#FFFFFF'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <div
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 14,
+                  background: 'linear-gradient(135deg, #C9A24B, #8E6A1C)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#FFFFFF',
+                  flexShrink: 0
+                }}
+              >
+                <Crown size={24} />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                  <h4 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#FFFFFF' }}>
+                    Family 360 Annual Membership
+                  </h4>
+                  <span
+                    style={{
+                      background: 'rgba(201, 162, 75, 0.25)',
+                      color: '#E6C676',
+                      border: '1px solid rgba(201, 162, 75, 0.4)',
+                      padding: '2px 8px',
+                      borderRadius: 9999,
+                      fontSize: 10.5,
+                      fontWeight: 700,
+                      textTransform: 'uppercase'
+                    }}
+                  >
+                    Annual Autopay
+                  </span>
+                </div>
+                <p style={{ margin: 0, fontSize: 13.5, color: '#A1A1A6', maxWidth: 620 }}>
+                  Need holistic guidance for your spouse, children, and parents? Cover up to 4 family members with <strong>unlimited consultations</strong> for 1 full year ({countryInfo.prices.family?.formatted || '₹1,00,000 / yr'}).
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => onNavigate('/pricing')}
+              className="apple-btn-gold"
+              style={{ padding: '12px 22px', fontSize: 14 }}
+            >
+              Explore Family 360 <ArrowRight size={15} />
+            </button>
+          </div>
+
+          <div style={{ textAlign: 'center', marginTop: 28 }}>
             <span
               onClick={() => onNavigate('/pricing')}
               style={{ color: '#3A3A6E', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}

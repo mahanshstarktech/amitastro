@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { PlanBadge } from './PlanBadge';
 
 interface AppleBottomNavProps {
   currentPath: string;
@@ -228,40 +229,56 @@ export const AppleBottomNav: React.FC<AppleBottomNavProps> = ({
           flex: 1
         }}
       >
-        {isAuthenticated && user?.photoURL ? (
-          <img
-            src={user.photoURL}
-            alt={user.name || 'User'}
-            style={{
-              width: 22,
-              height: 22,
-              borderRadius: '50%',
-              objectFit: 'cover',
-              border: isPortal ? '2px solid #3A3A6E' : '1.5px solid #C7C7CC'
-            }}
-          />
-        ) : isAuthenticated ? (
-          <div
-            style={{
-              width: 22,
-              height: 22,
-              borderRadius: '50%',
-              backgroundColor: '#3A3A6E',
-              color: '#FFFFFF',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 11,
-              fontWeight: 700
-            }}
-          >
-            {user?.name?.charAt(0).toUpperCase() || 'A'}
-          </div>
-        ) : isAdmin ? (
-          <ShieldCheck size={21} strokeWidth={isPortal ? 2.2 : 1.7} />
-        ) : (
-          <User size={21} strokeWidth={isPortal ? 2.2 : 1.7} />
-        )}
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {isAuthenticated && user?.photoURL ? (
+            <img
+              src={user.photoURL}
+              alt={user.name || 'User'}
+              style={{
+                width: 24,
+                height: 24,
+                borderRadius: '50%',
+                objectFit: 'cover',
+                border: isPortal ? '2px solid #3A3A6E' : '1.5px solid #C7C7CC'
+              }}
+            />
+          ) : isAuthenticated ? (
+            <div
+              style={{
+                width: 24,
+                height: 24,
+                borderRadius: '50%',
+                backgroundColor: '#3A3A6E',
+                color: '#FFFFFF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 11,
+                fontWeight: 700
+              }}
+            >
+              {user?.name?.charAt(0).toUpperCase() || 'A'}
+            </div>
+          ) : isAdmin ? (
+            <ShieldCheck size={21} strokeWidth={isPortal ? 2.2 : 1.7} />
+          ) : (
+            <User size={21} strokeWidth={isPortal ? 2.2 : 1.7} />
+          )}
+          {isAuthenticated && (
+            <PlanBadge
+              badge={isAdmin ? 'Admin' : (user?.planBadge || 'Free(Trial)')}
+              size="micro"
+              style={{
+                position: 'absolute',
+                top: -5,
+                right: -12,
+                fontSize: 8,
+                padding: '0 3.5px',
+                border: '1px solid #FFFFFF'
+              }}
+            />
+          )}
+        </div>
         <span style={{ fontSize: 10.5, fontWeight: isPortal ? 600 : 500, letterSpacing: '-0.01em' }}>
           {isAuthenticated ? (isAdmin ? t('nav.admin', 'Admin') : t('nav.portal', 'Portal')) : t('nav.signin', 'Sign In')}
         </span>

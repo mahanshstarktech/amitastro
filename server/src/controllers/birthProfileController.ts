@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthRequest } from '../middleware/auth';
 import { getAll, getOne, runQuery } from '../db/database';
+import { subscriptionService } from '../services/subscriptionService';
 
 export const getProfiles = async (req: AuthRequest, res: Response) => {
   try {
@@ -25,6 +26,25 @@ export const createProfile = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Full name, date of birth, and place of birth are required' });
     }
 
+    const cleanRelation = (relation || 'self').toLowerCase().trim();
+
+    // Enterprise Gate: Adding family members (non-self) is exclusively reserved for Family 360 subscribers
+    if (cleanRelation !== 'self' && req.user!.role !== 'admin') {
+      const familyCheck = await subscriptionService.isUserFamilySubscribed(userId);
+      if (!familyCheck.isSubscribed) {
+        return res.status(403).json({
+          error: 'Adding family members (spouse, children, parents) is exclusively reserved for Family 360 subscribers. Upgrade to Family 360 to add up to 4 family members.',
+          requiresFamilyPlan: true
+        });
+      }
+
+      if (familyCheck.familySlotsRemaining <= 0) {
+        return res.status(400).json({
+          error: 'You have reached the maximum limit of 4 family members included in the Family 360 plan.'
+        });
+      }
+    }
+
     const profileId = `bp-${uuidv4().substring(0, 8)}`;
     await runQuery(`
       INSERT INTO birth_profiles (
@@ -33,7 +53,7 @@ export const createProfile = async (req: AuthRequest, res: Response) => {
     `, [
       profileId,
       userId,
-      relation || 'self',
+      cleanRelation,
       fullName,
       dob,
       tob || '12:00',

@@ -6,6 +6,7 @@ import { getOne, runQuery, getAll } from '../db/database';
 import { sendRealSmsOtp, sendRealEmailOtp } from '../services/realServices';
 import { securityService } from '../services/securityService';
 import { logSecurityEvent } from '../middleware/security';
+import { subscriptionService } from '../services/subscriptionService';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'amitastro_secret_jwt_key_2026';
 
@@ -16,6 +17,28 @@ export function isConfiguredAdminEmail(email?: string): boolean {
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
   return envAdminEmails.includes(email.trim().toLowerCase());
+}
+
+export async function formatUserResponse(user: any) {
+  const planInfo = await subscriptionService.getUserPlanAndBadge(user);
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    phone: user.phone,
+    role: user.role,
+    photoURL: user.photo_url || undefined,
+    isPhoneVerified: !!user.is_phone_verified,
+    isEmailVerified: !!user.is_email_verified,
+    isNewCustomer: user.is_new_customer !== 0,
+    trialUsed: !!user.trial_used,
+    trialSecondsRemaining: user.trial_seconds_remaining,
+    plan: planInfo.plan,
+    planBadge: planInfo.planBadge,
+    isFamilySubscriber: planInfo.isFamilySubscriber,
+    subscriptionExpiresAt: planInfo.subscriptionExpiresAt || null,
+    subscriptionAutopay: !!planInfo.subscriptionAutopay
+  };
 }
 
 /**
@@ -185,18 +208,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
       success: true,
       token,
       csrfToken,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-        photoURL: user.photo_url || undefined,
-        isPhoneVerified: true,
-        isNewCustomer: user.is_new_customer !== 0,
-        trialUsed: !!user.trial_used,
-        trialSecondsRemaining: user.trial_seconds_remaining
-      },
+      user: await formatUserResponse(user),
       profiles
     });
   } catch (err: any) {
@@ -332,19 +344,7 @@ export const verifyDualOtp = async (req: Request, res: Response) => {
       success: true,
       token,
       csrfToken,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-        photoURL: user.photo_url || undefined,
-        isPhoneVerified: true,
-        isEmailVerified: true,
-        isNewCustomer: user.is_new_customer !== 0,
-        trialUsed: !!user.trial_used,
-        trialSecondsRemaining: user.trial_seconds_remaining
-      },
+      user: await formatUserResponse(user),
       profiles
     });
   } catch (err: any) {
@@ -464,19 +464,7 @@ export const completeManualRegistration = async (req: Request, res: Response) =>
       success: true,
       token,
       csrfToken,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-        photoURL: user.photo_url || finalPhoto || undefined,
-        isPhoneVerified: true,
-        isEmailVerified: true,
-        isNewCustomer: user.is_new_customer !== 0,
-        trialUsed: !!user.trial_used,
-        trialSecondsRemaining: user.trial_seconds_remaining
-      },
+      user: await formatUserResponse(user),
       profiles
     });
   } catch (err: any) {
@@ -554,19 +542,7 @@ export const googleAuth = async (req: Request, res: Response) => {
         needsPhoneVerification: false,
         token,
         csrfToken,
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          phone: user.phone,
-          role: user.role,
-          photoURL: user.photo_url || finalPhoto || undefined,
-          isPhoneVerified: true,
-          isEmailVerified: true,
-          isNewCustomer: user.is_new_customer !== 0,
-          trialUsed: !!user.trial_used,
-          trialSecondsRemaining: user.trial_seconds_remaining
-        },
+        user: await formatUserResponse(user),
         profiles
       });
     }
@@ -600,19 +576,7 @@ export const googleAuth = async (req: Request, res: Response) => {
         needsPhoneVerification: false,
         token,
         csrfToken,
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          phone: user.phone,
-          role: user.role,
-          photoURL: user.photo_url || photoURL || undefined,
-          isPhoneVerified: true,
-          isEmailVerified: true,
-          isNewCustomer: user.is_new_customer !== 0,
-          trialUsed: !!user.trial_used,
-          trialSecondsRemaining: user.trial_seconds_remaining
-        },
+        user: await formatUserResponse(user),
         profiles
       });
     }
@@ -725,18 +689,7 @@ export const login = async (req: Request, res: Response) => {
       success: true,
       token,
       csrfToken,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-        photoURL: user.photo_url || undefined,
-        isPhoneVerified: !!user.is_phone_verified,
-        isNewCustomer: user.is_new_customer !== 0,
-        trialUsed: !!user.trial_used,
-        trialSecondsRemaining: user.trial_seconds_remaining
-      },
+      user: await formatUserResponse(user),
       profiles
     });
   } catch (err: any) {
@@ -765,18 +718,7 @@ export const getMe = async (req: any, res: Response) => {
     const profiles = await getAll<any>('SELECT * FROM birth_profiles WHERE user_id = ? ORDER BY created_at ASC', [user.id]);
 
     return res.json({
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-        photoURL: user.photo_url || undefined,
-        isPhoneVerified: !!user.is_phone_verified,
-        isNewCustomer: user.is_new_customer !== 0,
-        trialUsed: !!user.trial_used,
-        trialSecondsRemaining: user.trial_seconds_remaining
-      },
+      user: await formatUserResponse(user),
       profiles
     });
   } catch (err: any) {

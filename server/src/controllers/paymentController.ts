@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { AuthRequest } from '../middleware/auth';
 import { getAll, getOne, runQuery } from '../db/database';
 import { generateRealUpiIntent, sendTelegramAdminAlert } from '../services/realServices';
+import { subscriptionService } from '../services/subscriptionService';
 
 export const getPaymentConfig = (req: any, res: Response) => {
   const amount = parseFloat(req.query.amount as string) || 1799;
@@ -131,20 +132,40 @@ export const verifyPayment = async (req: AuthRequest, res: Response) => {
       WHERE id = ?
     `, [adminId, id]);
 
-    // Automatically confirm linked appointment
+    // Automatically confirm linked appointment & update plan
     if (payment.appointment_id) {
       await runQuery(`
         UPDATE appointments SET status = 'Confirmed' WHERE id = ?
       `, [payment.appointment_id]);
+
+      const appt = await getOne<any>(
+        'SELECT a.*, p.slug as pkg_slug FROM appointments a JOIN packages p ON a.package_id = p.id WHERE a.id = ?',
+        [payment.appointment_id]
+      );
+
+      if (appt) {
+        if (appt.pkg_slug === 'family-360') {
+          await subscriptionService.activateFamilySubscription(payment.user_id, { amount: payment.amount, adminId });
+        } else if (appt.pkg_slug === 'premium') {
+          await runQuery("UPDATE users SET plan = CASE WHEN plan = 'family' THEN 'family' ELSE 'pro' END, plan_badge = CASE WHEN plan = 'family' THEN 'Family' ELSE 'Pro' END WHERE id = ?", [payment.user_id]);
+        } else if (appt.pkg_slug === 'standard') {
+          await runQuery("UPDATE users SET plan = CASE WHEN plan IN ('family', 'pro') THEN plan ELSE 'plus' END, plan_badge = CASE WHEN plan IN ('family', 'pro') THEN plan_badge ELSE 'Plus' END WHERE id = ?", [payment.user_id]);
+        } else if (appt.pkg_slug === 'quick-consult') {
+          await runQuery("UPDATE users SET plan = CASE WHEN plan IN ('family', 'pro', 'plus') THEN plan ELSE 'lite' END, plan_badge = CASE WHEN plan IN ('family', 'pro', 'plus') THEN plan_badge ELSE 'Lite' END WHERE id = ?", [payment.user_id]);
+        }
+      }
+    } else if (payment.subscription_id) {
+      // Direct Family 360 Subscription Payment Verification
+      await subscriptionService.activateFamilySubscription(payment.user_id, { amount: payment.amount, adminId });
     }
 
     // Audit log
     await runQuery(`
       INSERT INTO audit_logs (id, admin_id, action, target_type, target_id, details)
       VALUES (?, ?, 'PAYMENT_VERIFIED', 'payment', ?, ?)
-    `, [`audit-${uuidv4().substring(0, 8)}`, adminId, id, `Verified UTR: ${payment.utr_reference}`]);
+    `, [`audit-${uuidv4().substring(0, 8)}`, adminId, id, `Verified payment of ${payment.amount} for UTR: ${payment.utr_reference}`]);
 
-    return res.json({ success: true, message: 'Payment verified and appointment confirmed!' });
+    return res.json({ success: true, message: 'Payment verified and plan activated successfully!' });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }

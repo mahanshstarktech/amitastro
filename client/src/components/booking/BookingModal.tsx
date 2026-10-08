@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Calendar as CalendarIcon, Clock, User as UserIcon, MessageSquare, CheckCircle2, QrCode, ArrowRight, ShieldCheck, Plus } from 'lucide-react';
+import { X, Calendar as CalendarIcon, Clock, User as UserIcon, MessageSquare, CheckCircle2, QrCode, ArrowRight, ShieldCheck, Plus, Crown } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { apiRequest } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
@@ -27,6 +27,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   const getPackageFormattedPrice = (pkg: any) => {
     if (!pkg) return '';
+    if (user?.isFamilySubscriber) return 'Included (₹0 / $0)';
+    if (pkg.id === 'pkg-family-360') return countryInfo.prices.family?.formatted || '₹1,00,000 / yr';
     if (pkg.id === 'pkg-quick') return countryInfo.prices.quick.formatted;
     if (pkg.id === 'pkg-standard') return countryInfo.prices.standard.formatted;
     if (pkg.id === 'pkg-premium') return countryInfo.prices.premium.formatted;
@@ -35,6 +37,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   const getPackageAmount = (pkg: any) => {
     if (!pkg) return 0;
+    if (user?.isFamilySubscriber) return 0;
+    if (pkg.id === 'pkg-family-360') return countryInfo.prices.family?.amount || 100000;
     if (pkg.id === 'pkg-quick') return countryInfo.prices.quick.amount;
     if (pkg.id === 'pkg-standard') return countryInfo.prices.standard.amount;
     if (pkg.id === 'pkg-premium') return countryInfo.prices.premium.amount;
@@ -140,6 +144,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       showToast('Please fill in name, date of birth, and place of birth', 'error');
       return;
     }
+    if (newProfile.relation !== 'self' && !user?.isFamilySubscriber && user?.role !== 'admin') {
+      showToast('Adding family members (spouse, children) requires Family 360 Plan. Please choose Self or upgrade to Family 360.', 'warning');
+      return;
+    }
     setAddingProfile(true);
     try {
       const created = await addProfile(newProfile);
@@ -197,7 +205,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       setCreatedAppt(res.appointment);
       confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
 
-      if (currentPkg && currentPkg.price > 0) {
+      // Family 360 members get consultations 100% complimentary ($0) & auto-confirmed
+      if (currentPkg && currentPkg.price > 0 && !user?.isFamilySubscriber) {
         setStep('payment');
       } else {
         setStep('success');
@@ -304,6 +313,28 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 Detected timezone: <strong>{userTimezone}</strong> (Internal schedule managed in IST).
               </p>
             </div>
+
+            {user?.isFamilySubscriber && (
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, rgba(201, 162, 75, 0.14), rgba(201, 162, 75, 0.04))',
+                  border: '1.5px solid rgba(201, 162, 75, 0.4)',
+                  borderRadius: 14,
+                  padding: '12px 16px',
+                  marginBottom: 20,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12
+                }}
+              >
+                <div style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: '#C9A24B', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF', flexShrink: 0 }}>
+                  <Crown size={18} />
+                </div>
+                <div style={{ fontSize: 13, color: '#1D1D1F' }}>
+                  <strong>Family 360 Plan Active:</strong> Consultations for you and your family are <strong>100% complimentary ($0 / ₹0)</strong> with instant auto-confirmation under your annual subscription.
+                </div>
+              </div>
+            )}
 
             <form onSubmit={handleSubmitRequest} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
               {/* Package selector */}

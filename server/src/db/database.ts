@@ -98,20 +98,46 @@ export async function initDatabase() {
       await pgPool.query('ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS excerpt_hi TEXT;');
       await pgPool.query('ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS content_markdown_hi TEXT;');
     } catch (_) {}
+    const pgMigrations = [
+      'ALTER TABLE users ADD COLUMN IF NOT EXISTS photo_url TEXT;',
+      'ALTER TABLE users ADD COLUMN IF NOT EXISTS plan VARCHAR(32) DEFAULT \'free\';',
+      'ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_badge VARCHAR(32) DEFAULT \'Free(Trial)\';',
+      'ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_status VARCHAR(32) DEFAULT \'none\';',
+      'ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_autopay INT DEFAULT 0;',
+      'ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_cycle VARCHAR(32) DEFAULT \'yearly\';',
+      'ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP;',
+      'ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_id VARCHAR(64);',
+      'ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_currency VARCHAR(8) DEFAULT \'INR\';',
+      'ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_amount INT DEFAULT 100000;',
+      'ALTER TABLE payments ADD COLUMN IF NOT EXISTS subscription_id VARCHAR(64);',
+      'ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS title_hi TEXT;',
+      'ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS excerpt_hi TEXT;',
+      'ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS content_markdown_hi TEXT;'
+    ];
+    for (const q of pgMigrations) {
+      try { await pgPool.query(q); } catch (_) {}
+    }
   } else if (sqliteDb) {
     await initSqliteSchema();
-    try {
-      await runQuery('ALTER TABLE users ADD COLUMN photo_url TEXT;');
-    } catch (_) {}
-    try {
-      await runQuery('ALTER TABLE blog_posts ADD COLUMN title_hi TEXT;');
-    } catch (_) {}
-    try {
-      await runQuery('ALTER TABLE blog_posts ADD COLUMN excerpt_hi TEXT;');
-    } catch (_) {}
-    try {
-      await runQuery('ALTER TABLE blog_posts ADD COLUMN content_markdown_hi TEXT;');
-    } catch (_) {}
+    const sqliteMigrations = [
+      'ALTER TABLE users ADD COLUMN photo_url TEXT;',
+      'ALTER TABLE users ADD COLUMN plan TEXT DEFAULT "free";',
+      'ALTER TABLE users ADD COLUMN plan_badge TEXT DEFAULT "Free(Trial)";',
+      'ALTER TABLE users ADD COLUMN subscription_status TEXT DEFAULT "none";',
+      'ALTER TABLE users ADD COLUMN subscription_autopay INTEGER DEFAULT 0;',
+      'ALTER TABLE users ADD COLUMN subscription_cycle TEXT DEFAULT "yearly";',
+      'ALTER TABLE users ADD COLUMN subscription_expires_at TEXT;',
+      'ALTER TABLE users ADD COLUMN subscription_id TEXT;',
+      'ALTER TABLE users ADD COLUMN subscription_currency TEXT DEFAULT "INR";',
+      'ALTER TABLE users ADD COLUMN subscription_amount INTEGER DEFAULT 100000;',
+      'ALTER TABLE payments ADD COLUMN subscription_id TEXT;',
+      'ALTER TABLE blog_posts ADD COLUMN title_hi TEXT;',
+      'ALTER TABLE blog_posts ADD COLUMN excerpt_hi TEXT;',
+      'ALTER TABLE blog_posts ADD COLUMN content_markdown_hi TEXT;'
+    ];
+    for (const q of sqliteMigrations) {
+      try { await runQuery(q); } catch (_) {}
+    }
   }
   await seedInitialData();
 }
@@ -191,6 +217,23 @@ async function initPostgresSchema() {
       rejection_reason TEXT,
       verified_by VARCHAR(64),
       verified_at TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS subscriptions (
+      id VARCHAR(64) PRIMARY KEY,
+      user_id VARCHAR(64) NOT NULL REFERENCES users(id),
+      plan VARCHAR(32) NOT NULL DEFAULT 'family_360',
+      status VARCHAR(32) NOT NULL DEFAULT 'active',
+      amount INT NOT NULL,
+      currency VARCHAR(8) NOT NULL DEFAULT 'INR',
+      billing_cycle VARCHAR(32) DEFAULT 'yearly',
+      autopay_enabled INT DEFAULT 1,
+      current_period_start TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      current_period_end TIMESTAMP NOT NULL,
+      next_billing_at TIMESTAMP,
+      cancelled_at TIMESTAMP,
+      mandate_reference VARCHAR(128),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -437,6 +480,26 @@ async function initSqliteSchema() {
           verified_at TEXT,
           created_at TEXT DEFAULT (datetime('now')),
           FOREIGN KEY (appointment_id) REFERENCES appointments(id),
+          FOREIGN KEY (user_id) REFERENCES users(id)
+        );
+      `);
+
+      sqliteDb!.run(`
+        CREATE TABLE IF NOT EXISTS subscriptions (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          plan TEXT NOT NULL DEFAULT 'family_360',
+          status TEXT NOT NULL DEFAULT 'active',
+          amount INTEGER NOT NULL,
+          currency TEXT NOT NULL DEFAULT 'INR',
+          billing_cycle TEXT DEFAULT 'yearly',
+          autopay_enabled INTEGER DEFAULT 1,
+          current_period_start TEXT DEFAULT (datetime('now')),
+          current_period_end TEXT NOT NULL,
+          next_billing_at TEXT,
+          cancelled_at TEXT,
+          mandate_reference TEXT,
+          created_at TEXT DEFAULT (datetime('now')),
           FOREIGN KEY (user_id) REFERENCES users(id)
         );
       `);
@@ -708,6 +771,26 @@ async function seedInitialData() {
         decoy: 'Best value per minute with complete lifetime report',
         cost_per_min: 29.98,
         followup_days: 7
+      },
+      {
+        id: 'pkg-family-360',
+        slug: 'family-360',
+        name: 'Family 360 Plan (Annual)',
+        price: 100000,
+        duration: 60,
+        includes: JSON.stringify([
+          '1-Year Unlimited Consultations for Entire Family',
+          'Add up to 4 Family Members (Spouse, Children, Parents)',
+          'Individual Kundli, Dasha & Remedy Charts for All Members',
+          'Priority VIP Direct Hotline to Amit Soni',
+          'Complete Annual Vastu, Career & Life Transit Audit',
+          'Netflix-Style Autopay with Flexible Annual Controls'
+        ]),
+        is_popular: 1,
+        is_trial: 0,
+        decoy: 'Flagship 1-Year All-Inclusive Family Membership',
+        cost_per_min: 0,
+        followup_days: 365
       }
     ];
 
@@ -716,6 +799,33 @@ async function seedInitialData() {
         INSERT INTO packages (id, slug, name, price, duration_minutes, includes_json, is_popular, is_trial, decoy_note, per_minute_cost)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [pkg.id, pkg.slug, pkg.name, pkg.price, pkg.duration, pkg.includes, pkg.is_popular, pkg.is_trial, pkg.decoy, pkg.cost_per_min]);
+    }
+
+    // Ensure family-360 package is present even if database was seeded earlier
+    const existingFamily = await getOne<any>('SELECT id FROM packages WHERE slug = ?', ['family-360']);
+    if (!existingFamily) {
+      await runQuery(`
+        INSERT INTO packages (id, slug, name, price, duration_minutes, includes_json, is_popular, is_trial, decoy_note, per_minute_cost)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        'pkg-family-360',
+        'family-360',
+        'Family 360 Plan (Annual)',
+        100000,
+        60,
+        JSON.stringify([
+          '1-Year Unlimited Consultations for Entire Family',
+          'Add up to 4 Family Members (Spouse, Children, Parents)',
+          'Individual Kundli, Dasha & Remedy Charts for All Members',
+          'Priority VIP Direct Hotline to Amit Soni',
+          'Complete Annual Vastu, Career & Life Transit Audit',
+          'Netflix-Style Autopay with Flexible Annual Controls'
+        ]),
+        1,
+        0,
+        'Flagship 1-Year All-Inclusive Family Membership',
+        0
+      ]);
     }
 
     // Categories

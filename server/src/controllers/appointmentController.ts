@@ -3,12 +3,14 @@ import { v4 as uuidv4 } from 'uuid';
 import { AuthRequest } from '../middleware/auth';
 import { getAll, getOne, runQuery } from '../db/database';
 import { sendTelegramAdminAlert } from '../services/realServices';
+import { subscriptionService } from '../services/subscriptionService';
 
 // Follow-up days per package slug
 const FOLLOWUP_DAYS_MAP: Record<string, number> = {
   'quick-consult': 0,
   'standard': 3,
   'premium': 7,
+  'family-360': 365,
   'trial': 0
 };
 
@@ -93,14 +95,22 @@ export const createAppointment = async (req: AuthRequest, res: Response) => {
       }
     }
 
-    const followupDays = FOLLOWUP_DAYS_MAP[pkg.slug] || 0;
+    // Check if customer has an active Family 360 subscription (unlimited consultations)
+    const familySub = await subscriptionService.isUserFamilySubscribed(customerId);
+    const isFamilySubscriber = familySub.isSubscribed;
+
+    const followupDays = FOLLOWUP_DAYS_MAP[pkg.slug] || (isFamilySubscriber ? 365 : 0);
     const apptId = `appt-${uuidv4().substring(0, 8)}`;
+    const initialStatus = isFamilySubscriber ? 'Confirmed' : 'Requested';
+    const notesWithTag = isFamilySubscriber
+      ? `[Family 360 Plan: Unlimited Consultation] ${customerNotes || ''}`.trim()
+      : (customerNotes || '');
 
     await runQuery(`
       INSERT INTO appointments (
         id, customer_id, birth_profile_id, package_id, consultation_type,
         requested_date, requested_time_window, timezone_user, customer_notes, status, followup_days
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Requested', ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       apptId,
       customerId,
@@ -110,12 +120,21 @@ export const createAppointment = async (req: AuthRequest, res: Response) => {
       requestedDate,
       requestedTimeWindow,
       timezoneUser || 'Asia/Kolkata',
-      customerNotes || '',
+      notesWithTag,
+      initialStatus,
       followupDays
     ]);
 
-    // If paid package, create an initial pending payment record
-    if (pkg.price > 0) {
+    // Handle payment record:
+    if (isFamilySubscriber) {
+      // Family 360: fee is 100% waived, automatically verified zero-amount record
+      const payId = `pay-${uuidv4().substring(0, 8)}`;
+      await runQuery(`
+        INSERT INTO payments (id, appointment_id, user_id, amount, payment_method, status, utr_reference)
+        VALUES (?, ?, ?, 0, 'family_360_annual', 'Verified', 'FAMILY-360-PASS')
+      `, [payId, apptId, customerId]);
+    } else if (pkg.price > 0) {
+      // One-time payment: create pending payment record
       const payId = `pay-${uuidv4().substring(0, 8)}`;
       await runQuery(`
         INSERT INTO payments (id, appointment_id, user_id, amount, payment_method, status)
@@ -127,7 +146,13 @@ export const createAppointment = async (req: AuthRequest, res: Response) => {
     await runQuery(`
       INSERT INTO audit_logs (id, admin_id, action, target_type, target_id, details)
       VALUES (?, 'system', 'APPOINTMENT_REQUESTED', 'appointment', ?, ?)
-    `, [`audit-${uuidv4().substring(0, 8)}`, apptId, `Requested ${pkg.name} for date ${requestedDate}`]);
+    `, [
+      `audit-${uuidv4().substring(0, 8)}`,
+      apptId,
+      isFamilySubscriber
+        ? `Family 360 subscriber booked consultation for ${profile.full_name} (${requestedDate})`
+        : `Requested ${pkg.name} for date ${requestedDate}`
+    ]);
 
     const created = await getOne<any>(`
       SELECT a.*, p.name as package_name, p.price as package_price, bp.full_name as profile_name
