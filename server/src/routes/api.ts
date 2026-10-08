@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticateToken, requireAdmin } from '../middleware/auth';
+import { authRateLimiter } from '../middleware/security';
 import * as authCtrl from '../controllers/authController';
 import * as profileCtrl from '../controllers/birthProfileController';
 import * as apptCtrl from '../controllers/appointmentController';
@@ -15,15 +16,19 @@ const router = Router();
 // YouTube Showcase
 router.get('/youtube', youtubeCtrl.getYoutubeVideos);
 
-// 1. Auth Routes
-router.post('/auth/send-otp', authCtrl.sendOtp);
-router.post('/auth/verify-otp', authCtrl.verifyOtp);
-router.post('/auth/verify-email-otp', authCtrl.verifyEmailOtp);
-router.post('/auth/complete-manual-registration', authCtrl.completeManualRegistration);
-router.post('/auth/send-dual-otp', authCtrl.sendDualOtp);
-router.post('/auth/verify-dual-otp', authCtrl.verifyDualOtp);
-router.post('/auth/google', authCtrl.googleAuth);
-router.post('/auth/login', authCtrl.login);
+// 1. Auth & Security Infrastructure Routes (Zoho IAM Grade)
+router.get('/auth/encryption-key', authCtrl.getEncryptionKey);
+router.get('/auth/csrf-token', authCtrl.getCsrfToken);
+router.post('/auth/logout', authCtrl.logout);
+
+router.post('/auth/send-otp', authRateLimiter, authCtrl.sendOtp);
+router.post('/auth/verify-otp', authRateLimiter, authCtrl.verifyOtp);
+router.post('/auth/verify-email-otp', authRateLimiter, authCtrl.verifyEmailOtp);
+router.post('/auth/complete-manual-registration', authRateLimiter, authCtrl.completeManualRegistration);
+router.post('/auth/send-dual-otp', authRateLimiter, authCtrl.sendDualOtp);
+router.post('/auth/verify-dual-otp', authRateLimiter, authCtrl.verifyDualOtp);
+router.post('/auth/google', authRateLimiter, authCtrl.googleAuth);
+router.post('/auth/login', authRateLimiter, authCtrl.login);
 router.get('/auth/me', authenticateToken, authCtrl.getMe);
 router.put('/auth/profile-photo', authenticateToken, authCtrl.updateProfilePhoto);
 

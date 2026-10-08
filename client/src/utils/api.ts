@@ -15,6 +15,17 @@ if (rawEnv.includes('nakshaktram')) {
 
 let activeBase = rawEnv || (isProd ? PROD_PRIMARY : 'http://localhost:5001/api');
 
+function getCsrfToken(): string | null {
+  if (typeof document !== 'undefined') {
+    const match = document.cookie.match(/(?:^|;\s*)_zcsr_tmp=([^;]+)/);
+    if (match) return decodeURIComponent(match[1]);
+  }
+  if (typeof localStorage !== 'undefined') {
+    return localStorage.getItem('amitastro_csrf_token');
+  }
+  return null;
+}
+
 export async function apiRequest<T = any>(
   endpoint: string,
   optionsOrMethod?: RequestInit | string,
@@ -40,10 +51,21 @@ export async function apiRequest<T = any>(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  // Helper to execute request on a given base
+  // Attach Anti-CSRF double-submit token (Zoho Accounts IAM model)
+  const csrfToken = getCsrfToken();
+  if (csrfToken) {
+    headers['X-CSRF-TOKEN'] = csrfToken;
+    headers['X-ZCSRF-TOKEN'] = csrfToken;
+  }
+
+  // Helper to execute request on a given base with domain-scoped credentials
   const executeOnBase = async (base: string) => {
     const fullUrl = endpoint.startsWith('http') ? endpoint : `${base}${endpoint}`;
-    return await fetch(fullUrl, { ...options, headers });
+    return await fetch(fullUrl, {
+      credentials: 'include',
+      ...options,
+      headers
+    });
   };
 
   let response: Response;
@@ -80,7 +102,17 @@ export async function apiRequest<T = any>(
     }
   }
 
+  // Capture CSRF header if refreshed by server
+  const responseCsrf = response.headers.get('X-CSRF-TOKEN');
+  if (responseCsrf && typeof localStorage !== 'undefined') {
+    localStorage.setItem('amitastro_csrf_token', responseCsrf);
+  }
+
   const data = await response.json().catch(() => ({}));
+
+  if (data && data.csrfToken && typeof localStorage !== 'undefined') {
+    localStorage.setItem('amitastro_csrf_token', data.csrfToken);
+  }
 
   if (!response.ok) {
     const errorMsg = data.error || `HTTP error ${response.status}`;

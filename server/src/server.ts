@@ -1,10 +1,13 @@
 import express, { Request, Response } from 'express';
 import http from 'http';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
 import dotenv from 'dotenv';
 import { Server as SocketIOServer } from 'socket.io';
 import { initDatabase, runQuery } from './db/database';
 import apiRouter from './routes/api';
+import { csrfProtection } from './middleware/security';
 
 dotenv.config();
 
@@ -24,13 +27,19 @@ const io = new SocketIOServer(server, {
 });
 app.set('io', io);
 
-// Middlewares
+// Security & Middlewares
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
+}));
 app.use(cors({
   origin: true,
   credentials: true
 }));
+app.use(cookieParser());
 app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ extended: true, limit: '15mb' }));
+app.use(csrfProtection);
 
 // Health Check for Render & uptime monitors
 app.get('/health', (req: Request, res: Response) => {

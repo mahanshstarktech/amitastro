@@ -4,6 +4,8 @@ import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { getOne, runQuery, getAll } from '../db/database';
 import { sendRealSmsOtp, sendRealEmailOtp } from '../services/realServices';
+import { securityService } from '../services/securityService';
+import { logSecurityEvent } from '../middleware/security';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'amitastro_secret_jwt_key_2026';
 
@@ -15,6 +17,40 @@ export function isConfiguredAdminEmail(email?: string): boolean {
     .filter(Boolean);
   return envAdminEmails.includes(email.trim().toLowerCase());
 }
+
+/**
+ * Returns dynamic RSA public key for in-browser client payload encryption (ZASEC equivalent)
+ */
+export const getEncryptionKey = async (req: Request, res: Response) => {
+  try {
+    const keyData = securityService.getActivePublicKey();
+    return res.json(keyData);
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+/**
+ * Double-Submit Anti-CSRF Token Endpoint
+ */
+export const getCsrfToken = async (req: Request, res: Response) => {
+  try {
+    let token = req.cookies && req.cookies['_zcsr_tmp'];
+    if (!token) {
+      token = securityService.generateCsrfToken();
+      res.cookie('_zcsr_tmp', token, {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 30 * 24 * 60 * 60 * 1000
+      });
+    }
+    return res.json({ csrfToken: token });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+};
 
 
 export const sendOtp = async (req: Request, res: Response) => {
@@ -90,7 +126,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
       return res.status(429).json({ error: 'Too many incorrect attempts. Please request a new OTP.' });
     }
 
-    if (otpRecord.code !== code.trim()) {
+    if (!securityService.timingSafeCompare(otpRecord.code, code.trim())) {
       await runQuery('UPDATE otps SET attempts = attempts + 1 WHERE phone = ?', [target]);
       return res.status(400).json({ error: 'Invalid OTP code. Please check and re-enter.' });
     }
@@ -111,7 +147,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
       const userPhone = isEmail ? (phone ? phone.trim() : `email-${uuidv4().substring(0, 8)}`) : target;
       const userName = name ? name.trim() : isEmail ? target.split('@')[0] : 'Amit Astro Seeker';
       const dummyPassword = password || uuidv4();
-      const hash = await bcrypt.hash(dummyPassword, 10);
+      const hash = await bcrypt.hash(dummyPassword, 12);
       const role = isConfiguredAdminEmail(userEmail) ? 'admin' : 'customer';
 
       await runQuery(`
@@ -139,11 +175,16 @@ export const verifyOtp = async (req: Request, res: Response) => {
       { expiresIn: '30d' }
     );
 
+    const csrfToken = securityService.generateCsrfToken();
+    securityService.setAuthSessionCookies(res, token, csrfToken);
+    logSecurityEvent(user.id, 'OTP_VERIFIED', `User ${user.email} successfully verified OTP`);
+
     const profiles = await getAll<any>('SELECT * FROM birth_profiles WHERE user_id = ? ORDER BY created_at ASC', [user.id]);
 
     return res.json({
       success: true,
       token,
+      csrfToken,
       user: {
         id: user.id,
         name: user.name,
@@ -224,7 +265,7 @@ export const verifyDualOtp = async (req: Request, res: Response) => {
       if (!phoneOtp || Date.now() > phoneOtp.expires_at) {
         return res.status(400).json({ error: 'Phone OTP has expired or was not requested. Please request a new code.' });
       }
-      if (phoneOtp.code !== phoneCode.trim()) {
+      if (!securityService.timingSafeCompare(phoneOtp.code, phoneCode.trim())) {
         await runQuery('UPDATE otps SET attempts = attempts + 1 WHERE phone = ?', [cleanPhone]);
         return res.status(400).json({ error: 'Invalid Phone SMS OTP code' });
       }
@@ -239,7 +280,7 @@ export const verifyDualOtp = async (req: Request, res: Response) => {
     if (!emailOtp || Date.now() > emailOtp.expires_at) {
       return res.status(400).json({ error: 'Email OTP has expired or was not requested. Please request a new code.' });
     }
-    if (emailOtp.code !== emailCode.trim()) {
+    if (!securityService.timingSafeCompare(emailOtp.code, emailCode.trim())) {
       await runQuery('UPDATE otps SET attempts = attempts + 1 WHERE phone = ?', [cleanEmail]);
       return res.status(400).json({ error: 'Invalid Email OTP code' });
     }
@@ -251,7 +292,7 @@ export const verifyDualOtp = async (req: Request, res: Response) => {
       const userId = `usr-${uuidv4().substring(0, 8)}`;
       const userName = name ? name.trim() : cleanEmail.split('@')[0];
       const dummyPassword = password || uuidv4();
-      const hash = await bcrypt.hash(dummyPassword, 10);
+      const hash = await bcrypt.hash(dummyPassword, 12);
       const role = isConfiguredAdminEmail(cleanEmail) ? 'admin' : 'customer';
 
       await runQuery(`
@@ -281,11 +322,16 @@ export const verifyDualOtp = async (req: Request, res: Response) => {
       { expiresIn: '30d' }
     );
 
+    const csrfToken = securityService.generateCsrfToken();
+    securityService.setAuthSessionCookies(res, token, csrfToken);
+    logSecurityEvent(user.id, 'DUAL_OTP_VERIFIED', `User ${user.email} verified dual OTP`);
+
     const profiles = await getAll<any>('SELECT * FROM birth_profiles WHERE user_id = ? ORDER BY created_at ASC', [user.id]);
 
     return res.json({
       success: true,
       token,
+      csrfToken,
       user: {
         id: user.id,
         name: user.name,
@@ -323,7 +369,7 @@ export const verifyEmailOtp = async (req: Request, res: Response) => {
     if (otpRecord.attempts >= 5) {
       return res.status(429).json({ error: 'Too many incorrect attempts. Please request a new code.' });
     }
-    if (otpRecord.code !== code.trim()) {
+    if (!securityService.timingSafeCompare(otpRecord.code, code.trim())) {
       await runQuery('UPDATE otps SET attempts = attempts + 1 WHERE phone = ?', [cleanEmail]);
       return res.status(400).json({ error: 'Invalid Email verification code. Please check and re-enter.' });
     }
@@ -337,8 +383,20 @@ export const verifyEmailOtp = async (req: Request, res: Response) => {
 
 export const completeManualRegistration = async (req: Request, res: Response) => {
   try {
-    const { name, email, password, phone, dob, tob, pob, tobUncertain, photoURL } = req.body;
-    if (!name || !email || !password || !phone) {
+    const { name, email, password, encryptedPassword, keyId, phone, dob, tob, pob, tobUncertain, photoURL } = req.body;
+    
+    // Decrypt password if dynamic RSA encrypted (Zoho Accounts IAM model)
+    let rawPassword = password;
+    if (encryptedPassword && keyId) {
+      try {
+        rawPassword = securityService.decryptPayload(encryptedPassword, keyId);
+      } catch (e: any) {
+        logSecurityEvent(null, 'DECRYPTION_FAILED', `Registration payload decryption failed: ${e.message}`);
+        return res.status(400).json({ error: `Decryption failed or expired token: ${e.message}` });
+      }
+    }
+
+    if (!name || !email || !rawPassword || !phone) {
       return res.status(400).json({ error: 'Name, email, password, and mobile phone number are required' });
     }
 
@@ -355,7 +413,7 @@ export const completeManualRegistration = async (req: Request, res: Response) =>
     }
 
     const userId = existingEmail ? existingEmail.id : `usr-${uuidv4().substring(0, 8)}`;
-    const hash = await bcrypt.hash(password, 10);
+    const hash = await bcrypt.hash(rawPassword, 12);
     const role = isConfiguredAdminEmail(cleanEmail) ? 'admin' : 'customer';
     const finalPhoto = photoURL || (existingEmail && existingEmail.photo_url) || null;
 
@@ -395,11 +453,17 @@ export const completeManualRegistration = async (req: Request, res: Response) =>
       JWT_SECRET,
       { expiresIn: '30d' }
     );
+
+    const csrfToken = securityService.generateCsrfToken();
+    securityService.setAuthSessionCookies(res, token, csrfToken);
+    logSecurityEvent(user.id, 'REGISTRATION_SUCCESS', `User ${user.email} registered with RSA payload encryption`);
+
     const profiles = await getAll<any>('SELECT * FROM birth_profiles WHERE user_id = ? ORDER BY created_at ASC', [user.id]);
 
     return res.json({
       success: true,
       token,
+      csrfToken,
       user: {
         id: user.id,
         name: user.name,
@@ -439,7 +503,7 @@ export const googleAuth = async (req: Request, res: Response) => {
 
       if (!user) {
         const userId = `usr-${uuidv4().substring(0, 8)}`;
-        const hash = await bcrypt.hash(uuidv4(), 10);
+        const hash = await bcrypt.hash(uuidv4(), 12);
 
         await runQuery(`
           INSERT INTO users (id, name, email, phone, photo_url, password_hash, role, is_phone_verified, is_email_verified, is_new_customer)
@@ -478,12 +542,18 @@ export const googleAuth = async (req: Request, res: Response) => {
         JWT_SECRET,
         { expiresIn: '30d' }
       );
+
+      const csrfToken = securityService.generateCsrfToken();
+      securityService.setAuthSessionCookies(res, token, csrfToken);
+      logSecurityEvent(user.id, 'GOOGLE_AUTH_COMPLETED', `Google user ${user.email} completed phone registration`);
+
       const profiles = await getAll<any>('SELECT * FROM birth_profiles WHERE user_id = ? ORDER BY created_at ASC', [user.id]);
 
       return res.json({
         success: true,
         needsPhoneVerification: false,
         token,
+        csrfToken,
         user: {
           id: user.id,
           name: user.name,
@@ -518,12 +588,18 @@ export const googleAuth = async (req: Request, res: Response) => {
         JWT_SECRET,
         { expiresIn: '30d' }
       );
+
+      const csrfToken = securityService.generateCsrfToken();
+      securityService.setAuthSessionCookies(res, token, csrfToken);
+      logSecurityEvent(user.id, 'GOOGLE_AUTH_LOGIN', `Google user ${user.email} logged in`);
+
       const profiles = await getAll<any>('SELECT * FROM birth_profiles WHERE user_id = ? ORDER BY created_at ASC', [user.id]);
 
       return res.json({
         success: true,
         needsPhoneVerification: false,
         token,
+        csrfToken,
         user: {
           id: user.id,
           name: user.name,
@@ -559,29 +635,73 @@ export const googleAuth = async (req: Request, res: Response) => {
 
 export const login = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+    const { email, password, encryptedPassword, keyId } = req.body;
+    const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0].trim() || req.ip || 'unknown';
+    const cleanEmail = email ? email.trim().toLowerCase() : '';
+
+    if (!cleanEmail) {
+      return res.status(400).json({ error: 'Email is required' });
     }
 
-    const cleanEmail = email.trim().toLowerCase();
+    // 1. Account Lockout Protection (Brute Force / Credential Stuffing defense)
+    const lockout = securityService.checkLockout(cleanEmail, clientIp);
+    if (lockout.isLocked) {
+      logSecurityEvent(null, 'LOGIN_LOCKED', `Lockout triggered for ${cleanEmail} from IP ${clientIp}`);
+      return res.status(429).json({
+        error: 'Account temporarily locked due to excessive failed attempts. Please try again in 15 minutes.',
+        remainingLockoutSeconds: lockout.remainingSeconds
+      });
+    }
+
+    // 2. Decrypt Password Payload (Dynamic RSA encryption equivalent to Zoho ZASEC)
+    let rawPassword = password;
+    if (encryptedPassword && keyId) {
+      try {
+        rawPassword = securityService.decryptPayload(encryptedPassword, keyId);
+      } catch (decErr: any) {
+        logSecurityEvent(null, 'DECRYPTION_FAILED', `Login payload decryption failed for ${cleanEmail}: ${decErr.message}`);
+        return res.status(400).json({ error: `Decryption failed or expired token: ${decErr.message}` });
+      }
+    }
+
+    if (!rawPassword) {
+      return res.status(400).json({ error: 'Password is required' });
+    }
+
+    // 3. User Lookup
     let user = await getOne<any>('SELECT * FROM users WHERE email = ?', [cleanEmail]);
     if (!user && (cleanEmail === 'admin@amitastro.com' || cleanEmail === 'admin@nakshaktram.com')) {
       user = await getOne<any>("SELECT * FROM users WHERE role = 'admin' LIMIT 1");
     }
 
-    if (!user) {
+    if (!user || !user.password_hash) {
+      const attemptStatus = await securityService.recordFailedAttempt(cleanEmail, clientIp);
+      logSecurityEvent(null, 'LOGIN_FAILED', `Login failed (account not found): ${cleanEmail} from ${clientIp}`);
+      if (attemptStatus.isLocked) {
+        return res.status(429).json({
+          error: 'Too many failed login attempts. Your account has been temporarily locked for 15 minutes.',
+          remainingLockoutSeconds: 900
+        });
+      }
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    let isMatch = await bcrypt.compare(password, user.password_hash);
-    if (!isMatch && user.role === 'admin' && (password === 'AmitAstro@2026' || password === 'Nakshaktram@2026')) {
-      isMatch = true;
-    }
-
+    // 4. Constant-time BCrypt verification (NO hardcoded password backdoor!)
+    const isMatch = await bcrypt.compare(rawPassword, user.password_hash);
     if (!isMatch) {
+      const attemptStatus = await securityService.recordFailedAttempt(cleanEmail, clientIp);
+      logSecurityEvent(user.id, 'LOGIN_FAILED', `Invalid password for ${cleanEmail} from ${clientIp} (Attempts: ${attemptStatus.attempts})`);
+      if (attemptStatus.isLocked) {
+        return res.status(429).json({
+          error: 'Too many failed login attempts. Your account has been temporarily locked for 15 minutes.',
+          remainingLockoutSeconds: 900
+        });
+      }
       return res.status(401).json({ error: 'Invalid email or password' });
     }
+
+    // 5. Successful Login: Clear failed attempts and reset progressive delay
+    securityService.resetFailedAttempts(cleanEmail, clientIp);
 
     if (user.role !== 'admin' && isConfiguredAdminEmail(user.email)) {
       await runQuery("UPDATE users SET role = 'admin' WHERE id = ?", [user.id]);
@@ -594,11 +714,17 @@ export const login = async (req: Request, res: Response) => {
       { expiresIn: '30d' }
     );
 
+    // Issue Domain-scoped HttpOnly session cookie and Anti-CSRF token
+    const csrfToken = securityService.generateCsrfToken();
+    securityService.setAuthSessionCookies(res, token, csrfToken);
+    logSecurityEvent(user.id, 'LOGIN_SUCCESS', `User ${user.email} authenticated successfully`);
+
     const profiles = await getAll<any>('SELECT * FROM birth_profiles WHERE user_id = ?', [user.id]);
 
     return res.json({
       success: true,
       token,
+      csrfToken,
       user: {
         id: user.id,
         name: user.name,
@@ -613,6 +739,17 @@ export const login = async (req: Request, res: Response) => {
       },
       profiles
     });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+export const logout = async (req: Request, res: Response) => {
+  try {
+    securityService.clearAuthSessionCookies(res);
+    const userId = (req as any).user?.id || null;
+    logSecurityEvent(userId, 'LOGOUT', 'User logged out and session destroyed');
+    return res.json({ success: true, message: 'Logged out successfully' });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { apiRequest } from '../utils/api';
+import { encryptPasswordForAuth } from '../utils/cryptoAuth';
 
 export interface User {
   id: string;
@@ -73,7 +74,7 @@ interface AuthContextType {
   sendDualOtp: (phone: string, email: string) => Promise<{ phoneSimulatedCode?: string; emailSimulatedCode?: string; cooldownSeconds: number }>;
   verifyOtp: (data: { phone?: string; email?: string; code: string; name?: string; password?: string }) => Promise<void>;
   verifyDualOtp: (data: { phone: string; email: string; phoneCode?: string; emailCode: string; firebaseVerified?: boolean; name?: string; password?: string }) => Promise<void>;
-  logout: () => void;
+  logout: () => void | Promise<void>;
   refreshMe: () => Promise<void>;
   addProfile: (data: any) => Promise<BirthProfile>;
   updateProfile: (id: string, data: any) => Promise<BirthProfile>;
@@ -131,10 +132,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [token]);
 
   const login = async (email: string, password: string) => {
-    const res = await apiRequest<{ token: string; user: User; profiles: BirthProfile[] }>('/auth/login', {
+    // Dynamic RSA encryption of password payload before transmission (Zoho IAM ZASEC pattern)
+    const encResult = await encryptPasswordForAuth(password);
+    const bodyPayload = encResult.isEncrypted
+      ? { email, encryptedPassword: encResult.encryptedPassword, keyId: encResult.keyId }
+      : { email, password };
+
+    const res = await apiRequest<{ token: string; csrfToken?: string; user: User; profiles: BirthProfile[] }>('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify(bodyPayload)
     });
+
+    if (res.csrfToken) {
+      localStorage.setItem('amitastro_csrf_token', res.csrfToken);
+    }
+
     setStoredToken(res.token);
     setToken(res.token);
     setUser(res.user);
@@ -203,10 +215,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     tobUncertain?: boolean;
     photoURL?: string;
   }) => {
-    const res = await apiRequest<{ token: string; user: User; profiles: BirthProfile[] }>('/auth/complete-manual-registration', {
+    // Dynamic RSA encryption of registration password payload
+    const encResult = await encryptPasswordForAuth(data.password);
+    const bodyPayload = encResult.isEncrypted
+      ? {
+          ...data,
+          encryptedPassword: encResult.encryptedPassword,
+          keyId: encResult.keyId,
+          password: ''
+        }
+      : data;
+
+    const res = await apiRequest<{ token: string; csrfToken?: string; user: User; profiles: BirthProfile[] }>('/auth/complete-manual-registration', {
       method: 'POST',
-      body: JSON.stringify(data)
+      body: JSON.stringify(bodyPayload)
     });
+
+    if (res.csrfToken) {
+      localStorage.setItem('amitastro_csrf_token', res.csrfToken);
+    }
+
     setStoredToken(res.token);
     setToken(res.token);
     setUser(res.user);
@@ -242,10 +270,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const verifyOtp = async (data: { phone?: string; email?: string; code: string; name?: string; password?: string }) => {
-    const res = await apiRequest<{ token: string; user: User; profiles: BirthProfile[] }>('/auth/verify-otp', {
+    const res = await apiRequest<{ token: string; csrfToken?: string; user: User; profiles: BirthProfile[] }>('/auth/verify-otp', {
       method: 'POST',
       body: JSON.stringify(data)
     });
+    if (res.csrfToken) {
+      localStorage.setItem('amitastro_csrf_token', res.csrfToken);
+    }
     setStoredToken(res.token);
     setToken(res.token);
     setUser(res.user);
@@ -253,18 +284,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const verifyDualOtp = async (data: { phone: string; email: string; phoneCode?: string; emailCode: string; firebaseVerified?: boolean; name?: string; password?: string }) => {
-    const res = await apiRequest<{ token: string; user: User; profiles: BirthProfile[] }>('/auth/verify-dual-otp', {
+    const res = await apiRequest<{ token: string; csrfToken?: string; user: User; profiles: BirthProfile[] }>('/auth/verify-dual-otp', {
       method: 'POST',
       body: JSON.stringify(data)
     });
+    if (res.csrfToken) {
+      localStorage.setItem('amitastro_csrf_token', res.csrfToken);
+    }
     setStoredToken(res.token);
     setToken(res.token);
     setUser(res.user);
     setProfiles(res.profiles || []);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await apiRequest('/auth/logout', { method: 'POST' });
+    } catch {
+      // Continue client cleanup even if offline or network error
+    }
     clearStoredToken();
+    localStorage.removeItem('amitastro_csrf_token');
     setToken(null);
     setUser(null);
     setProfiles([]);
