@@ -2414,57 +2414,60 @@ body {
 }
 
 /* ==========================================================================
-   Customer Portal Consultation Chat Responsive Frame (WhatsApp/Apple Web Style)
+   Customer Portal Consultation Chat: Edge-to-Edge Seamless Window
    ========================================================================== */
 .customer-portal-main-content.portal-chat-mode {
-  background-color: #ECE5DD !important;
-  background-image: 
-    radial-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px),
-    radial-gradient(rgba(0, 0, 0, 0.02) 1px, transparent 1px) !important;
-  background-size: 24px 24px, 48px 48px !important;
-  background-position: 0 0, 12px 12px !important;
+  background-color: #FFFFFF !important;
+  background-image: none !important;
   padding: 0 !important;
+  margin: 0 !important;
   display: flex !important;
   flex-direction: column !important;
   height: 100% !important;
+  width: 100% !important;
+  max-width: 100% !important;
   overflow: hidden !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
 }
 
-.portal-chat-desktop-container {
-  width: 100%;
-  max-width: 980px;
-  margin: 0 auto;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+.hybrid-customer-chat {
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Ensure composer sticks to the absolute bottom of the chat canvas */
+.hybrid-chat-composer {
+  flex-shrink: 0 !important;
+  position: relative !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  background-color: #F0F2F5 !important;
+  padding: 8px 16px !important;
+  border-top: 1px solid #E5E5EA !important;
+  z-index: 20 !important;
+}
+
+/* WhatsApp Voice Recording Bar */
+.whatsapp-voice-recording-capsule {
+  flex: 1;
+  height: 44px;
   background-color: #FFFFFF;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
-  border-left: 1px solid #E5E5EA;
-  border-right: 1px solid #E5E5EA;
-  position: relative;
-  overflow: hidden;
+  border-radius: 22px;
+  border: 1px solid #E5E5EA;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  justifyContent: space-between;
+  gap: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-@media (min-width: 981px) {
-  .customer-portal-main-content.portal-chat-mode {
-    padding: 16px 20px !important;
-  }
-  .portal-chat-desktop-container {
-    border-radius: 16px;
-    border: 1px solid rgba(0, 0, 0, 0.08);
-  }
-}
-
-@media (max-width: 980px) {
-  .customer-portal-main-content.portal-chat-mode {
-    background: #FFFFFF !important;
-    padding: 0 !important;
-  }
-  .portal-chat-desktop-container {
-    max-width: 100%;
-    margin: 0;
-    border-radius: 0;
-    border: none;
-    box-shadow: none;
-  }
-}

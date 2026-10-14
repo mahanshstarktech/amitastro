@@ -273,17 +273,20 @@ test.describe('E2E: Admin Sidebar Collapse, Logo Hover, Profile Alterations & Cu
     // Header should not contain redundant "Seeker Portal" tag or extra tags above the greeting
     await expect(page.locator('.apple-badge-gold:has-text("Seeker Portal")')).not.toBeVisible();
 
-    // 2. Consultation Chat responsive container:
+    // 2. Consultation Chat edge-to-edge full window verification:
     const chatTabBtn = page.getByRole('button', { name: /Consultation Chat/i });
     if (await chatTabBtn.isVisible()) {
       await chatTabBtn.click();
       await page.waitForTimeout(400);
 
-      // Verify chat is wrapped in responsive desktop container with max-width
-      const chatContainer = page.locator('.portal-chat-desktop-container');
-      await expect(chatContainer).toBeVisible();
-      const containerBox = await chatContainer.boundingBox();
-      expect(containerBox?.width).toBeLessThanOrEqual(980);
+      // Verify chat fills the pane edge-to-edge without window-in-window desktop container
+      await expect(page.locator('.portal-chat-desktop-container')).not.toBeVisible();
+      const customerChat = page.locator('.hybrid-customer-chat');
+      await expect(customerChat).toBeVisible();
+
+      // Verify composer is stuck directly to bottom
+      const composer = customerChat.locator('.hybrid-chat-composer');
+      await expect(composer).toBeVisible();
     }
 
     // 3. Family 360 Plan verification:

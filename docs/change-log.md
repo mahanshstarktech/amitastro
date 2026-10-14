@@ -106,3 +106,23 @@ This document lists every file added or modified during the SDET and AI-evaluati
 
 ## 7. Performance & Benchmarks
 - `server/tests/perf/loadTest.ts`: Autocannon benchmark testing `/health`, `/api/packages`, `/api/availability`, `/api/blog/posts`, double-booking race condition, and RSA key cache latency.
+
+---
+
+## 8. Customer Portal Edge-to-Edge Chat & WhatsApp Voice Recording System
+- `client/src/styles/design-system.css`:
+  - Removed `.portal-chat-desktop-container` window-in-window wrapper and yellowish `#ECE5DD` surrounding margins.
+  - Set `.customer-portal-main-content.portal-chat-mode` to 100% width and height, 0 padding, no borders, with composer firmly pinned to the bottom.
+  - Added authentic WhatsApp voice recording capsule and waveform styling in light mode.
+- `client/src/components/chat/WhatsAppVoicePlayer.tsx`:
+  - Built authentic horizontal WhatsApp voice player bubble with 32-bar waveform, scrubber knob, click-to-seek, speed pill toggle (`1x` -> `1.5x` -> `2x`), elapsed/total time, avatar with green mic badge, and double blue ticks (`✓✓`).
+- `client/src/components/chat/AppleCustomerChat.tsx`:
+  - Replaced poorly wrapped stacked voice pill with `WhatsAppVoicePlayer`.
+  - Implemented real MediaRecorder voice recording with `AnalyserNode` live dancing waveform bars, live timer, pause preview mode with playback scrubber, resume mic button, trash can discard, and circular green send button.
+- `client/src/components/chat/AppleAdminChat.tsx`:
+  - Integrated `WhatsAppVoicePlayer` so admin receives, views, scrubs, and plays customer voice notes with authentic WhatsApp voice bubbles.
+- `client/src/tests/components/whatsAppVoicePlayer.test.tsx`:
+  - Created unit tests verifying voice player rendering, play/pause toggles, and speed pill cycles.
+- `client/e2e/adminSidebarAndChat.spec.ts`:
+  - Updated e2e assertions to ensure edge-to-edge chat rendering without window-in-window containers.
+

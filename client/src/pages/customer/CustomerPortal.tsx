@@ -1198,9 +1198,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
 
         {/* 3. APPLE MESSAGES CLIENT - DIRECT CHAT WITH AMIT */}
         {activeTab === 'chat' && (
-          <div className="portal-chat-desktop-container">
-            <AppleCustomerChat onOpenBooking={onOpenBooking} />
-          </div>
+          <AppleCustomerChat onOpenBooking={onOpenBooking} />
         )}
 
         {/* 4. BIRTH PROFILES (FAMILY MEMBERS) (Section 7) */}

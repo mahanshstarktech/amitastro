@@ -19,8 +19,10 @@ import {
   Play,
   Pause,
   ShieldCheck,
-  ChevronDown
+  ChevronDown,
+  Trash2
 } from 'lucide-react';
+import { WhatsAppVoicePlayer } from './WhatsAppVoicePlayer';
 import { apiRequest } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
@@ -91,12 +93,26 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
   // Lightbox Zoom Modal
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
-  // Simulated Voice Note state
-  const [isRecordingVoice, setIsRecordingVoice] = useState(false);
+  // Real WhatsApp Voice Recording & Playback State
+  const [voiceRecordState, setVoiceRecordState] = useState<'idle' | 'recording' | 'paused'>('idle');
   const [voiceRecordingSeconds, setVoiceRecordingSeconds] = useState(0);
+  const [audioLevels, setAudioLevels] = useState<number[]>([4, 6, 8, 12, 16, 10, 6, 8, 14, 18, 12, 8, 6, 10, 14, 8, 4, 6, 10, 14, 8]);
   const voiceTimerRef = useRef<any>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const animFrameRef = useRef<number | null>(null);
 
-  // Audio Playback simulation
+  // Paused Preview state
+  const [recordedAudioUrl, setRecordedAudioUrl] = useState<string | null>(null);
+  const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
+  const [previewCurrentTime, setPreviewCurrentTime] = useState(0);
+  const [previewDuration, setPreviewDuration] = useState(0);
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Audio Playback in Chat Thread
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -233,42 +249,304 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
     e.target.value = '';
   };
 
-  // 3. Handle Voice Recording Simulation
-  const handleStartVoiceRecord = () => {
-    setIsRecordingVoice(true);
+  // Helper to format mm:ss
+  const formatVoiceTime = (sec: number) => {
+    const s = Math.max(0, Math.floor(sec));
+    const m = Math.floor(s / 60);
+    const rem = s % 60;
+    return `${m}:${rem.toString().padStart(2, '0')}`;
+  };
+
+  // Helper to parse duration from message content like "Voice query (3s)" or "Voice note (0:15)"
+  const parseVoiceDuration = (content?: string): number => {
+    if (!content) return 4;
+    const matchSec = content.match(/\((\d+)s\)/);
+    if (matchSec) return parseInt(matchSec[1], 10);
+    const matchMinSec = content.match(/\((\d+):(\d+)\)/);
+    if (matchMinSec) return parseInt(matchMinSec[1], 10) * 60 + parseInt(matchMinSec[2], 10);
+    return 4;
+  };
+
+  // Clean up microphone stream, audio context, and animation loops
+  const cleanupMedia = () => {
+    if (animFrameRef.current) {
+      cancelAnimationFrame(animFrameRef.current);
+      animFrameRef.current = null;
+    }
+    if (voiceTimerRef.current) {
+      if (typeof voiceTimerRef.current === 'object' && voiceTimerRef.current.timer) {
+        clearInterval(voiceTimerRef.current.timer);
+        clearInterval(voiceTimerRef.current.sim);
+      } else {
+        clearInterval(voiceTimerRef.current);
+      }
+      voiceTimerRef.current = null;
+    }
+    if (audioContextRef.current) {
+      try {
+        audioContextRef.current.close();
+      } catch (_) {}
+      audioContextRef.current = null;
+    }
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current = null;
+    }
+    if (previewAudioRef.current) {
+      previewAudioRef.current.pause();
+      previewAudioRef.current = null;
+    }
+    if (recordedAudioUrl) {
+      URL.revokeObjectURL(recordedAudioUrl);
+      setRecordedAudioUrl(null);
+    }
+    setIsPreviewPlaying(false);
+    setPreviewCurrentTime(0);
+    setPreviewDuration(0);
+  };
+
+  // 3. Real WhatsApp Voice Recording
+  const handleStartVoiceRecord = async () => {
+    cleanupMedia();
+    audioChunksRef.current = [];
     setVoiceRecordingSeconds(0);
+    setVoiceRecordState('recording');
+
+    // Initial base levels
+    const initialLevels = [4, 6, 10, 16, 22, 14, 8, 12, 20, 26, 18, 12, 16, 24, 20, 14, 10, 8, 12, 18, 14, 8];
+    setAudioLevels(initialLevels);
+
+    // Live recording timer
+    const timer = setInterval(() => {
+      setVoiceRecordingSeconds((sec) => sec + 1);
+    }, 1000);
+    voiceTimerRef.current = timer;
+
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaStreamRef.current = stream;
+
+        const mimeType = MediaRecorder.isTypeSupported('audio/webm')
+          ? 'audio/webm'
+          : MediaRecorder.isTypeSupported('audio/mp4')
+          ? 'audio/mp4'
+          : '';
+        const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+        mediaRecorderRef.current = recorder;
+
+        recorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) {
+            audioChunksRef.current.push(e.data);
+          }
+        };
+
+        recorder.start(100);
+
+        // Web Audio Analyser for dancing waveform bars
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioCtx) {
+          const ctx = new AudioCtx();
+          audioContextRef.current = ctx;
+          const source = ctx.createMediaStreamSource(stream);
+          const analyser = ctx.createAnalyser();
+          analyser.fftSize = 64;
+          source.connect(analyser);
+          analyserRef.current = analyser;
+
+          const dataArray = new Uint8Array(analyser.frequencyBinCount);
+          const updateWaveform = () => {
+            if (!analyserRef.current) return;
+            analyserRef.current.getByteFrequencyData(dataArray);
+            const barsCount = 22;
+            const step = Math.max(1, Math.floor(dataArray.length / barsCount));
+            const newLevels: number[] = [];
+            for (let i = 0; i < barsCount; i++) {
+              const val = dataArray[i * step] || 0;
+              const barH = Math.max(4, Math.min(24, Math.round((val / 255) * 24)));
+              newLevels.push(barH);
+            }
+            setAudioLevels(newLevels);
+            animFrameRef.current = requestAnimationFrame(updateWaveform);
+          };
+          animFrameRef.current = requestAnimationFrame(updateWaveform);
+        }
+      }
+    } catch (err) {
+      console.warn('Microphone permission blocked or unavailable, using fallback audio synth:', err);
+      const simInterval = setInterval(() => {
+        setAudioLevels((prev) =>
+          prev.map(() => 4 + Math.floor(Math.random() * 20))
+        );
+      }, 100);
+      voiceTimerRef.current = { timer, sim: simInterval };
+    }
+  };
+
+  // Pause recording -> Switch to WhatsApp Preview Mode
+  const handlePauseVoiceRecord = () => {
+    if (voiceRecordState !== 'recording') return;
+    setVoiceRecordState('paused');
+
+    if (animFrameRef.current) {
+      cancelAnimationFrame(animFrameRef.current);
+      animFrameRef.current = null;
+    }
+    if (voiceTimerRef.current) {
+      if (typeof voiceTimerRef.current === 'object' && voiceTimerRef.current.timer) {
+        clearInterval(voiceTimerRef.current.timer);
+        clearInterval(voiceTimerRef.current.sim);
+      } else {
+        clearInterval(voiceTimerRef.current);
+      }
+      voiceTimerRef.current = null;
+    }
+
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      try {
+        mediaRecorderRef.current.requestData();
+        mediaRecorderRef.current.pause();
+      } catch (_) {}
+    }
+
+    const blobType = audioChunksRef.current[0]?.type || 'audio/webm';
+    const blob = new Blob(audioChunksRef.current, { type: blobType });
+    if (blob.size > 0) {
+      const url = URL.createObjectURL(blob);
+      setRecordedAudioUrl(url);
+      setPreviewDuration(voiceRecordingSeconds > 0 ? voiceRecordingSeconds : 3);
+
+      const audio = new Audio(url);
+      previewAudioRef.current = audio;
+      audio.addEventListener('timeupdate', () => {
+        setPreviewCurrentTime(audio.currentTime);
+      });
+      audio.addEventListener('ended', () => {
+        setIsPreviewPlaying(false);
+        setPreviewCurrentTime(0);
+      });
+    } else {
+      setPreviewDuration(voiceRecordingSeconds > 0 ? voiceRecordingSeconds : 3);
+    }
+  };
+
+  // Toggle preview play/pause in paused mode
+  const handleTogglePreviewPlay = () => {
+    if (previewAudioRef.current) {
+      if (isPreviewPlaying) {
+        previewAudioRef.current.pause();
+        setIsPreviewPlaying(false);
+      } else {
+        previewAudioRef.current.play().then(() => {
+          setIsPreviewPlaying(true);
+        }).catch(() => {});
+      }
+    } else {
+      setIsPreviewPlaying(!isPreviewPlaying);
+    }
+  };
+
+  // Resume recording from paused state (Red Mic clicked)
+  const handleResumeVoiceRecord = () => {
+    if (previewAudioRef.current) {
+      previewAudioRef.current.pause();
+    }
+    setIsPreviewPlaying(false);
+    setVoiceRecordState('recording');
+
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'paused') {
+      try {
+        mediaRecorderRef.current.resume();
+      } catch (_) {}
+    }
+
     voiceTimerRef.current = setInterval(() => {
       setVoiceRecordingSeconds((sec) => sec + 1);
     }, 1000);
+
+    if (analyserRef.current) {
+      const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+      const updateWaveform = () => {
+        if (!analyserRef.current) return;
+        analyserRef.current.getByteFrequencyData(dataArray);
+        const barsCount = 22;
+        const step = Math.max(1, Math.floor(dataArray.length / barsCount));
+        const newLevels: number[] = [];
+        for (let i = 0; i < barsCount; i++) {
+          const val = dataArray[i * step] || 0;
+          const barH = Math.max(4, Math.min(24, Math.round((val / 255) * 24)));
+          newLevels.push(barH);
+        }
+        setAudioLevels(newLevels);
+        animFrameRef.current = requestAnimationFrame(updateWaveform);
+      };
+      animFrameRef.current = requestAnimationFrame(updateWaveform);
+    }
   };
 
+  // Cancel / Trash voice recording
   const handleCancelVoiceRecord = () => {
-    setIsRecordingVoice(false);
-    if (voiceTimerRef.current) clearInterval(voiceTimerRef.current);
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      try {
+        mediaRecorderRef.current.stop();
+      } catch (_) {}
+    }
+    cleanupMedia();
+    audioChunksRef.current = [];
+    setVoiceRecordState('idle');
     setVoiceRecordingSeconds(0);
   };
 
+  // Send WhatsApp voice note
   const handleSendVoiceNote = async () => {
     if (!conversation) return;
-    const recordedSec = voiceRecordingSeconds;
+    const recordedSec = voiceRecordingSeconds > 0 ? voiceRecordingSeconds : 4;
+
+    const dispatchVoice = async (dataUrl?: string) => {
+      try {
+        if (soundEnabled) playAppleSendChime();
+        const durationFormatted = recordedSec < 60 ? `${recordedSec}s` : `${Math.floor(recordedSec / 60)}:${(recordedSec % 60).toString().padStart(2, '0')}`;
+        const res = await apiRequest<{ message: CustomerChatMessage }>('/chat/message', {
+          method: 'POST',
+          body: JSON.stringify({
+            conversationId: conversation.id,
+            content: `Voice note (${durationFormatted})`,
+            messageType: 'voice',
+            attachmentUrl: dataUrl || undefined
+          })
+        });
+        if (res.message) {
+          setMessages((prev) => [...prev, res.message]);
+          scrollToBottom('smooth');
+        }
+      } catch (err: any) {
+        showToast(err.message || 'Failed to send voice note', 'error');
+      }
+    };
+
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      try {
+        mediaRecorderRef.current.stop();
+      } catch (_) {}
+    }
+
+    let blob: Blob | null = null;
+    if (audioChunksRef.current.length > 0) {
+      const mime = audioChunksRef.current[0].type || 'audio/webm';
+      blob = new Blob(audioChunksRef.current, { type: mime });
+    }
+
     handleCancelVoiceRecord();
 
-    try {
-      if (soundEnabled) playAppleSendChime();
-      const res = await apiRequest<{ message: CustomerChatMessage }>('/chat/message', {
-        method: 'POST',
-        body: JSON.stringify({
-          conversationId: conversation.id,
-          content: `Voice query (${recordedSec > 0 ? recordedSec : 5}s)`,
-          messageType: 'voice'
-        })
-      });
-      if (res.message) {
-        setMessages((prev) => [...prev, res.message]);
-        scrollToBottom('smooth');
-      }
-    } catch (err: any) {
-      showToast(err.message || 'Failed to send voice note', 'error');
+    if (blob && blob.size > 0) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64Data = reader.result as string;
+        dispatchVoice(base64Data);
+      };
+      reader.readAsDataURL(blob);
+    } else {
+      dispatchVoice();
     }
   };
 
@@ -703,50 +981,18 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
                       </span>
                     </div>
                   ) : m.message_type === 'voice' ? (
-                    /* Message Type 3: Voice Note Message */
-                    <div
-                      className={`hybrid-bubble ${isMe ? 'hybrid-bubble-out' : 'hybrid-bubble-in'}`}
-                      style={{
-                        padding: '8px 12px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 10,
-                        minWidth: 190
-                      }}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => setPlayingVoiceId(playingVoiceId === m.id ? null : m.id)}
-                        style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: '50%',
-                          backgroundColor: isMe ? '#25D366' : '#3A3A6E',
-                          border: 'none',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#FFFFFF'
-                        }}
-                      >
-                        {playingVoiceId === m.id ? <Pause size={14} /> : <Play size={14} style={{ marginLeft: 2 }} />}
-                      </button>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: '#111B21' }}>
-                          {playingVoiceId === m.id ? 'Playing voice note...' : m.content || 'Voice Query'}
-                        </div>
-                        <div style={{ fontSize: 10.5, color: '#667781' }}>0:15 · Audio query</div>
-                      </div>
-                      <span className="hybrid-bubble-meta">
-                        <span className="hybrid-bubble-time">{timeStr}</span>
-                        {isMe && (
-                          <span className="hybrid-read-ticks">
-                            <CheckCheck size={14} color="#53BDEB" />
-                          </span>
-                        )}
-                      </span>
-                    </div>
+                    /* Message Type 3: Authentic WhatsApp Voice Note Player */
+                    <WhatsAppVoicePlayer
+                      id={m.id}
+                      audioUrl={m.attachment_url}
+                      durationSeconds={parseVoiceDuration(m.content)}
+                      isMe={isMe}
+                      senderName={isMe ? (user?.name || 'You') : 'Amit Astro'}
+                      senderPhoto={isMe ? user?.photoURL : '/icons/logo-mark.png'}
+                      timestamp={timeStr}
+                      isPlaying={playingVoiceId === m.id}
+                      onTogglePlay={() => setPlayingVoiceId(playingVoiceId === m.id ? null : m.id)}
+                    />
                   ) : (
                     /* Message Type 4: Text Message Bubble */
                     <div
@@ -952,74 +1198,291 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
           style={{ display: 'none' }}
         />
 
-        {/* Attach Photo Button */}
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          className="hybrid-action-icon-btn"
-          title="Attach Kundli / Palm photo"
-        >
-          <Paperclip size={20} />
-        </button>
+        {/* Attach Photo Button (hidden during voice recording) */}
+        {voiceRecordState === 'idle' && (
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="hybrid-action-icon-btn"
+            title="Attach Kundli / Palm photo"
+          >
+            <Paperclip size={20} />
+          </button>
+        )}
 
-        {/* Input Pill or Voice Recording Active */}
-        {isRecordingVoice ? (
+        {/* Input Pill or WhatsApp Voice Recording Bar */}
+        {voiceRecordState !== 'idle' ? (
           <div
+            className="whatsapp-voice-recording-bar"
             style={{
               flex: 1,
-              backgroundColor: '#FFEAEA',
-              borderRadius: 22,
-              padding: '6px 14px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between'
+              gap: 10,
+              width: '100%',
+              userSelect: 'none'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: '50%',
-                  backgroundColor: '#FF3B30',
-                  animation: 'pulse 1s infinite'
-                }}
-              />
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#FF3B30' }}>
-                Recording Query: 00:{voiceRecordingSeconds.toString().padStart(2, '0')}
-              </span>
+            {/* 1. Left: Discard / Trash Can Button */}
+            <button
+              type="button"
+              onClick={handleCancelVoiceRecord}
+              className="whatsapp-trash-btn"
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: '50%',
+                border: 'none',
+                background: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#8696A0',
+                transition: 'color 0.15s ease, transform 0.15s ease',
+                flexShrink: 0
+              }}
+              title="Discard voice recording"
+              aria-label="Discard voice recording"
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = '#FF3B30';
+                e.currentTarget.style.transform = 'scale(1.08)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = '#8696A0';
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
+            >
+              <Trash2 size={21} />
+            </button>
+
+            {/* 2. Center Capsule: WhatsApp Light Mode Voice Bar */}
+            <div
+              className="whatsapp-recording-pill"
+              style={{
+                flex: 1,
+                minWidth: 0,
+                height: 44,
+                backgroundColor: '#FFFFFF',
+                borderRadius: 22,
+                border: '1px solid #E5E5EA',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+                padding: '0 12px 0 14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 10
+              }}
+            >
+              {voiceRecordState === 'recording' ? (
+                <>
+                  {/* Blinking Red Dot + Live Timer */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                    <span
+                      style={{
+                        width: 9,
+                        height: 9,
+                        borderRadius: '50%',
+                        backgroundColor: '#FF3B30',
+                        animation: 'pulse 1s infinite'
+                      }}
+                    />
+                    <span
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 600,
+                        color: '#111B21',
+                        fontVariantNumeric: 'tabular-nums',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                      }}
+                    >
+                      {formatVoiceTime(voiceRecordingSeconds)}
+                    </span>
+                  </div>
+
+                  {/* Dancing Waveform Bars Reacting to Voice */}
+                  <div
+                    style={{
+                      flex: 1,
+                      height: 24,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 2.5,
+                      overflow: 'hidden',
+                      padding: '0 4px'
+                    }}
+                  >
+                    {audioLevels.map((lvl, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          width: 2.5,
+                          height: lvl,
+                          borderRadius: 2,
+                          backgroundColor: '#8696A0',
+                          transition: 'height 0.08s ease'
+                        }}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Pause Button to enter Preview Mode */}
+                  <button
+                    type="button"
+                    onClick={handlePauseVoiceRecord}
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: '50%',
+                      border: 'none',
+                      backgroundColor: '#F0F2F5',
+                      color: '#54656F',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      transition: 'background-color 0.15s ease'
+                    }}
+                    title="Pause and review"
+                    aria-label="Pause and review"
+                  >
+                    <Pause size={16} fill="#54656F" />
+                  </button>
+                </>
+              ) : (
+                /* Paused Preview Mode */
+                <>
+                  {/* Play / Pause Preview Button */}
+                  <button
+                    type="button"
+                    onClick={handleTogglePreviewPlay}
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: '50%',
+                      border: 'none',
+                      backgroundColor: '#F0F2F5',
+                      color: '#54656F',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0
+                    }}
+                    title={isPreviewPlaying ? 'Pause preview' : 'Play preview'}
+                    aria-label={isPreviewPlaying ? 'Pause preview' : 'Play preview'}
+                  >
+                    {isPreviewPlaying ? (
+                      <Pause size={16} fill="#54656F" />
+                    ) : (
+                      <Play size={16} fill="#54656F" style={{ marginLeft: 2 }} />
+                    )}
+                  </button>
+
+                  {/* Preview Waveform with Scrubber */}
+                  <div
+                    style={{
+                      flex: 1,
+                      height: 24,
+                      display: 'flex',
+                      alignItems: 'center',
+                      position: 'relative',
+                      padding: '0 4px'
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 2.5
+                      }}
+                    >
+                      {audioLevels.map((lvl, idx) => {
+                        const progress = previewDuration > 0 ? previewCurrentTime / previewDuration : 0;
+                        const isPlayed = idx / audioLevels.length <= progress;
+                        return (
+                          <div
+                            key={idx}
+                            style={{
+                              width: 2.5,
+                              height: lvl,
+                              borderRadius: 2,
+                              backgroundColor: isPlayed ? '#00A884' : '#8696A0'
+                            }}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Time + Red Resume Mic Button */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                    <span
+                      style={{
+                        fontSize: 12.5,
+                        color: '#667781',
+                        fontVariantNumeric: 'tabular-nums',
+                        fontWeight: 500
+                      }}
+                    >
+                      {formatVoiceTime(isPreviewPlaying ? previewCurrentTime : (previewDuration || voiceRecordingSeconds))}
+                    </span>
+
+                    {/* Red Mic Icon to Resume Recording */}
+                    <button
+                      type="button"
+                      onClick={handleResumeVoiceRecord}
+                      style={{
+                        width: 30,
+                        height: 30,
+                        borderRadius: '50%',
+                        border: 'none',
+                        backgroundColor: '#FFEAEA',
+                        color: '#FF3B30',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      title="Resume recording"
+                      aria-label="Resume recording"
+                    >
+                      <Mic size={16} />
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                type="button"
-                onClick={handleCancelVoiceRecord}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#8E8E93',
-                  cursor: 'pointer',
-                  fontSize: 12
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSendVoiceNote}
-                style={{
-                  backgroundColor: '#25D366',
-                  color: '#FFF',
-                  border: 'none',
-                  borderRadius: 14,
-                  padding: '3px 10px',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}
-              >
-                Send Voice
-              </button>
-            </div>
+
+            {/* 3. Right: Circular Green Send Button */}
+            <button
+              type="button"
+              onClick={handleSendVoiceNote}
+              style={{
+                width: 42,
+                height: 42,
+                borderRadius: '50%',
+                backgroundColor: '#25D366',
+                color: '#FFFFFF',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 2px 6px rgba(37, 211, 102, 0.4)',
+                flexShrink: 0,
+                transition: 'transform 0.1s ease, background-color 0.15s ease'
+              }}
+              title="Send voice note"
+              aria-label="Send voice note"
+            >
+              <Send size={18} style={{ transform: 'translateX(1px)' }} />
+            </button>
           </div>
         ) : (
           <form

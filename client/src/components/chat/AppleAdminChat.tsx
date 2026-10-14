@@ -28,6 +28,7 @@ import {
   Volume2,
   VolumeX
 } from 'lucide-react';
+import { WhatsAppVoicePlayer } from './WhatsAppVoicePlayer';
 import { apiRequest } from '../../utils/api';
 import { useNotification } from '../../context/NotificationContext';
 import {
@@ -129,6 +130,9 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
 
   // Image zoom modal
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+
+  // Audio Playback simulation
+  const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
 
   // Delete Customer Modal
   const [customerToDelete, setCustomerToDelete] = useState<{ id: string; name: string } | null>(null);
@@ -473,6 +477,15 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
       }
     };
   }, [mobileView]);
+
+  const parseVoiceDuration = (content?: string): number => {
+    if (!content) return 4;
+    const matchSec = content.match(/\((\d+)s\)/);
+    if (matchSec) return parseInt(matchSec[1], 10);
+    const matchMinSec = content.match(/\((\d+):(\d+)\)/);
+    if (matchMinSec) return parseInt(matchMinSec[1], 10) * 60 + parseInt(matchMinSec[2], 10);
+    return 4;
+  };
 
   return (
     <div
@@ -1046,39 +1059,53 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
                           alignItems: isMe ? 'flex-end' : 'flex-start'
                         }}
                       >
-                        {/* Speech Bubble */}
-                        <div
-                          className={`hybrid-bubble ${isMe ? 'hybrid-bubble-out' : 'hybrid-bubble-in'}`}
-                        >
-                          {/* Attachment Image Preview if present */}
-                          {m.attachment_url && (
-                            <div style={{ marginBottom: 6 }}>
-                              <img
-                                src={m.attachment_url}
-                                alt="Attachment"
-                                onClick={() => setZoomedImage(m.attachment_url!)}
-                                style={{
-                                  maxWidth: '100%',
-                                  maxHeight: 240,
-                                  borderRadius: 12,
-                                  cursor: 'pointer',
-                                  display: 'block'
-                                }}
-                              />
-                            </div>
-                          )}
-
-                          <span className="hybrid-message-text">{m.content}</span>
-
-                          <span className="hybrid-bubble-meta">
-                            <span className="hybrid-bubble-time">{timeStr}</span>
-                            {isMe && (
-                              <span className="hybrid-read-ticks">
-                                <CheckCheck size={14} color="#53BDEB" />
-                              </span>
+                        {/* Speech Bubble or WhatsApp Voice Player */}
+                        {m.message_type === 'voice' ? (
+                          <WhatsAppVoicePlayer
+                            id={m.id}
+                            audioUrl={m.attachment_url}
+                            durationSeconds={parseVoiceDuration(m.content)}
+                            isMe={isMe}
+                            senderName={isMe ? 'Amit Astro' : selectedConv.customer_name}
+                            senderPhoto={isMe ? '/icons/logo-mark.png' : selectedConv.customer_photo}
+                            timestamp={timeStr}
+                            isPlaying={playingVoiceId === m.id}
+                            onTogglePlay={() => setPlayingVoiceId(playingVoiceId === m.id ? null : m.id)}
+                          />
+                        ) : (
+                          <div
+                            className={`hybrid-bubble ${isMe ? 'hybrid-bubble-out' : 'hybrid-bubble-in'}`}
+                          >
+                            {/* Attachment Image Preview if present */}
+                            {m.attachment_url && (
+                              <div style={{ marginBottom: 6 }}>
+                                <img
+                                  src={m.attachment_url}
+                                  alt="Attachment"
+                                  onClick={() => setZoomedImage(m.attachment_url!)}
+                                  style={{
+                                    maxWidth: '100%',
+                                    maxHeight: 240,
+                                    borderRadius: 12,
+                                    cursor: 'pointer',
+                                    display: 'block'
+                                  }}
+                                />
+                              </div>
                             )}
-                          </span>
-                        </div>
+
+                            <span className="hybrid-message-text">{m.content}</span>
+
+                            <span className="hybrid-bubble-meta">
+                              <span className="hybrid-bubble-time">{timeStr}</span>
+                              {isMe && (
+                                <span className="hybrid-read-ticks">
+                                  <CheckCheck size={14} color="#53BDEB" />
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </React.Fragment>
                   );
