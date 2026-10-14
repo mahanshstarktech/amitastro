@@ -5,7 +5,7 @@ import fs from 'fs';
 import bcrypt from 'bcryptjs';
 
 const DATABASE_URL = process.env.DATABASE_URL;
-const isPostgres = !!DATABASE_URL && (DATABASE_URL.startsWith('postgres://') || DATABASE_URL.startsWith('postgresql://'));
+let isPostgres = !!DATABASE_URL && (DATABASE_URL.startsWith('postgres://') || DATABASE_URL.startsWith('postgresql://'));
 
 let sqliteDb: sqlite3.Database | null = null;
 let pgPool: Pool | null = null;
@@ -32,12 +32,56 @@ if (isPostgres) {
 }
 
 // Convert SQLite '?' placeholders to PostgreSQL '$1, $2, ...' and functions
-function formatSqlForEngine(sql: string): string {
-  if (!isPostgres) return sql;
+export function formatSqlForEngine(sql: string, forceEngine?: 'postgres' | 'sqlite'): string {
+  const targetIsPostgres = forceEngine ? forceEngine === 'postgres' : isPostgres;
+  if (!targetIsPostgres) return sql;
   let count = 1;
   let formatted = sql.replace(/\?/g, () => `$${count++}`);
   formatted = formatted.replace(/datetime\('now'\)/gi, 'CURRENT_TIMESTAMP');
+  if (/INSERT\s+OR\s+IGNORE\s+INTO/i.test(formatted)) {
+    formatted = formatted.replace(/INSERT\s+OR\s+IGNORE\s+INTO/gi, 'INSERT INTO');
+    if (!/ON\s+CONFLICT/i.test(formatted)) {
+      formatted = formatted.trim().replace(/;?$/, ' ON CONFLICT DO NOTHING');
+    }
+  }
   return formatted;
+}
+
+export async function closeDatabase(): Promise<void> {
+  if (pgPool) {
+    await pgPool.end();
+    pgPool = null;
+  }
+  if (sqliteDb) {
+    await new Promise<void>((resolve, reject) => {
+      sqliteDb!.close((err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+    sqliteDb = null;
+  }
+}
+
+export async function setTestDatabase(options: { url?: string; path?: string }): Promise<void> {
+  await closeDatabase();
+  if (options.url) {
+    isPostgres = true;
+    pgPool = new Pool({
+      connectionString: options.url,
+      ssl: options.url.includes('sslmode=require') ? { rejectUnauthorized: false } : undefined
+    });
+    sqliteDb = null;
+  } else if (options.path) {
+    isPostgres = false;
+    pgPool = null;
+    await new Promise<void>((resolve, reject) => {
+      sqliteDb = new sqlite3.Database(options.path!, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+  }
 }
 
 // Universal Query Runners
@@ -692,31 +736,37 @@ async function seedInitialData() {
     const customerPasswordHash = await bcrypt.hash('Customer@123', salt);
 
     // Admin Amit
-    await runQuery(`
-      INSERT INTO users (id, name, email, phone, password_hash, role, is_phone_verified, is_new_customer)
-      VALUES (?, ?, ?, ?, ?, ?, 1, 0)
-    `, ['admin-amit', 'Amit', 'admin@amitastro.com', '+919876543210', adminPasswordHash, 'admin']);
+    try {
+      await runQuery(`
+        INSERT INTO users (id, name, email, phone, password_hash, role, is_phone_verified, is_new_customer)
+        VALUES (?, ?, ?, ?, ?, ?, 1, 0)
+        ON CONFLICT DO NOTHING
+      `, ['admin-amit', 'Amit', 'admin@amitastro.com', '+919876543210', adminPasswordHash, 'admin']);
+    } catch (_) {}
 
     // Demo Customer (Priya Sharma)
-    await runQuery(`
-      INSERT INTO users (id, name, email, phone, password_hash, role, is_phone_verified, is_new_customer, trial_used, trial_seconds_remaining)
-      VALUES (?, ?, ?, ?, ?, ?, 1, 1, 0, 300)
-    `, ['cust-priya-sharma', 'Priya Sharma', 'priya.sharma@example.com', '+919811122233', customerPasswordHash, 'customer']);
+    try {
+      await runQuery(`
+        INSERT INTO users (id, name, email, phone, password_hash, role, is_phone_verified, is_new_customer, trial_used, trial_seconds_remaining)
+        VALUES (?, ?, ?, ?, ?, ?, 1, 1, 0, 300)
+        ON CONFLICT DO NOTHING
+      `, ['cust-priya-sharma', 'Priya Sharma', 'priya.sharma@example.com', '+919811122233', customerPasswordHash, 'customer']);
+    } catch (_) {}
 
     // Demo Customer Birth Profiles
     await runQuery(`
-      INSERT INTO birth_profiles (id, user_id, relation, full_name, dob, tob, tob_uncertain, pob, pob_lat, pob_lng, pob_timezone)
+      INSERT OR IGNORE INTO birth_profiles (id, user_id, relation, full_name, dob, tob, tob_uncertain, pob, pob_lat, pob_lng, pob_timezone)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, ['bp-priya-self', 'cust-priya-sharma', 'self', 'Priya Sharma', '1992-08-14', '07:25', 0, 'Jaipur, Rajasthan', 26.9124, 75.7873, 'Asia/Kolkata']);
 
     await runQuery(`
-      INSERT INTO birth_profiles (id, user_id, relation, full_name, dob, tob, tob_uncertain, pob, pob_lat, pob_lng, pob_timezone)
+      INSERT OR IGNORE INTO birth_profiles (id, user_id, relation, full_name, dob, tob, tob_uncertain, pob, pob_lat, pob_lng, pob_timezone)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, ['bp-priya-spouse', 'cust-priya-sharma', 'spouse', 'Rahul Sharma', '1989-11-23', '14:40', 0, 'New Delhi, Delhi', 28.6139, 77.2090, 'Asia/Kolkata']);
 
     // CRM meta
     await runQuery(`
-      INSERT INTO customer_crm_meta (user_id, internal_notes, tags_json)
+      INSERT OR IGNORE INTO customer_crm_meta (user_id, internal_notes, tags_json)
       VALUES (?, ?, ?)
     `, ['cust-priya-sharma', 'Prefers consultations in Hindi. Interested in career transit guidance and Vastu for new apartment.', JSON.stringify(['VIP', 'Career Focus', 'Prefers Hindi'])]);
 
@@ -796,7 +846,7 @@ async function seedInitialData() {
 
     for (const pkg of packages) {
       await runQuery(`
-        INSERT INTO packages (id, slug, name, price, duration_minutes, includes_json, is_popular, is_trial, decoy_note, per_minute_cost)
+        INSERT OR IGNORE INTO packages (id, slug, name, price, duration_minutes, includes_json, is_popular, is_trial, decoy_note, per_minute_cost)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [pkg.id, pkg.slug, pkg.name, pkg.price, pkg.duration, pkg.includes, pkg.is_popular, pkg.is_trial, pkg.decoy, pkg.cost_per_min]);
     }
@@ -805,7 +855,7 @@ async function seedInitialData() {
     const existingFamily = await getOne<any>('SELECT id FROM packages WHERE slug = ?', ['family-360']);
     if (!existingFamily) {
       await runQuery(`
-        INSERT INTO packages (id, slug, name, price, duration_minutes, includes_json, is_popular, is_trial, decoy_note, per_minute_cost)
+        INSERT OR IGNORE INTO packages (id, slug, name, price, duration_minutes, includes_json, is_popular, is_trial, decoy_note, per_minute_cost)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         'pkg-family-360',
@@ -843,7 +893,7 @@ async function seedInitialData() {
 
     for (const cat of categories) {
       await runQuery(`
-        INSERT INTO categories (id, name, slug, parent_id, description)
+        INSERT OR IGNORE INTO categories (id, name, slug, parent_id, description)
         VALUES (?, ?, ?, ?, ?)
       `, [cat.id, cat.name, cat.slug, cat.parent_id, cat.desc]);
     }
@@ -912,7 +962,7 @@ The South-East is governed by the Fire element (*Agni*). Placing your cooking ar
 
     for (const post of blogPosts) {
       await runQuery(`
-        INSERT INTO blog_posts (id, slug, title, excerpt, content_markdown, category_id, tags_json, hero_image_url, reading_time_min, is_featured, is_published, meta_title, meta_description)
+        INSERT OR IGNORE INTO blog_posts (id, slug, title, excerpt, content_markdown, category_id, tags_json, hero_image_url, reading_time_min, is_featured, is_published, meta_title, meta_description)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
       `, [post.id, post.slug, post.title, post.excerpt, post.content, post.category_id, post.tags, post.hero_image_url, post.reading_time, post.is_featured, post.title, post.excerpt]);
     }
@@ -920,7 +970,7 @@ The South-East is governed by the Fire element (*Agni*). Placing your cooking ar
     // Availability rules
     for (let day = 0; day <= 6; day++) {
       await runQuery(`
-        INSERT INTO availability_rules (weekday, window1_start, window1_end, window2_start, window2_end, slot_duration, buffer_time, is_active)
+        INSERT OR IGNORE INTO availability_rules (weekday, window1_start, window1_end, window2_start, window2_end, slot_duration, buffer_time, is_active)
         VALUES (?, '09:00', '17:00', '20:00', '23:59', 30, 10, 1)
       `, [day]);
     }
@@ -928,24 +978,24 @@ The South-East is governed by the Fire element (*Agni*). Placing your cooking ar
     // Seed sample appointment and payment verification queue item
     const sampleApptId = 'appt-demo-priya';
     await runQuery(`
-      INSERT INTO appointments (id, customer_id, birth_profile_id, package_id, consultation_type, requested_date, requested_time_window, timezone_user, customer_notes, status)
+      INSERT OR IGNORE INTO appointments (id, customer_id, birth_profile_id, package_id, consultation_type, requested_date, requested_time_window, timezone_user, customer_notes, status)
       VALUES (?, ?, ?, ?, 'call', '2026-09-18', '11:00 AM - 01:00 PM', 'Asia/Kolkata', 'Seeking career transition guidance and clarity on current Dasha.', 'Requested')
     `, [sampleApptId, 'cust-priya-sharma', 'bp-priya-self', 'pkg-premium']);
 
     await runQuery(`
-      INSERT INTO payments (id, appointment_id, user_id, amount, payment_method, utr_reference, screenshot_url, status)
+      INSERT OR IGNORE INTO payments (id, appointment_id, user_id, amount, payment_method, utr_reference, screenshot_url, status)
       VALUES (?, ?, ?, 1799, 'upi_qr', '425981029384', 'https://images.unsplash.com/photo-1556742049-0a67c5574f73?auto=format&fit=crop&w=600&q=80', 'Pending')
     `, ['pay-demo-priya', sampleApptId, 'cust-priya-sharma']);
 
     // Seed Chat Conversation
     const sampleChatId = 'conv-priya';
     await runQuery(`
-      INSERT INTO chat_conversations (id, customer_id, admin_id, is_locked, unread_admin_count, unread_customer_count)
+      INSERT OR IGNORE INTO chat_conversations (id, customer_id, admin_id, is_locked, unread_admin_count, unread_customer_count)
       VALUES (?, ?, 'admin-amit', 0, 1, 0)
     `, [sampleChatId, 'cust-priya-sharma']);
 
     await runQuery(`
-      INSERT INTO chat_messages (id, conversation_id, sender_type, sender_id, message_type, content, is_read)
+      INSERT OR IGNORE INTO chat_messages (id, conversation_id, sender_type, sender_id, message_type, content, is_read)
       VALUES 
         ('msg-1', ?, 'admin', 'admin-amit', 'text', 'Namaste Priya ji! Welcome to Amit Astro. I have received your birth details and request. Looking forward to our session.', 1),
         ('msg-2', ?, 'customer', 'cust-priya-sharma', 'text', 'Namaste Amit ji, thank you so much! I have submitted the payment UTR as well. Should I prepare any specific questions beforehand?', 0)

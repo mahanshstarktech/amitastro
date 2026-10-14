@@ -103,19 +103,23 @@ io.on('connection', (socket) => {
   });
 });
 
-// Initialize database and start server
-initDatabase().then(() => {
-  server.listen(PORT, () => {
-    console.log(`
+// Initialize database and start server (only if not in test environment)
+if (process.env.NODE_ENV !== 'test') {
+  initDatabase().then(() => {
+    server.listen(PORT, () => {
+      console.log(`
 ======================================================
 ✨ Amit Astro Backend Running on port ${PORT}
 ✨ Health Check: http://localhost:${PORT}/health
 ✨ API Base URL: http://localhost:${PORT}/api
 ✨ Socket.io Active for Realtime WhatsApp-style Chat
 ======================================================
-    `);
+      `);
+    });
+  }).catch((err) => {
+    console.error('Failed to initialize database:', err);
+    process.exit(1);
   });
-}).catch((err) => {
-  console.error('Failed to initialize database:', err);
-  process.exit(1);
-});
+}
+
+export { app, server, io };

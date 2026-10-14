@@ -272,6 +272,11 @@ export const updateAppointmentStatus = async (req: AuthRequest, res: Response) =
     const { id } = req.params;
     const { status, confirmedTimeIst } = req.body;
 
+    const VALID_STATUSES = ['Requested', 'Confirmed', 'In Progress', 'Completed', 'Cancelled'];
+    if (!status || !VALID_STATUSES.includes(status)) {
+      return res.status(400).json({ error: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}` });
+    }
+
     const existing = await getOne<any>('SELECT a.*, p.slug as package_slug FROM appointments a JOIN packages p ON a.package_id = p.id WHERE a.id = ?', [id]);
     if (!existing) {
       return res.status(404).json({ error: 'Appointment not found' });

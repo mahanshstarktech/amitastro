@@ -1,36 +1,153 @@
-name: Nakshaktram CI
+name: AmitAstro CI Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
   pull_request:
     branches: [ main ]
 
 jobs:
-  build-and-test:
+  validate-and-test:
+    name: Test (${{ matrix.engine }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [sqlite, postgresql]
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: amitastro_user
+          POSTGRES_PASSWORD: amitastro_test_password
+          POSTGRES_DB: amitastro_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
-    - name: Check out repository
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 20
-        cache: 'npm'
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
 
-    - name: Install root dependencies
-      run: npm install
+      - name: Install root dependencies
+        run: npm ci || npm install
 
-    - name: Install client dependencies & build
-      run: |
-        cd client
-        npm install
-        npm run build
+      - name: Install client dependencies & build
+        run: |
+          cd client
+          npm ci || npm install
+          npm run build
 
-    - name: Install server dependencies & build
-      run: |
-        cd server
-        npm install
-        npm run build
+      - name: Install server dependencies
+        run: |
+          cd server
+          npm ci || npm install --legacy-peer-deps
+
+      - name: Install Playwright Browsers
+        if: matrix.engine == 'sqlite'
+        run: |
+          cd client
+          npx playwright install --with-deps chromium
+
+      # -------------------------------------------------------------
+      # Automated Test Execution
+      # -------------------------------------------------------------
+      - name: Run Client Unit & Component RTL Tests
+        if: matrix.engine == 'sqlite'
+        run: |
+          cd client
+          npm run test
+
+      - name: Run Server Unit Tests
+        run: |
+          cd server
+          npm run test:unit
+
+      - name: Run Database Tests (Dual-Engine: ${{ matrix.engine }})
+        env:
+          TEST_USE_POSTGRES: ${{ matrix.engine == 'postgresql' && 'true' || 'false' }}
+          DATABASE_URL: postgres://amitastro_user:amitastro_test_password@localhost:5432/amitastro_test
+        run: |
+          cd server
+          npm run test:database
+
+      - name: Run API Integration Tests
+        env:
+          TEST_USE_POSTGRES: ${{ matrix.engine == 'postgresql' && 'true' || 'false' }}
+          DATABASE_URL: postgres://amitastro_user:amitastro_test_password@localhost:5432/amitastro_test
+        run: |
+          cd server
+          npm run test:api
+
+      - name: Run Real-Time WebSocket Gateway Tests
+        run: |
+          cd server
+          npm run test:realtime
+
+      - name: Run Security Penetration & IDOR Tests
+        run: |
+          cd server
+          npm run test:security
+
+      - name: Run AI Quality Evaluation Harness (Offline Benchmark)
+        run: |
+          cd server
+          npm run test:llm
+
+      - name: Run End-to-End Browser Tests (Playwright)
+        if: matrix.engine == 'sqlite'
+        run: |
+          cd client
+          npx playwright test
+
+      - name: Run Server Code Coverage
+        if: matrix.engine == 'sqlite'
+        run: |
+          cd server
+          npm run test:coverage
+
+      # -------------------------------------------------------------
+      # Artifact Uploads & Reporting
+      # -------------------------------------------------------------
+      - name: Upload Test Results (JUnit XML)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-results-${{ matrix.engine }}
+          path: server/test-results/junit.xml
+          retention-days: 14
+
+      - name: Upload Coverage Reports
+        if: matrix.engine == 'sqlite' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-html
+          path: server/coverage/
+          retention-days: 14
+
+      - name: Upload Playwright E2E Report
+        if: matrix.engine == 'sqlite' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: client/playwright-report/
+          retention-days: 14
+
+      - name: Upload AI Quality Evaluation Report
+        if: matrix.engine == 'sqlite' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-eval-report
+          path: eval/eval-report.json
+          retention-days: 14

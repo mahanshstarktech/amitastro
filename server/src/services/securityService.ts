@@ -99,7 +99,15 @@ class SecurityEngine {
    * Enforces Anti-Replay Timestamp Window and Nonce Cache
    */
   public decryptPayload(encryptedBase64: string, keyId?: string): string {
-    const targetKey = (keyId && this.keyHistory.get(keyId)) || this.activeKey;
+    let targetKey: KeyPairEntry | undefined;
+    if (keyId) {
+      targetKey = this.keyHistory.get(keyId);
+      if (!targetKey) {
+        throw new Error('Encryption key expired or invalid. Please refresh the page and try again.');
+      }
+    } else {
+      targetKey = this.activeKey;
+    }
     if (!targetKey) {
       throw new Error('Encryption key expired or invalid. Please refresh the page and try again.');
     }
@@ -238,7 +246,7 @@ class SecurityEngine {
    * Constant-time string equality check to neutralize timing side-channel attacks
    */
   public timingSafeCompare(a?: string, b?: string): boolean {
-    if (typeof a !== 'string' || typeof b !== 'string') return false;
+    if (typeof a !== 'string' || typeof b !== 'string' || a.length === 0 || b.length === 0) return false;
     const bufA = Buffer.from(a, 'utf8');
     const bufB = Buffer.from(b, 'utf8');
     if (bufA.length !== bufB.length) {

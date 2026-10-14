@@ -1,0 +1,332 @@
+[
+  {
+    "id": "trans-01",
+    "direction": "en-to-hi",
+    "sourceText": {
+      "title": "Navigating Saturn in Pisces: Karmic Lessons and Classical Remedies",
+      "excerpt": "When Saturn enters Pisces, the collective consciousness undergoes spiritual purification. Discover practical Vedic remedies to balance this water-sign transit.",
+      "contentMarkdown": "# Navigating Saturn in Pisces\n\nSaturn is the great karmic taskmaster in Parashari Jyotish.\n\n## Classical Remedies\n- Chant the Shani Gayatri Mantra on Saturdays\n- Light an iron lamp with mustard oil under a Peepal tree\n- Donate black sesame seeds to the needy\n\n> \"Om Sham Shanaishcharaye Namah\"\n\nConsult Amit Astro for a customized horoscope breakdown."
+    },
+    "expectedTerms": ["शनि", "मीन", "उपाय", "कर्म", "पीपल"],
+    "notes": "Classic transit article with mantra and bullet points."
+  },
+  {
+    "id": "trans-02",
+    "direction": "en-to-hi",
+    "sourceText": {
+      "title": "Understanding the 10th House: Career, Social Status, and Dharma",
+      "excerpt": "The Karma Bhava reflects your professional achievements and societal contributions in Vedic astrology.",
+      "contentMarkdown": "## The Ten House Dynamics\nIn Vedic astrology, the 10th house is known as **Karma Bhava**.\n\n### Influential Planets\n- **Sun**: Bestows royal authority and leadership\n- **Mars**: Provides executive drive and courage\n- **Mercury**: Supports commercial trade and intellect"
+    },
+    "expectedTerms": ["दशम भाव", "कर्म भाव", "सूर्य", "मंगल", "बुध"],
+    "notes": "Technical astrological house terminology."
+  },
+  {
+    "id": "trans-03",
+    "direction": "en-to-hi",
+    "sourceText": {
+      "title": "Vedic Vastu for North-East Ishanya Zone",
+      "excerpt": "The North-East is the sacred corner ruled by Lord Shiva and Jupiter. Keep it light, clean, and spiritually active.",
+      "contentMarkdown": "# Ishanya Kona Vastu Rules\n\n1. Never place a heavy septic tank or kitchen in the North-East.\n2. Keep a brass bowl with clean water or a small temple here.\n3. Maximise morning sunlight for positive prana flow."
+    },
+    "expectedTerms": ["ईशान कोण", "वास्तु", "बृहस्पति", "शिव"],
+    "notes": "Vastu architectural terms."
+  },
+  {
+    "id": "trans-04",
+    "direction": "hi-to-en",
+    "sourceText": {
+      "title": "कुंडली में मांगलिक दोष: क्या यह सचमुच विवाह में बाधा डालता है?",
+      "excerpt": "मंगल ग्रह के प्रथम, चतुर्थ, सप्तम, अष्टम या द्वादश भाव में स्थित होने पर मांगलिक योग बनता है। जानिए इसके परिहार और सटीक उपाय।",
+      "contentMarkdown": "# मांगलिक दोष का यथार्थ\n\nवैदिक शास्त्रों में मंगल को पराक्रम का कारक माना गया है।\n\n## मंगल दोष के परिहार नियम\n- यदि वर और वधु दोनों की कुंडली में मंगल दोष हो तो यह निष्प्रभावी हो जाता है।\n- गुरु की दृष्टि मंगल पर होने से दोष शांत होता है।\n- मंगलवार को सुंदरकांड का पाठ करें।"
+    },
+    "expectedTerms": ["Manglik Dosha", "Mars", "Kundli", "Sundarkand", "Jupiter"],
+    "notes": "Hindi to English reverse translation."
+  },
+  {
+    "id": "trans-05",
+    "direction": "en-to-hi",
+    "sourceText": {
+      "title": "Rahu Mahadasha: Psychological Illusions and Material Ambition",
+      "excerpt": "Rahu acts like a shadow amplifier, creating sudden windfalls and profound mental turbulence.",
+      "contentMarkdown": "# Rahu's 18-Year Cycle\n\nDuring Rahu Mahadasha, the native is propelled toward worldly ambition.\n\n### Prescribed Remedies\n- Wear an authentic Hessonite (Gomed) only after testing planetary lordships\n- Feed stray dogs on Wednesday evenings\n- Chant the Rahu Beej Mantra: *Om Bhram Bhreem Bhroum Sah Rahave Namah*"
+    },
+    "expectedTerms": ["राहु महादशा", "गोमेद", "बीज मंत्र", "छाया ग्रह"],
+    "notes": "Rahu remedies with gemstone and mantra."
+  },
+  {
+    "id": "trans-06",
+    "direction": "en-to-hi",
+    "sourceText": {
+      "title": "Selecting Auspicious Gold Purchase Muhurat on Dhanteras",
+      "excerpt": "Tithi and Nakshatra alignments for welcoming Devi Lakshmi during Diwali festivities.",
+      "contentMarkdown": "## Dhanteras Muhurat Guidelines\nBuy gold during **Pushya Nakshatra** or **Choghadiya Labh/Amrit** intervals."
+    },
+    "expectedTerms": ["धनतेरस", "मुहूर्त", "पुष्य नक्षत्र", "लक्ष्मी"],
+    "notes": "Festival muhurat terms."
+  },
+  {
+    "id": "trans-07",
+    "direction": "en-to-hi",
+    "sourceText": {
+      "title": "Moon-Ketu Conjunction: The Spiritual Seeker's Mind",
+      "excerpt": "When the Moon conjoins Ketu, detachment from mundane reality often sparks profound mystical insight.",
+      "contentMarkdown": "### Psychological Dynamics\nThe Moon rules the conscious mind (Manas), while Ketu represents liberation (Moksha)."
+    },
+    "expectedTerms": ["चंद्र", "केतु", "मन", "मोक्ष"],
+    "notes": "Psychological Vedic terms."
+  },
+  {
+    "id": "trans-08",
+    "direction": "en-to-hi",
+    "sourceText": {
+      "title": "Jupiter Transit in Gemini 2026: Intellectual Awakening",
+      "excerpt": "Guru enters Budha's air sign, bringing renewed curiosity and media expansion.",
+      "contentMarkdown": "Guru represents supreme wisdom and benevolence in your chart."
+    },
+    "expectedTerms": ["गुरु", "मिथुन", "बृहस्पति"],
+    "notes": "Planetary deity names."
+  },
+  {
+    "id": "trans-09",
+    "direction": "en-to-hi",
+    "sourceText": {
+      "title": "Vastu for Master Bedroom in South-West (Nairutya)",
+      "excerpt": "The South-West represents stability, earth element, and the master of the house.",
+      "contentMarkdown": "Place the head of the bed towards the South or East for rejuvenating sleep."
+    },
+    "expectedTerms": ["नैऋत्य कोण", "पृथ्वी तत्व", "वास्तु"],
+    "notes": "Directional Vastu terms."
+  },
+  {
+    "id": "trans-10",
+    "direction": "en-to-hi",
+    "sourceText": {
+      "title": "The Power of Wearing 5 Mukhi Rudraksha",
+      "excerpt": "Sacred beads blessed by Lord Kalagni Rudra for peace, balance, and health.",
+      "contentMarkdown": "5 Mukhi Rudraksha balances the Jupiter energy in the body."
+    },
+    "expectedTerms": ["पंचमुखी रुद्राक्ष", "रुद्र", "बृहस्पति"],
+    "notes": "Sacred bead terminology."
+  },
+  {
+    "id": "trans-11",
+    "direction": "hi-to-en",
+    "sourceText": {
+      "title": "कालसर्प योग के 12 प्रकार और उनके वास्तविक लक्षण",
+      "excerpt": "अनंत, कुलिक, वासुकि, शंखपाल से लेकर शेषनाग तक 12 प्रकार के कालसर्प योग होते हैं।",
+      "contentMarkdown": "राहु और केतु के मध्य सभी ग्रहों के आ जाने पर कालसर्प योग का निर्माण होता है।"
+    },
+    "expectedTerms": ["Kaal Sarp Yoga", "Rahu", "Ketu", "Anant", "Sheshnag"],
+    "notes": "Hindi to English reverse translation for Kaal Sarp."
+  },
+  {
+    "id": "trans-12",
+    "direction": "en-to-hi",
+    "sourceText": {
+      "title": "Sun Transit in Aries: The Peak of Exaltation",
+      "excerpt": "Surya enters Mesha, elevating vitality, courage, and leadership capacity.",
+      "contentMarkdown": "Offer water (Arghya) to the rising Sun every morning while chanting the Gayatri Mantra."
+    },
+    "expectedTerms": ["सूर्य", "मेष राशि", "उच्च", "अर्घ्य", "गायत्री मंत्र"],
+    "notes": "Solar exaltation terminology."
+  },
+  {
+    "id": "trans-13",
+    "direction": "en-to-hi",
+    "sourceText": {
+      "title": "Venus in Pisces: The Art of Unconditional Compassion",
+      "excerpt": "Shukra reaches its highest dignity in the 12th zodiac sign.",
+      "contentMarkdown": "Exalted Venus confers refinement, musical sensitivity, and devotional love."
+    },
+    "expectedTerms": ["शुक्र", "मीन राशि", "उच्च"],
+    "notes": "Venus dignity terms."
+  },
+  {
+    "id": "trans-14",
+    "direction": "en-to-hi",
+    "sourceText": {
+      "title": "Astrological Principles of Gemstone Testing",
+      "excerpt": "Never wear a gemstone without proper Dasha analysis and trial testing under the pillow.",
+      "contentMarkdown": "A gemstone must possess natural clarity, color, and unheated purity."
+    },
+    "expectedTerms": ["रत्न", "दशा", "ग्रह शांति"],
+    "notes": "Gemstone guidelines."
+  },
+  {
+    "id": "trans-15",
+    "direction": "en-to-hi",
+    "sourceText": {
+      "title": "Understanding the 7th House: Marriage, Partnerships, and Harmony",
+      "excerpt": "Yuvati Bhava shows how you relate to the external world and your spouse.",
+      "contentMarkdown": "A benefic 7th house ensures mutual respect and long-term marital bliss."
+    },
+    "expectedTerms": ["सप्तम भाव", "विवाह", "जीवनसाथी"],
+    "notes": "House terms."
+  },
+  {
+    "id": "trans-16",
+    "direction": "en-to-hi",
+    "sourceText": {
+      "title": "Budhaditya Yoga: Intellectual Brilliance and Communication Mastery",
+      "excerpt": "When the Sun and Mercury align in a Kendra or Trikona house.",
+      "contentMarkdown": "Budhaditya Yoga stimulates deep analytical power, strategic business acumen, and eloquence."
+    },
+    "expectedTerms": ["बुधादित्य योग", "सूर्य", "बुध", "केंद्र", "त्रिकोण"],
+    "notes": "Yoga formation terms."
+  },
+  {
+    "id": "trans-17",
+    "direction": "en-to-hi",
+    "sourceText": {
+      "title": "Gajakesari Yoga: Prosperity, Wisdom, and Societal Esteem",
+      "excerpt": "Jupiter in mutual Kendra from the Moon brings noble virtues.",
+      "contentMarkdown": "Gajakesari is one of the most auspicious combinations in Parashari Jyotish."
+    },
+    "expectedTerms": ["गजकेसरी योग", "गुरु", "चंद्र", "पाराशरी ज्योतिष"],
+    "notes": "Benefic yoga terms."
+  },
+  {
+    "id": "trans-18",
+    "direction": "en-to-hi",
+    "sourceText": {
+      "title": "Combust Planets (Asta Grahas): How Proximity to the Sun Affects Results",
+      "excerpt": "When planets travel within specified degrees of the Sun, their outer expression turns inward.",
+      "contentMarkdown": "A combust planet does not lose its inner karakatwa, but external manifestation requires extra conscious effort."
+    },
+    "expectedTerms": ["अस्त ग्रह", "सूर्य", "कारकत्व"],
+    "notes": "Planetary combust terms."
+  },
+  {
+    "id": "trans-19",
+    "direction": "en-to-hi",
+    "sourceText": {
+      "title": "Navagraha Shanti: The Complete Vedic Framework for Planetary Harmony",
+      "excerpt": "Ancient rituals prescribed in Brihat Parashara Hora Shastra for pacifying planetary afflictions.",
+      "contentMarkdown": "Navagraha Shanti involves mantra japa, havana, sacred charity, and righteous living."
+    },
+    "expectedTerms": ["नवग्रह शांति", "हवन", "मंत्र जप", "दान"],
+    "notes": "Remedy and ritual terms."
+  },
+  {
+    "id": "trans-20",
+    "direction": "en-to-hi",
+    "sourceText": {
+      "title": "Role of the Lagna Lord: Your Biological Vitality and Core Identity",
+      "excerpt": "The ascendant lord is the captain of your entire horoscope.",
+      "contentMarkdown": "A strong Lagnesha protects against all forms of planetary malevolence like a shield."
+    },
+    "expectedTerms": ["लग्नेश", "लग्न", "कुंडली"],
+    "notes": "Lagna lord terms."
+  },
+  {
+    "id": "trans-21",
+    "direction": "en-to-hi",
+    "sourceText": {
+      "title": "Dasha Sandhi: The Transition Threshold Between Planetary Periods",
+      "excerpt": "The delicate period of transition between two major planetary Dashas.",
+      "contentMarkdown": "During Dasha Sandhi, significant psychological and environmental pivots take place."
+    },
+    "expectedTerms": ["दशा संधि", "महादशा", "ग्रह"],
+    "notes": "Dasha transition terms."
+  },
+  {
+    "id": "trans-22",
+    "direction": "en-to-hi",
+    "sourceText": {
+      "title": "Vedic Astrological Timing for Property Purchase",
+      "excerpt": "Examining the 4th house, Mars, and Saturn transits for acquiring land and homes.",
+      "contentMarkdown": "Mars is the Bhumi Karaka, while the 4th house signifies fixed assets and emotional security."
+    },
+    "expectedTerms": ["चतुर्थ भाव", "भूमि कारक", "मंगल"],
+    "notes": "Real estate timing terms."
+  },
+  {
+    "id": "trans-23",
+    "direction": "en-to-hi",
+    "sourceText": {
+      "title": "Ketu in the 12th House: The Portal to Spiritual Liberation",
+      "excerpt": "Classical texts celebrate Ketu in the final house as the signature of Moksha.",
+      "contentMarkdown": "In the 12th house of meditation, Ketu dissolves earthly attachments and awakens higher intuition."
+    },
+    "expectedTerms": ["द्वादश भाव", "केतु", "मोक्ष"],
+    "notes": "Spiritual house terms."
+  },
+  {
+    "id": "trans-24",
+    "direction": "en-to-hi",
+    "sourceText": {
+      "title": "The Meaning of Retrograde Saturn (Shani Vakri)",
+      "excerpt": "Why retrograde Saturn is extraordinarily potent in Vedic Jyotish.",
+      "contentMarkdown": "A retrograde planet possesses high Cheshta Bala, prompting deep karmic re-examination."
+    },
+    "expectedTerms": ["शनि वक्री", "चेष्टा बल", "कर्मफल"],
+    "notes": "Retrograde motion terms."
+  },
+  {
+    "id": "trans-25",
+    "direction": "en-to-hi",
+    "sourceText": {
+      "title": "Astrological Guidelines for Emerald (Panna) Gemstone",
+      "excerpt": "Rules for wearing the green emerald to strengthen Mercury and intellect.",
+      "contentMarkdown": "Mount natural emerald in gold or silver and wear on the little finger on a Wednesday morning."
+    },
+    "expectedTerms": ["पन्ना", "बुध", "कनिष्ठिका"],
+    "notes": "Emerald gemstone terms."
+  },
+  {
+    "id": "trans-26",
+    "direction": "en-to-hi",
+    "sourceText": {
+      "title": "Significance of Ashwini Nakshatra: The Healers of Heaven",
+      "excerpt": "The first lunar mansion ruled by Ketu and presided over by the Ashwini Kumaras.",
+      "contentMarkdown": "Ashwini natives exhibit swift action, healing impulses, and entrepreneurial initiative."
+    },
+    "expectedTerms": ["अश्विनी नक्षत्र", "अश्विनी कुमार", "केतु"],
+    "notes": "Nakshatra terms."
+  },
+  {
+    "id": "trans-27",
+    "direction": "en-to-hi",
+    "sourceText": {
+      "title": "Pushya Nakshatra: The Most Auspicious Celestial Mansion",
+      "excerpt": "Ruled by Saturn with Jupiter as deity, Pushya nourishes all virtuous undertakings.",
+      "contentMarkdown": "Except for marriage, Pushya Nakshatra is universally venerated for inaugurating holy works."
+    },
+    "expectedTerms": ["पुष्य नक्षत्र", "बृहस्पति", "शनि"],
+    "notes": "Pushya nakshatra terms."
+  },
+  {
+    "id": "trans-28",
+    "direction": "en-to-hi",
+    "sourceText": {
+      "title": "Remedies for Kemadruma Yoga: Solitude and Financial Stabilization",
+      "excerpt": "When no planets occupy the 2nd and 12th houses from the Moon.",
+      "contentMarkdown": "Worship Goddess Mahalakshmi and chant Sri Suktam every Friday to dissolve Kemadruma challenges."
+    },
+    "expectedTerms": ["केमद्रुम योग", "चंद्र", "श्री सूक्त", "महालक्ष्मी"],
+    "notes": "Yoga remedy terms."
+  },
+  {
+    "id": "trans-29",
+    "direction": "en-to-hi",
+    "sourceText": {
+      "title": "Vastu for Kitchen Placement in South-East (Agneya)",
+      "excerpt": "The fire element belongs in the Agneya corner for health and vitality.",
+      "contentMarkdown": "Cook facing East to absorb solar morning energy and preserve household digestion."
+    },
+    "expectedTerms": ["आग्नेय कोण", "अग्नि तत्व", "वास्तु"],
+    "notes": "Kitchen vastu terms."
+  },
+  {
+    "id": "trans-30",
+    "direction": "en-to-hi",
+    "sourceText": {
+      "title": "The Science of Yantra: Geometric Cosmic Resonance",
+      "excerpt": "How sacred geometric Yantras focus planetary frequencies in your meditation room.",
+      "contentMarkdown": "A consecrated Sri Yantra or Navagraha Yantra radiates coherent sattvic vibrations."
+    },
+    "expectedTerms": ["यंत्र", "श्री यंत्र", "नवग्रह यंत्र", "सात्विक"],
+    "notes": "Sacred geometry terms."
+  }
+]

@@ -10,7 +10,21 @@
     "build:client": "cd client && npm run build",
     "build:server": "cd server && npm run build",
     "build": "npm run build:client && npm run build:server",
-    "lint": "cd client && npm run lint"
+    "lint": "cd client && npm run lint",
+    "test": "npm run test:unit && npm run test:api",
+    "test:unit": "cd server && npm run test:unit",
+    "test:api": "cd server && npm run test:api",
+    "test:realtime": "cd server && npm run test:realtime",
+    "test:security": "cd server && npm run test:security",
+    "test:database": "cd server && npm run test:database",
+    "test:frontend": "cd client && npm run test",
+    "test:e2e": "cd client && npm run test:e2e",
+    "test:llm": "cd server && npm run test:llm",
+    "test:perf": "cd server && npm run test:perf",
+    "test:coverage": "cd server && npm run test:coverage",
+    "test:mutation": "cd server && npx stryker run",
+    "precommit": "npm run test:unit && npm run test:security",
+    "test:all": "npm run test:unit && npm run test:database && npm run test:api && npm run test:realtime && npm run test:security && npm run test:frontend && npm run test:llm"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

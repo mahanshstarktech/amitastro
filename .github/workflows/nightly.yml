@@ -1,0 +1,54 @@
+name: AmitAstro Nightly Deep Audit
+
+on:
+  schedule:
+    - cron: '0 2 * * *' # Every night at 02:00 UTC
+  workflow_dispatch:
+
+jobs:
+  nightly-deep-audit:
+    name: Nightly Deep Quality & LLM Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci || npm install
+          cd client && (npm ci || npm install)
+          cd ../server && (npm ci || npm install --legacy-peer-deps)
+
+      - name: Run Live Gemini AI Quality Evaluation
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          cd server
+          NODE_PATH=./node_modules ./node_modules/.bin/tsx ../eval/evalRunner.ts
+
+      - name: Run Performance & Concurrency Load Benchmark
+        run: |
+          cd server
+          npm run test:perf
+
+      - name: Run Stryker Mutation Testing
+        run: |
+          cd server
+          npx stryker run
+
+      - name: Upload Nightly Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-audit-reports
+          path: |
+            eval/eval-report.json
+            server/test-results/perf-summary.json
+            server/reports/mutation/
+          retention-days: 30

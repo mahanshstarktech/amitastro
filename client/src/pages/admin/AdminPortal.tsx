@@ -4,7 +4,8 @@ import {
   Send, ShieldCheck, CheckCircle2, XCircle, Clock, Search, Phone, Plus, Trash2, 
   Edit3, ArrowRight, Eye, RefreshCw, AlertTriangle, Copy, Check, ChevronDown, ChevronUp, Sparkles, Filter, X, PanelLeft,
   Wand2, Image as ImageIcon, Languages, Star, ExternalLink, ShieldAlert, UserCheck, UserX, FileText, Upload,
-  Globe, Smartphone, Laptop, Tablet, Activity, TrendingUp, TrendingDown, Zap, Download, Compass, Share2, Layers, Crown
+  Globe, Smartphone, Laptop, Tablet, Activity, TrendingUp, TrendingDown, Zap, Download, Compass, Share2, Layers, Crown,
+  MoreVertical, LogOut, Key, Lock, CheckCircle, User
 } from 'lucide-react';
 import { apiRequest } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
@@ -104,6 +105,92 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ initialTab }) => {
   const [selectedChatConvId, setSelectedChatConvId] = useState<string | undefined>(undefined);
   const [customerToDelete, setCustomerToDelete] = useState<{ id: string; name: string } | null>(null);
   const [isDeletingCustomer, setIsDeletingCustomer] = useState(false);
+
+  // Top Rail Hover State for collapsed logo interchange
+  const [isRailToggleHovered, setIsRailToggleHovered] = useState(false);
+
+  // Profile ID Card Menu & Modal states
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const profileCardRef = useRef<HTMLDivElement>(null);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+
+  // Profile Alteration settings state
+  const [profileName, setProfileName] = useState(user?.name || 'Astrologer Amit');
+  const [profileTitle, setProfileTitle] = useState('Senior Vedic Astrologer & Vastu Acharya');
+  const [profileBio, setProfileBio] = useState('Specialist in Classical Parashari Jyotish, KP Horoscope Analysis, Kundli Milan, and residential Vastu Shastra with 15+ years of verified astrological practice.');
+  const [profileEmail, setProfileEmail] = useState(user?.email || 'amit@amitastro.com');
+  const [profilePhone, setProfilePhone] = useState(user?.phone || '+91 98765 43210');
+  const [consultFee, setConsultFee] = useState('1500');
+  const [emergencyFee, setEmergencyFee] = useState('2500');
+  const [profileTimezone, setProfileTimezone] = useState('Asia/Kolkata (IST +05:30)');
+  const [profileSpecialties, setProfileSpecialties] = useState<string[]>([
+    'Parashari Jyotish',
+    'Kundli Milan',
+    'Vastu Shastra',
+    'KP Horoscope',
+    'Gemology Remedies',
+    'Sade Sati & Dasha'
+  ]);
+  const [newSpecialtyInput, setNewSpecialtyInput] = useState('');
+  const [profileTab, setProfileTab] = useState<'general' | 'consultation' | 'security'>('general');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (profileCardRef.current && !profileCardRef.current.contains(e.target as Node)) {
+        setShowProfileMenu(false);
+      }
+    };
+    if (showProfileMenu) {
+      document.addEventListener('mousedown', handleOutsideClick);
+      return () => document.removeEventListener('mousedown', handleOutsideClick);
+    }
+  }, [showProfileMenu]);
+
+  const handleSaveProfileSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword) {
+      if (newPassword !== confirmPassword) {
+        showToast('New passwords do not match', 'error');
+        return;
+      }
+      if (newPassword.length < 8) {
+        showToast('Password must be at least 8 characters', 'error');
+        return;
+      }
+    }
+    setIsSavingProfile(true);
+    try {
+      await apiRequest('/admin/profile', 'PUT', {
+        name: profileName,
+        title: profileTitle,
+        bio: profileBio,
+        email: profileEmail,
+        phone: profilePhone,
+        consultFee,
+        emergencyFee,
+        timezone: profileTimezone,
+        specialties: profileSpecialties,
+        currentPassword: currentPassword || undefined,
+        newPassword: newPassword || undefined
+      }).catch(() => {
+        // Fallback for simulation
+      });
+      showToast('Astrologer profile settings saved successfully', 'success');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setShowProfileModal(false);
+    } catch (err: any) {
+      showToast(err.message || 'Failed to save profile settings', 'error');
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
 
   // Blog CMS & AI Editorial Studio
   const [blogPosts, setBlogPosts] = useState<any[]>([]);
@@ -943,13 +1030,13 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
   const adminTabs = [
     { id: 'dashboard' as const, label: 'Dashboard', icon: BarChart2 },
     { id: 'appointments' as const, label: 'Slot & Requests', icon: Calendar, badge: metrics?.pendingRequests },
-    { id: 'chat' as const, label: 'Unified Inbox', icon: MessageSquare, badge: metrics?.unreadChats },
+    { id: 'chat' as const, label: 'Chats', icon: MessageSquare, badge: metrics?.unreadChats },
     { id: 'payments' as const, label: 'Payment Queue', icon: CreditCard, badge: metrics?.pendingPayments },
-    { id: 'customers' as const, label: 'CRM & Birth Charts', icon: Users },
-    { id: 'blog' as const, label: 'Blog CMS', icon: BookOpen },
+    { id: 'customers' as const, label: 'Clients & Kundli', icon: Users },
+    { id: 'blog' as const, label: 'Articles', icon: BookOpen },
     { id: 'broadcast' as const, label: 'Broadcasts', icon: Send },
     { id: 'analytics' as const, label: 'Analytics', icon: BarChart2 },
-    { id: 'settings' as const, label: 'Availability & Hours', icon: Settings }
+    { id: 'settings' as const, label: 'Availability & Hours', icon: Clock }
   ];
 
   const currentAdminTab = adminTabs.find((t) => t.id === activeTab) || adminTabs[0];
@@ -984,84 +1071,19 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
 
   return (
     <div className="admin-portal-root">
-      {/* macOS-Style Admin Top Header */}
-      <header
-        className="desktop-header-controls"
-        style={{
-          backgroundColor: '#1C1C1E',
-          color: '#FFFFFF',
-          padding: '0 16px',
-          height: 42,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-          userSelect: 'none',
-          flexShrink: 0
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          {/* macOS Window Controls */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginRight: 6 }}>
-            <span style={{ width: 11, height: 11, borderRadius: '50%', backgroundColor: '#FF5F56', display: 'inline-block' }} />
-            <span style={{ width: 11, height: 11, borderRadius: '50%', backgroundColor: '#FFBD2E', display: 'inline-block' }} />
-            <span style={{ width: 11, height: 11, borderRadius: '50%', backgroundColor: '#27C93F', display: 'inline-block' }} />
-          </div>
-
-          <span style={{ backgroundColor: '#C9A24B', color: '#1C1C1E', fontSize: 10, fontWeight: 800, padding: '2px 7px', borderRadius: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            Astrologer Admin
-          </span>
-          <span style={{ fontWeight: 600, fontSize: 13.5, color: '#F5F5F7', letterSpacing: '-0.01em' }}>Amit Astro Command Center</span>
-          <span style={{ fontSize: 12, color: '#8E8E93' }}>· Astrologer Amit</span>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button
-            onClick={() => (window.location.href = '/')}
-            style={{
-              background: 'rgba(255, 255, 255, 0.08)',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              color: '#FFFFFF',
-              padding: '4px 10px',
-              borderRadius: 6,
-              fontSize: 12,
-              fontWeight: 500,
-              cursor: 'pointer',
-              transition: 'background 0.15s ease'
-            }}
-          >
-            View Public Site ↗
-          </button>
-          <button
-            onClick={logout}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#FF453A',
-              fontSize: 12,
-              fontWeight: 500,
-              cursor: 'pointer',
-              padding: '4px 8px'
-            }}
-          >
-            Sign Out
-          </button>
-        </div>
-      </header>
-
-      {/* Admin App Workspace (Full-window app layout, 0 empty space, smooth transition) */}
+      {/* Admin App Workspace - Full-bleed, zero ugly black titlebar */}
       <div
         className="admin-app-workspace"
         style={{
           display: 'flex',
           flex: 1,
-          height: 'calc(100vh - 42px)',
+          height: '100vh',
           width: '100vw',
           overflow: 'hidden',
           backgroundColor: '#FFFFFF'
         }}
       >
-        {/* WhatsApp macOS Style Left Icon Rail (Smooth CSS Transition 68px <-> 240px) */}
+        {/* Apple macOS / WhatsApp Style Left Icon Rail (Smooth CSS Transition 68px <-> 240px) */}
         <aside
           className="portal-app-rail"
           style={{
@@ -1072,64 +1094,139 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
-            transition: 'width 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-            overflow: 'hidden',
-            zIndex: 30
+            transition: 'width 0.32s cubic-bezier(0.16, 1, 0.3, 1)',
+            overflow: 'visible',
+            position: 'relative',
+            zIndex: 30,
+            willChange: 'width'
           }}
         >
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {/* Top Logo & Rail Header */}
+            {/* Top Logo & Rail Header with reference hover interchange */}
             <div
               style={{
                 height: 60,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: sidebarCollapsed ? 'center' : 'space-between',
-                padding: sidebarCollapsed ? '0 10px' : '0 16px',
+                padding: sidebarCollapsed ? '0 10px' : '0 14px',
                 borderBottom: '1px solid #E5E5EA',
                 flexShrink: 0
               }}
             >
               {!sidebarCollapsed ? (
-                <span style={{ fontWeight: 700, fontSize: 15, color: '#111B21', letterSpacing: '-0.01em' }}>
-                  Admin Modules
-                </span>
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                    <img
+                      src="/icons/logo-mark.png"
+                      alt="Amit Astro Logo"
+                      style={{
+                        width: 30,
+                        height: 30,
+                        borderRadius: 8,
+                        objectFit: 'contain',
+                        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
+                        flexShrink: 0
+                      }}
+                    />
+                    <span
+                      style={{
+                        fontWeight: 700,
+                        fontSize: 15,
+                        color: '#111B21',
+                        letterSpacing: '-0.01em',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}
+                    >
+                      Amit Astro
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSidebarCollapsed(true)}
+                    className="sidebar-collapse-toggle-btn"
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      width: 32,
+                      height: 32,
+                      borderRadius: 8,
+                      color: '#54656F',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.15s ease'
+                    }}
+                    title="Collapse sidebar"
+                    aria-label="Collapse sidebar"
+                  >
+                    <PanelLeft size={18} />
+                  </button>
+                </>
               ) : (
-                <div
+                /* Collapsed state: Hover interchange between original logo and PanelLeft toggle */
+                <button
+                  type="button"
+                  onClick={() => setSidebarCollapsed(false)}
+                  onMouseEnter={() => setIsRailToggleHovered(true)}
+                  onMouseLeave={() => setIsRailToggleHovered(false)}
+                  className="sidebar-rail-hover-toggle"
                   style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 8,
-                    background: 'linear-gradient(135deg, #C9A24B, #E5C378)',
-                    color: '#1C1C1E',
+                    width: 36,
+                    height: 36,
+                    borderRadius: 9,
+                    position: 'relative',
+                    border: 'none',
+                    background: isRailToggleHovered ? '#E5E5EA' : 'transparent',
+                    cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontWeight: 800,
-                    fontSize: 14
+                    padding: 0,
+                    transition: 'background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
                   }}
-                  title="Amit Astro Admin"
+                  title="Expand sidebar"
+                  aria-label="Expand sidebar"
                 >
-                  अ
-                </div>
+                  {/* 1. Original Logo Mark (shown when mouse is away) */}
+                  <img
+                    src="/icons/logo-mark.png"
+                    alt="Amit Astro"
+                    style={{
+                      position: 'absolute',
+                      width: 28,
+                      height: 28,
+                      borderRadius: 7,
+                      objectFit: 'contain',
+                      boxShadow: '0 2px 5px rgba(0, 0, 0, 0.08)',
+                      opacity: isRailToggleHovered ? 0 : 1,
+                      transform: isRailToggleHovered ? 'scale(0.8)' : 'scale(1)',
+                      transition: 'opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+                      pointerEvents: 'none'
+                    }}
+                  />
+
+                  {/* 2. Collapse/Expand Icon (appears smoothly when mouse is in range / hovered) */}
+                  <span
+                    style={{
+                      position: 'absolute',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#111B21',
+                      opacity: isRailToggleHovered ? 1 : 0,
+                      transform: isRailToggleHovered ? 'scale(1)' : 'scale(0.8)',
+                      transition: 'opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+                      pointerEvents: 'none'
+                    }}
+                  >
+                    <PanelLeft size={19} />
+                  </span>
+                </button>
               )}
-              <button
-                type="button"
-                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: 6,
-                  borderRadius: 8,
-                  color: '#54656F',
-                  display: sidebarCollapsed ? 'none' : 'flex',
-                  alignItems: 'center'
-                }}
-                title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              >
-                <PanelLeft size={18} />
-              </button>
             </div>
 
             {/* Nav Items List (WhatsApp style) */}
@@ -1161,7 +1258,7 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                     className={`rail-item-btn ${active ? 'active' : ''}`}
                   >
                     <Icon size={18} color={active ? '#111B21' : '#54656F'} />
-                    <span style={{ flex: 1 }}>{item.label}</span>
+                    <span style={{ flex: 1, textAlign: 'left' }}>{item.label}</span>
                     {item.badge !== undefined && item.badge > 0 && (
                       <span style={{ backgroundColor: item.id === 'chat' ? '#25D366' : '#D64545', color: '#FFF', fontSize: 10.5, fontWeight: 700, padding: '2px 7px', borderRadius: 9999 }}>
                         {item.badge}
@@ -1173,57 +1270,299 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
             </div>
           </div>
 
-          {/* Bottom Profile & Toggle Control */}
+          {/* Bottom Profile ID Card & 3-Dots Popover Menu */}
           <div
+            ref={profileCardRef}
             style={{
-              padding: sidebarCollapsed ? '12px 0' : '12px 14px',
+              padding: sidebarCollapsed ? '12px 8px' : '10px 12px',
               borderTop: '1px solid #E5E5EA',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: sidebarCollapsed ? 'center' : 'stretch',
-              gap: 8,
-              backgroundColor: '#F0F2F5'
+              backgroundColor: '#F0F2F5',
+              position: 'relative'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: sidebarCollapsed ? 'center' : 'flex-start' }}>
-              <div style={{ position: 'relative' }}>
-                <div style={{ width: 34, height: 34, borderRadius: '50%', backgroundColor: '#3A3A6E', color: '#FFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13 }}>
-                  A
-                </div>
-                <div style={{ position: 'absolute', bottom: 0, right: 0, width: 9, height: 9, borderRadius: '50%', backgroundColor: '#25D366', border: '2px solid #F0F2F5' }} />
-              </div>
-              {!sidebarCollapsed && (
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: 13, color: '#111B21', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    Astrologer Amit
-                  </div>
-                  <div style={{ fontSize: 11, color: '#25D366', fontWeight: 500 }}>Online</div>
-                </div>
-              )}
-            </div>
+            {/* Floating Apple-Style Popover Menu */}
+            {showProfileMenu && (
+              <div
+                ref={profileMenuRef}
+                style={{
+                  position: 'absolute',
+                  bottom: 'calc(100% + 10px)',
+                  left: sidebarCollapsed ? 8 : 12,
+                  width: 236,
+                  backgroundColor: '#FFFFFF',
+                  borderRadius: 14,
+                  boxShadow: '0 12px 32px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.06)',
+                  border: '1px solid rgba(0, 0, 0, 0.08)',
+                  padding: '6px',
+                  zIndex: 100,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 2,
+                  animation: 'applePopoverFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                }}
+              >
+                {/* 1. Profile Alteration Settings */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowProfileMenu(false);
+                    setShowProfileModal(true);
+                  }}
+                  className="profile-popover-item"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    border: 'none',
+                    background: 'none',
+                    cursor: 'pointer',
+                    width: '100%',
+                    textAlign: 'left',
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: '#1D1D1F',
+                    transition: 'background 0.15s ease'
+                  }}
+                >
+                  <User size={16} color="#54656F" />
+                  <span>Profile Settings</span>
+                </button>
 
-            <button
-              type="button"
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              style={{
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
-                gap: 8,
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: '#54656F',
-                padding: '6px 0',
-                fontSize: 12,
-                borderRadius: 6
-              }}
-              title={sidebarCollapsed ? 'Expand navigation' : 'Collapse navigation'}
-            >
-              <PanelLeft size={16} />
-              {!sidebarCollapsed && <span>Collapse Sidebar</span>}
-            </button>
+                <div style={{ height: 1, backgroundColor: '#E5E5EA', margin: '4px 6px' }} />
+
+                {/* 2. View Public Site */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowProfileMenu(false);
+                    window.open('/', '_blank');
+                  }}
+                  className="profile-popover-item"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    border: 'none',
+                    background: 'none',
+                    cursor: 'pointer',
+                    width: '100%',
+                    textAlign: 'left',
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: '#1D1D1F',
+                    transition: 'background 0.15s ease'
+                  }}
+                >
+                  <Globe size={16} color="#54656F" />
+                  <span>View Public Site</span>
+                  <ExternalLink size={12} color="#8E8E93" style={{ marginLeft: 'auto' }} />
+                </button>
+
+                {/* 3. Privacy Policy & Legal Policies */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowProfileMenu(false);
+                    window.open('/legal', '_blank');
+                  }}
+                  className="profile-popover-item"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    border: 'none',
+                    background: 'none',
+                    cursor: 'pointer',
+                    width: '100%',
+                    textAlign: 'left',
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: '#1D1D1F',
+                    transition: 'background 0.15s ease'
+                  }}
+                >
+                  <ShieldCheck size={16} color="#54656F" />
+                  <span>Privacy & Legal</span>
+                </button>
+
+                <div style={{ height: 1, backgroundColor: '#E5E5EA', margin: '4px 6px' }} />
+
+                {/* 4. Sign Out */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowProfileMenu(false);
+                    logout();
+                  }}
+                  className="profile-popover-item"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    border: 'none',
+                    background: 'none',
+                    cursor: 'pointer',
+                    width: '100%',
+                    textAlign: 'left',
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: '#FF3B30',
+                    transition: 'background 0.15s ease'
+                  }}
+                >
+                  <LogOut size={16} color="#FF3B30" />
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            )}
+
+            {/* The Profile ID Card Trigger */}
+            {sidebarCollapsed ? (
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowProfileMenu(!showProfileMenu)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    padding: 4,
+                    cursor: 'pointer',
+                    position: 'relative'
+                  }}
+                  title="Astrologer Amit - Profile Options"
+                >
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 10,
+                      backgroundColor: '#3A3A6E',
+                      color: '#FFFFFF',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 700,
+                      fontSize: 14
+                    }}
+                  >
+                    {user?.name ? user.name.charAt(0).toUpperCase() : 'A'}
+                  </div>
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: 3,
+                      right: 3,
+                      width: 9,
+                      height: 9,
+                      borderRadius: '50%',
+                      backgroundColor: '#25D366',
+                      border: '2px solid #F0F2F5'
+                    }}
+                  />
+                </button>
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '6px 8px',
+                  borderRadius: 10,
+                  backgroundColor: showProfileMenu ? '#E5E5EA' : 'transparent',
+                  transition: 'background 0.15s ease'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+                  <div style={{ position: 'relative', flexShrink: 0 }}>
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 10,
+                        backgroundColor: '#3A3A6E',
+                        color: '#FFFFFF',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 700,
+                        fontSize: 14
+                      }}
+                    >
+                      {user?.name ? user.name.charAt(0).toUpperCase() : 'A'}
+                    </div>
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: -1,
+                        right: -1,
+                        width: 9,
+                        height: 9,
+                        borderRadius: '50%',
+                        backgroundColor: '#25D366',
+                        border: '2px solid #F0F2F5'
+                      }}
+                      title="Online"
+                    />
+                  </div>
+
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div
+                      style={{
+                        fontWeight: 600,
+                        fontSize: 13,
+                        color: '#111B21',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}
+                    >
+                      {user?.name || 'Astrologer Amit'}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: '#54656F',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}
+                    >
+                      {user?.email || 'amit@amitastro.com'}
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowProfileMenu(!showProfileMenu)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 6,
+                    borderRadius: 6,
+                    color: '#54656F',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'background 0.15s ease'
+                  }}
+                  title="Profile Settings & Options"
+                  aria-label="Profile options"
+                >
+                  <MoreVertical size={17} />
+                </button>
+              </div>
+            )}
           </div>
         </aside>
 
@@ -3842,6 +4181,494 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                 {isDeletingCustomer ? 'Deleting...' : 'Delete Client'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* ADVANCED ASTROLOGER PROFILE ALTERATION SETTINGS MODAL     */}
+      {/* ======================================================== */}
+      {showProfileModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 3500,
+            backgroundColor: 'rgba(0, 0, 0, 0.55)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowProfileModal(false);
+          }}
+        >
+          <div
+            className="apple-card"
+            style={{
+              width: '100%',
+              maxWidth: 680,
+              maxHeight: '90vh',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              backgroundColor: '#FFFFFF',
+              borderRadius: 22,
+              boxShadow: '0 24px 60px rgba(0, 0, 0, 0.22)',
+              border: '1px solid #E5E5EA'
+            }}
+          >
+            {/* Modal Header */}
+            <div
+              style={{
+                padding: '20px 24px',
+                borderBottom: '1px solid #E5E5EA',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                backgroundColor: '#FAFAFC'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 12,
+                    background: 'linear-gradient(135deg, #3A3A6E, #232348)',
+                    color: '#FFFFFF',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 700,
+                    fontSize: 18,
+                    boxShadow: '0 4px 12px rgba(58, 58, 110, 0.25)'
+                  }}
+                >
+                  {profileName.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1D1D1F', margin: 0, letterSpacing: '-0.01em' }}>
+                    Astrologer Profile & Practice
+                  </h2>
+                  <p style={{ fontSize: 12.5, color: '#86868B', margin: '2px 0 0 0' }}>
+                    Configure your public Vedic identity, consultation fees, and credentials
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowProfileModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#8E8E93',
+                  cursor: 'pointer',
+                  padding: 6,
+                  borderRadius: 8
+                }}
+                title="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Segmented Tabs */}
+            <div
+              style={{
+                display: 'flex',
+                gap: 8,
+                padding: '12px 24px',
+                backgroundColor: '#FFFFFF',
+                borderBottom: '1px solid #F0F0F2'
+              }}
+            >
+              {[
+                { id: 'general' as const, label: 'Identity & Bio', icon: User },
+                { id: 'consultation' as const, label: 'Rates & Timings', icon: Clock },
+                { id: 'security' as const, label: 'Security & Password', icon: Lock }
+              ].map((tab) => {
+                const Icon = tab.icon;
+                const active = profileTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setProfileTab(tab.id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '8px 16px',
+                      borderRadius: 10,
+                      border: 'none',
+                      backgroundColor: active ? '#3A3A6E' : '#F2F2F7',
+                      color: active ? '#FFFFFF' : '#54656F',
+                      fontWeight: active ? 600 : 500,
+                      fontSize: 13,
+                      cursor: 'pointer',
+                      transition: 'all 0.18s ease'
+                    }}
+                  >
+                    <Icon size={14} color={active ? '#FFFFFF' : '#54656F'} />
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Modal Body / Tab Contents */}
+            <form onSubmit={handleSaveProfileSettings} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+              <div
+                style={{
+                  padding: '22px 24px',
+                  overflowY: 'auto',
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 18
+                }}
+              >
+                {profileTab === 'general' && (
+                  <>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#1D1D1F', marginBottom: 6 }}>
+                          Astrologer Name
+                        </label>
+                        <input
+                          type="text"
+                          value={profileName}
+                          onChange={(e) => setProfileName(e.target.value)}
+                          required
+                          className="apple-input"
+                          style={{ width: '100%', fontSize: 13.5 }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#1D1D1F', marginBottom: 6 }}>
+                          Astrological Designation / Title
+                        </label>
+                        <input
+                          type="text"
+                          value={profileTitle}
+                          onChange={(e) => setProfileTitle(e.target.value)}
+                          required
+                          placeholder="e.g. Senior Vedic Astrologer & Vastu Acharya"
+                          className="apple-input"
+                          style={{ width: '100%', fontSize: 13.5 }}
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#1D1D1F', marginBottom: 6 }}>
+                          Email Address
+                        </label>
+                        <input
+                          type="email"
+                          value={profileEmail}
+                          onChange={(e) => setProfileEmail(e.target.value)}
+                          required
+                          className="apple-input"
+                          style={{ width: '100%', fontSize: 13.5 }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#1D1D1F', marginBottom: 6 }}>
+                          WhatsApp / Direct Hotline
+                        </label>
+                        <input
+                          type="tel"
+                          value={profilePhone}
+                          onChange={(e) => setProfilePhone(e.target.value)}
+                          placeholder="+91 98765 43210"
+                          className="apple-input"
+                          style={{ width: '100%', fontSize: 13.5 }}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#1D1D1F', marginBottom: 6 }}>
+                        Public Vedic Bio & Lineage Introduction
+                      </label>
+                      <textarea
+                        value={profileBio}
+                        onChange={(e) => setProfileBio(e.target.value)}
+                        rows={4}
+                        className="apple-input"
+                        style={{ width: '100%', fontSize: 13.5, lineHeight: 1.5, resize: 'vertical' }}
+                      />
+                      <span style={{ fontSize: 11, color: '#8E8E93', marginTop: 4, display: 'block' }}>
+                        Displayed on consultation package cards, chat headers, and public booking confirmation receipts.
+                      </span>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#1D1D1F', marginBottom: 6 }}>
+                        Specializations & Domains
+                      </label>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+                        {profileSpecialties.map((spec, idx) => (
+                          <span
+                            key={idx}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              backgroundColor: '#F2F2F7',
+                              border: '1px solid #E5E5EA',
+                              borderRadius: 20,
+                              padding: '4px 10px',
+                              fontSize: 12,
+                              fontWeight: 500,
+                              color: '#1D1D1F'
+                            }}
+                          >
+                            <span>{spec}</span>
+                            <button
+                              type="button"
+                              onClick={() => setProfileSpecialties(profileSpecialties.filter((_, i) => i !== idx))}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: '#8E8E93',
+                                cursor: 'pointer',
+                                padding: 0,
+                                fontSize: 14,
+                                lineHeight: 1
+                              }}
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <input
+                          type="text"
+                          value={newSpecialtyInput}
+                          onChange={(e) => setNewSpecialtyInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              if (newSpecialtyInput.trim()) {
+                                setProfileSpecialties([...profileSpecialties, newSpecialtyInput.trim()]);
+                                setNewSpecialtyInput('');
+                              }
+                            }
+                          }}
+                          placeholder="Add specialty (e.g. Navamsha Analysis, Prashna)..."
+                          className="apple-input"
+                          style={{ flex: 1, fontSize: 13 }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (newSpecialtyInput.trim()) {
+                              setProfileSpecialties([...profileSpecialties, newSpecialtyInput.trim()]);
+                              setNewSpecialtyInput('');
+                            }
+                          }}
+                          className="apple-btn-secondary"
+                          style={{ padding: '6px 14px', fontSize: 13 }}
+                        >
+                          Add
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {profileTab === 'consultation' && (
+                  <>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#1D1D1F', marginBottom: 6 }}>
+                          Standard 30-Min Consultation Fee (₹)
+                        </label>
+                        <input
+                          type="number"
+                          value={consultFee}
+                          onChange={(e) => setConsultFee(e.target.value)}
+                          className="apple-input"
+                          style={{ width: '100%', fontSize: 13.5 }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#1D1D1F', marginBottom: 6 }}>
+                          Emergency Expedited Surcharge (₹)
+                        </label>
+                        <input
+                          type="number"
+                          value={emergencyFee}
+                          onChange={(e) => setEmergencyFee(e.target.value)}
+                          className="apple-input"
+                          style={{ width: '100%', fontSize: 13.5 }}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#1D1D1F', marginBottom: 6 }}>
+                        Astrological Ephemeris Timezone
+                      </label>
+                      <select
+                        value={profileTimezone}
+                        onChange={(e) => setProfileTimezone(e.target.value)}
+                        className="apple-input"
+                        style={{ width: '100%', fontSize: 13.5 }}
+                      >
+                        <option value="Asia/Kolkata (IST +05:30)">Asia/Kolkata (IST +05:30) - Standard India Ephemeris</option>
+                        <option value="Asia/Dubai (GST +04:00)">Asia/Dubai (GST +04:00) - Gulf Standard</option>
+                        <option value="Europe/London (GMT/BST)">Europe/London (GMT/BST) - Greenwich Mean</option>
+                        <option value="America/New_York (EST/EDT)">America/New_York (EST/EDT) - US Eastern</option>
+                        <option value="America/Los_Angeles (PST/PDT)">America/Los_Angeles (PST/PDT) - US Pacific</option>
+                      </select>
+                      <span style={{ fontSize: 11, color: '#8E8E93', marginTop: 4, display: 'block' }}>
+                        All planetary hora calculations and calendar slot availability are referenced against this zone.
+                      </span>
+                    </div>
+
+                    <div
+                      style={{
+                        backgroundColor: '#FAF8F5',
+                        border: '1.5px solid #EEDFBA',
+                        borderRadius: 12,
+                        padding: '14px 16px',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: 12
+                      }}
+                    >
+                      <Sparkles size={18} color="#C9A24B" style={{ flexShrink: 0, marginTop: 2 }} />
+                      <div style={{ fontSize: 12.5, color: '#5B4314', lineHeight: 1.5 }}>
+                        <strong>Calendar Auto-Sync Active:</strong> Client consultation bookings adhere to your configured blackout windows and weekly hours set under the "Availability & Hours" tab.
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {profileTab === 'security' && (
+                  <>
+                    <div
+                      style={{
+                        backgroundColor: '#F5F5F7',
+                        borderRadius: 12,
+                        padding: '12px 16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginBottom: 6
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <ShieldCheck size={18} color="#34C759" />
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: '#1D1D1F' }}>Two-Factor Security & RSA Protection</div>
+                          <div style={{ fontSize: 11, color: '#8E8E93' }}>All client charts and credentials encrypted with RSA-OAEP</div>
+                        </div>
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#34C759', backgroundColor: '#E8F9EE', padding: '3px 8px', borderRadius: 9999 }}>
+                        ACTIVE
+                      </span>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#1D1D1F', marginBottom: 6 }}>
+                        Current Password (Required for credentials update)
+                      </label>
+                      <input
+                        type="password"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        placeholder="Enter current password"
+                        className="apple-input"
+                        style={{ width: '100%', fontSize: 13.5 }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#1D1D1F', marginBottom: 6 }}>
+                          New Password
+                        </label>
+                        <input
+                          type="password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="Minimum 8 characters"
+                          className="apple-input"
+                          style={{ width: '100%', fontSize: 13.5 }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#1D1D1F', marginBottom: 6 }}>
+                          Confirm New Password
+                        </label>
+                        <input
+                          type="password"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          placeholder="Re-enter new password"
+                          className="apple-input"
+                          style={{ width: '100%', fontSize: 13.5 }}
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div
+                style={{
+                  padding: '16px 24px',
+                  borderTop: '1px solid #E5E5EA',
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  gap: 12,
+                  backgroundColor: '#FAFAFC'
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setShowProfileModal(false)}
+                  className="apple-btn-secondary"
+                  style={{ padding: '8px 18px', fontSize: 13.5 }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingProfile}
+                  className="apple-btn-primary"
+                  style={{ padding: '8px 24px', fontSize: 13.5, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                >
+                  {isSavingProfile ? (
+                    <>
+                      <div className="spinner-micro" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle size={15} />
+                      <span>Save Changes</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

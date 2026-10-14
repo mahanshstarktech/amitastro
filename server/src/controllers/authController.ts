@@ -8,7 +8,8 @@ import { securityService } from '../services/securityService';
 import { logSecurityEvent } from '../middleware/security';
 import { subscriptionService } from '../services/subscriptionService';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'amitastro_secret_jwt_key_2026';
+const getJwtSecret = () => process.env.JWT_SECRET || 'amitastro_secret_jwt_key_2026';
+const JWT_SECRET = getJwtSecret(); // fallback for any external imports
 
 export function isConfiguredAdminEmail(email?: string): boolean {
   if (!email) return false;
@@ -194,7 +195,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
 
     const token = jwt.sign(
       { id: user.id, role: user.role, email: user.email, name: user.name },
-      JWT_SECRET,
+      getJwtSecret(),
       { expiresIn: '30d' }
     );
 
@@ -330,7 +331,7 @@ export const verifyDualOtp = async (req: Request, res: Response) => {
 
     const token = jwt.sign(
       { id: user.id, role: user.role, email: user.email, name: user.name },
-      JWT_SECRET,
+      getJwtSecret(),
       { expiresIn: '30d' }
     );
 
@@ -450,7 +451,7 @@ export const completeManualRegistration = async (req: Request, res: Response) =>
     const user = await getOne<any>('SELECT * FROM users WHERE id = ?', [userId]);
     const token = jwt.sign(
       { id: user.id, role: user.role, email: user.email, name: user.name },
-      JWT_SECRET,
+      getJwtSecret(),
       { expiresIn: '30d' }
     );
 
@@ -527,7 +528,7 @@ export const googleAuth = async (req: Request, res: Response) => {
 
       const token = jwt.sign(
         { id: user.id, role: user.role, email: user.email, name: user.name },
-        JWT_SECRET,
+        getJwtSecret(),
         { expiresIn: '30d' }
       );
 
@@ -561,7 +562,7 @@ export const googleAuth = async (req: Request, res: Response) => {
 
       const token = jwt.sign(
         { id: user.id, role: user.role, email: user.email, name: user.name },
-        JWT_SECRET,
+        getJwtSecret(),
         { expiresIn: '30d' }
       );
 
@@ -674,7 +675,7 @@ export const login = async (req: Request, res: Response) => {
 
     const token = jwt.sign(
       { id: user.id, role: user.role, email: user.email, name: user.name },
-      JWT_SECRET,
+      getJwtSecret(),
       { expiresIn: '30d' }
     );
 

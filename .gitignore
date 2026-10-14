@@ -42,3 +42,16 @@ Thumbs.db
 /*.jpg
 /*.jpeg
 /*.png
+
+# Test Results & Coverage
+playwright-report/
+test-results/
+coverage/
+.stryker-tmp/
+reports/
+client/playwright-report/
+client/test-results/
+server/coverage/
+server/reports/
+server/test-results/
+

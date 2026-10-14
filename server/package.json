@@ -7,7 +7,16 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "make-admin": "tsx src/scripts/makeAdmin.ts"
+    "make-admin": "tsx src/scripts/makeAdmin.ts",
+    "test": "vitest run",
+    "test:unit": "vitest run tests/unit",
+    "test:api": "vitest run tests/api",
+    "test:realtime": "vitest run tests/realtime",
+    "test:security": "vitest run tests/security",
+    "test:database": "vitest run tests/database",
+    "test:llm": "vitest run tests/llm",
+    "test:coverage": "vitest run --coverage",
+    "test:perf": "NODE_ENV=test tsx tests/perf/loadTest.ts"
   },
   "dependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -33,6 +42,16 @@
     "uuid": "^10.0.0"
   },
   "devDependencies": {
-    "@types/cookie-parser": "^1.4.10"
+    "@stryker-mutator/core": "^10.0.0",
+    "@stryker-mutator/vitest-runner": "^10.0.0",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/supertest": "^7.2.1",
+    "@vitest/coverage-v8": "^5.0.4",
+    "autocannon": "^8.0.0",
+    "socket.io-client": "^4.8.4",
+    "supertest": "^7.3.1",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.4",
+    "zod": "^4.6.7"
   }
 }

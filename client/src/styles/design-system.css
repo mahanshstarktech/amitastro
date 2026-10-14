@@ -2177,6 +2177,131 @@ body {
   min-width: 20px;
 }
 
+/* ======================================================== */
+/* APPLE-GRADE COLLAPSIBLE SIDEBAR & ID CARD POPOVER STYLES */
+/* ======================================================== */
+@keyframes applePopoverFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
 
+.sidebar-collapse-toggle-btn:hover {
+  background-color: #E5E5EA !important;
+  color: #111B21 !important;
+}
 
+.sidebar-rail-hover-toggle:hover {
+  background-color: #E5E5EA !important;
+}
 
+.profile-popover-item:hover {
+  background-color: #F2F2F7 !important;
+}
+
+/* ======================================================== */
+/* ULTRA-RESPONSIVE CHAT: 320PX (IPHONE MINI) TO 4K / 65" TV */
+/* ======================================================== */
+.hybrid-customer-chat {
+  width: 100%;
+  max-width: 1320px;
+  margin: 0 auto;
+  height: calc(100vh - 160px);
+  min-height: 520px;
+  max-height: 880px;
+}
+
+/* 65-inch TV & 4K Displays (2000px+) */
+@media (min-width: 2000px) {
+  .hybrid-customer-chat {
+    max-width: 1600px;
+    height: calc(100vh - 220px);
+    max-height: 1200px;
+  }
+  .hybrid-chat-canvas {
+    font-size: 16px !important;
+  }
+  .hybrid-bubble {
+    font-size: 16px !important;
+    max-width: 70% !important;
+  }
+}
+
+/* Tablets & Small Laptops (768px - 1039px) */
+@media (max-width: 1039px) {
+  .portal-header-banner.hide-on-mobile-chat {
+    display: none !important;
+  }
+
+  .portal-chat-container-mobile,
+  .admin-chat-container-mobile {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100vw !important;
+    width: 100vw !important;
+  }
+
+  .hybrid-customer-chat,
+  .hybrid-chat-wrapper {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: calc(100dvh - 54px - 64px) !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    border-radius: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+  }
+
+  /* Admin Chat Mobile Split Transitions */
+  .apple-messages-sidebar.mobile-hidden {
+    display: none !important;
+  }
+
+  .apple-messages-thread.mobile-hidden {
+    display: none !important;
+  }
+
+  .apple-messages-sidebar {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    border-right: none !important;
+    height: 100% !important;
+  }
+
+  .apple-messages-thread {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100% !important;
+  }
+}
+
+/* Compact Mobile (iPhone mini, 320px - 380px) */
+@media (max-width: 380px) {
+  .hybrid-bubble {
+    max-width: 88% !important;
+    font-size: 13.5px !important;
+    padding: 8px 11px !important;
+  }
+  .hybrid-date-pill {
+    font-size: 10.5px !important;
+    padding: 2px 8px !important;
+  }
+}
+
+/* Landscape Mobile Orientation */
+@media (max-height: 500px) and (orientation: landscape) {
+  .hybrid-customer-chat,
+  .hybrid-chat-wrapper {
+    height: calc(100dvh - 44px) !important;
+  }
+  .hybrid-chat-canvas {
+    padding: 8px !important;
+  }
+}

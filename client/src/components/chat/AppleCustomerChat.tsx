@@ -94,12 +94,24 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatCanvasRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
     setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior });
-    }, 80);
+      if (chatCanvasRef.current) {
+        chatCanvasRef.current.scrollTo({
+          top: chatCanvasRef.current.scrollHeight,
+          behavior
+        });
+      }
+    }, 60);
   };
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  }, []);
 
   // 1. Fetch or initialize conversation
   const fetchChat = async (isBackgroundPoll: boolean = false) => {
@@ -478,6 +490,7 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
       {/* 3. MESSAGE BODY: WHATSAPP + APPLE HYBRID CANVAS          */}
       {/* ======================================================== */}
       <div
+        ref={chatCanvasRef}
         className="hybrid-chat-canvas"
         style={{
           flex: 1,

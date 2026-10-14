@@ -44,9 +44,20 @@ export const App: React.FC = () => {
   const isTrialEligible = isAuthenticated && !!user?.isNewCustomer && !user?.trialUsed;
 
   // Sync browser back/forward buttons
+  const [currentHash, setCurrentHash] = useState(() => (typeof window !== 'undefined' ? window.location.hash : ''));
+
+  useEffect(() => {
+    const handleHash = () => {
+      setCurrentHash(window.location.hash);
+    };
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
+
   useEffect(() => {
     const handlePopState = () => {
       setCurrentPath(window.location.pathname);
+      setCurrentHash(window.location.hash);
       window.dispatchEvent(new HashChangeEvent('hashchange'));
     };
     window.addEventListener('popstate', handlePopState);
@@ -56,6 +67,7 @@ export const App: React.FC = () => {
   const navigateTo = (path: string) => {
     window.history.pushState({}, '', path);
     setCurrentPath(window.location.pathname);
+    setCurrentHash(window.location.hash);
     window.dispatchEvent(new HashChangeEvent('hashchange'));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -234,6 +246,7 @@ export const App: React.FC = () => {
   };
 
   const isPortalView = currentPath.startsWith('/admin') || currentPath.startsWith('/app');
+  const isCustomerChat = currentPath.startsWith('/app') && (currentHash === '#chat' || currentHash === 'chat');
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#FBFBFD' }}>
@@ -263,8 +276,8 @@ export const App: React.FC = () => {
         onOpenSettings={() => setSettingsModalOpen(true)}
       />
 
-      {/* Apple Footer (hidden in admin views for focused dashboarding) */}
-      {!currentPath.startsWith('/admin') && <AppleFooter onNavigate={navigateTo} />}
+      {/* Apple Footer (hidden in admin views and active chat views for focused application workflow) */}
+      {!currentPath.startsWith('/admin') && !isCustomerChat && <AppleFooter onNavigate={navigateTo} />}
 
       {/* Global Modals */}
       <MobileSettingsModal

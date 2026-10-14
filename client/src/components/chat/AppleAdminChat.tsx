@@ -12,6 +12,7 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
   Image as ImageIcon,
   Paperclip,
   Mic,
@@ -225,11 +226,18 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
     }
   }, [selectedConv?.id]);
 
+  const adminChatCanvasRef = useRef<HTMLDivElement>(null);
+
   // Scroll to bottom helper
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
     setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior });
-    }, 80);
+      if (adminChatCanvasRef.current) {
+        adminChatCanvasRef.current.scrollTo({
+          top: adminChatCanvasRef.current.scrollHeight,
+          behavior
+        });
+      }
+    }, 60);
   };
 
   // 1. Fetch Conversations Inbox
@@ -584,37 +592,56 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
             )}
           </div>
 
-          {/* Segmented Filter Pills */}
-          <div style={{ display: 'flex', gap: 4, backgroundColor: '#EDEDF0', padding: 2, borderRadius: 8 }}>
+          {/* iOS WhatsApp Style Filter Pills */}
+          <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
             {(
               [
-                { id: 'all', label: 'All' },
-                { id: 'unread', label: 'Unread' },
-                { id: 'needs_reply', label: 'Reply' },
-                { id: 'active', label: 'Active' }
-              ] as const
-            ).map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setFilterTab(tab.id)}
-                style={{
-                  flex: 1,
-                  border: 'none',
-                  borderRadius: 6,
-                  padding: '4px 6px',
-                  fontSize: 11,
-                  fontWeight: filterTab === tab.id ? 600 : 500,
-                  backgroundColor: filterTab === tab.id ? '#FFFFFF' : 'transparent',
-                  color: filterTab === tab.id ? '#1D1D1F' : '#6E6E73',
-                  boxShadow: filterTab === tab.id ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                {tab.label}
-              </button>
-            ))}
+                { id: 'all' as const, label: 'All', count: undefined as number | undefined },
+                { id: 'unread' as const, label: 'Unread', count: conversations.reduce((acc, c) => acc + (c.unread_admin_count || 0), 0) },
+                { id: 'needs_reply' as const, label: 'Needs Reply', count: undefined as number | undefined },
+                { id: 'active' as const, label: 'Active', count: undefined as number | undefined }
+              ]
+            ).map((tab) => {
+              const isActive = filterTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setFilterTab(tab.id as any)}
+                  style={{
+                    border: 'none',
+                    borderRadius: 9999,
+                    padding: '5px 12px',
+                    fontSize: 12,
+                    fontWeight: isActive ? 600 : 500,
+                    backgroundColor: isActive ? '#E7F8EE' : '#F0F2F5',
+                    color: isActive ? '#1E682E' : '#54656F',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <span>{tab.label}</span>
+                  {tab.count !== undefined && tab.count > 0 && (
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        backgroundColor: isActive ? '#25D366' : '#8E8E93',
+                        color: '#FFFFFF',
+                        padding: '1px 5px',
+                        borderRadius: 9999
+                      }}
+                    >
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -797,16 +824,21 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: '#3A3A6E',
-                    fontSize: 14.5,
-                    fontWeight: 600,
+                    color: '#007AFF',
+                    fontSize: 15,
+                    fontWeight: 500,
                     cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 2,
                     padding: '4px 6px',
                     marginRight: 4,
                     flexShrink: 0
                   }}
+                  title="Back to Chats"
                 >
-                  ‹ Chats
+                  <ChevronLeft size={20} color="#007AFF" />
+                  <span>Chats</span>
                 </button>
 
                 {selectedConv.customer_photo ? (
@@ -921,6 +953,7 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
 
             {/* Chat Messages Body */}
             <div
+              ref={adminChatCanvasRef}
               className="hybrid-chat-canvas"
               style={{
                 flex: 1,
