@@ -115,11 +115,18 @@ export const subscribeFamily = async (req: AuthRequest, res: Response) => {
     const payId = `pay-${uuidv4().substring(0, 8)}`;
     const subId = `sub-order-${uuidv4().substring(0, 8)}`;
 
+    // Activate the family subscription immediately so user gets 1-Year Family Pass
+    const activation = await subscriptionService.activateFamilySubscription(userId, {
+      amount: pricing.annualAmount,
+      currency: pricing.currency,
+      mandateRef: utrReference || `AMIT-AUTOPAY-${uuidv4().substring(0, 8).toUpperCase()}`
+    });
+
     await runQuery(`
       INSERT INTO payments (
         id, appointment_id, user_id, amount, payment_method, utr_reference,
         screenshot_url, status, subscription_id
-      ) VALUES (?, NULL, ?, ?, ?, ?, ?, 'Pending', ?)
+      ) VALUES (?, NULL, ?, ?, ?, ?, ?, 'Verified', ?)
     `, [
       payId,
       userId,
@@ -127,7 +134,7 @@ export const subscribeFamily = async (req: AuthRequest, res: Response) => {
       paymentMethod || 'upi_autopay',
       utrReference || `AUTOPAY-${Date.now()}`,
       screenshotUrl || null,
-      subId
+      activation.subscriptionId
     ]);
 
     // Alert Admin via Telegram
@@ -136,7 +143,7 @@ export const subscribeFamily = async (req: AuthRequest, res: Response) => {
       `• User: ${user.name} (${user.email || user.phone})\n` +
       `• Amount: ${pricing.currencySymbol}${pricing.annualAmount.toLocaleString()} / year (Autopay)\n` +
       `• Reference / UTR: \`${utrReference || 'Autopay Setup'}\`\n` +
-      `• Action: Please verify in Admin Portal to activate 1-Year Family Pass.`
+      `• Status: 1-Year Family Pass Active.`
     ).catch(() => {});
 
     return res.json({

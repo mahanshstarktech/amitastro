@@ -253,5 +253,52 @@ test.describe('E2E: Admin Sidebar Collapse, Logo Hover, Profile Alterations & Cu
       await expect(adminBottomNav).toBeVisible();
     }
   });
+
+  test('validates Customer Portal tag cleanup, responsive chat container, and Family 360 Slot 1 details', async ({ page }) => {
+    // Navigate to Customer Portal
+    await page.goto('/app');
+    await page.waitForLoadState('networkidle');
+
+    // Sign in as a test customer if login modal is present
+    const signInBtn = page.getByRole('button', { name: /Sign In to Account|Sign In|Login/i }).first();
+    if (await signInBtn.isVisible()) {
+      await signInBtn.click();
+      await page.fill('input[type="email"]', 'priya.sharma@example.com');
+      await page.fill('input[type="password"]', 'Customer@123');
+      await page.click('button[type="submit"]');
+      await page.waitForTimeout(1000);
+    }
+
+    // 1. Tag cleanup verification:
+    // Header should not contain redundant "Seeker Portal" tag or extra tags above the greeting
+    await expect(page.locator('.apple-badge-gold:has-text("Seeker Portal")')).not.toBeVisible();
+
+    // 2. Consultation Chat responsive container:
+    const chatTabBtn = page.getByRole('button', { name: /Consultation Chat/i });
+    if (await chatTabBtn.isVisible()) {
+      await chatTabBtn.click();
+      await page.waitForTimeout(400);
+
+      // Verify chat is wrapped in responsive desktop container with max-width
+      const chatContainer = page.locator('.portal-chat-desktop-container');
+      await expect(chatContainer).toBeVisible();
+      const containerBox = await chatContainer.boundingBox();
+      expect(containerBox?.width).toBeLessThanOrEqual(980);
+    }
+
+    // 3. Family 360 Plan verification:
+    const familyTabBtn = page.getByRole('button', { name: /Family 360/i });
+    if (await familyTabBtn.isVisible()) {
+      await familyTabBtn.click();
+      await page.waitForTimeout(400);
+
+      // Verify "One-Time Pay Plan" text line is completely removed
+      await expect(page.locator('text=One-Time Pay Plan')).not.toBeVisible();
+
+      // Verify Slot #1 is NOT empty and contains primary customer details
+      const slot1 = page.locator('text=SLOT #1 · SELF (PRIMARY)');
+      await expect(slot1).toBeVisible();
+    }
+  });
 });
 

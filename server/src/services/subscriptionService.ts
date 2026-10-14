@@ -156,28 +156,64 @@ export class SubscriptionService {
       };
     }
 
-    // 2. Active Family 360 Subscription Check
-    if (userObj.subscription_status === 'active' && userObj.subscription_expires_at) {
-      const expiresEpoch = new Date(userObj.subscription_expires_at).getTime();
-      const now = Date.now();
+    // 2. Active Family 360 Subscription Check (Explicit userObj.plan === 'family' or userObj.plan_badge === 'Family' or subscription_status === 'active')
+    const hasFamilyStatus = 
+      userObj.plan === 'family' || 
+      userObj.plan_badge === 'Family' || 
+      userObj.subscription_status === 'active';
 
-      if (expiresEpoch > now) {
-        const daysRemaining = Math.ceil((expiresEpoch - now) / (1000 * 60 * 60 * 24));
+    if (hasFamilyStatus) {
+      if (userObj.subscription_expires_at) {
+        const expiresEpoch = new Date(userObj.subscription_expires_at).getTime();
+        const now = Date.now();
+        if (expiresEpoch > now) {
+          const daysRemaining = Math.ceil((expiresEpoch - now) / (1000 * 60 * 60 * 24));
+          return {
+            plan: 'family',
+            planBadge: 'Family',
+            isFamilySubscriber: true,
+            subscriptionExpiresAt: userObj.subscription_expires_at,
+            subscriptionAutopay: userObj.subscription_autopay !== 0,
+            daysRemaining
+          };
+        } else {
+          // Expired subscription - update database safely
+          await runQuery(
+            "UPDATE users SET subscription_status = 'expired' WHERE id = ?",
+            [userObj.id]
+          ).catch(() => {});
+        }
+      } else {
+        // Active family plan without explicit expiry date: provide 365 days default
+        const oneYear = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
         return {
           plan: 'family',
           planBadge: 'Family',
           isFamilySubscriber: true,
-          subscriptionExpiresAt: userObj.subscription_expires_at,
+          subscriptionExpiresAt: oneYear,
           subscriptionAutopay: userObj.subscription_autopay !== 0,
-          daysRemaining
+          daysRemaining: 365
         };
-      } else {
-        // Expired subscription - update database safely
-        await runQuery(
-          "UPDATE users SET subscription_status = 'expired' WHERE id = ?",
-          [userObj.id]
-        ).catch(() => {});
       }
+    }
+
+    // Check if user has purchased Family 360 package in appointments
+    const familyAppt = await getOne<any>(`
+      SELECT a.id FROM appointments a
+      JOIN packages p ON a.package_id = p.id
+      WHERE a.customer_id = ? AND p.slug = 'family-360' AND a.status IN ('Confirmed', 'Completed')
+      LIMIT 1
+    `, [userObj.id]).catch(() => null);
+
+    if (familyAppt) {
+      return {
+        plan: 'family',
+        planBadge: 'Family',
+        isFamilySubscriber: true,
+        subscriptionExpiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+        subscriptionAutopay: true,
+        daysRemaining: 365
+      };
     }
 
     // 3. One-Time Consultation Packages Check (Verified / Completed Appointments)
@@ -185,13 +221,13 @@ export class SubscriptionService {
       SELECT p.slug, p.price
       FROM appointments a
       JOIN packages p ON a.package_id = p.id
-      WHERE a.customer_id = ? AND a.status IN ('Confirmed', 'Completed')
+      WHERE a.customer_id = ? AND a.status IN ('Confirmed', 'Completed') AND p.slug != 'family-360'
       ORDER BY p.price DESC
       LIMIT 1
     `, [userObj.id]).catch(() => null);
 
     if (highestPurchased) {
-      if (highestPurchased.slug === 'premium' || highestPurchased.price >= 1799) {
+      if (highestPurchased.slug === 'premium' || (highestPurchased.price >= 1799 && highestPurchased.price < 50000)) {
         return {
           plan: 'pro',
           planBadge: 'Pro',
@@ -278,9 +314,15 @@ export class SubscriptionService {
       };
     }
 
-    // Subscription validation
-    if (user.subscription_status === 'active' && user.subscription_expires_at) {
-      const expiresEpoch = new Date(user.subscription_expires_at).getTime();
+    // Family 360 Subscription validation
+    const hasFamilyStatus = 
+      user.plan === 'family' || 
+      user.plan_badge === 'Family' || 
+      user.subscription_status === 'active';
+
+    if (hasFamilyStatus) {
+      const expiresAt = user.subscription_expires_at || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+      const expiresEpoch = new Date(expiresAt).getTime();
       const now = Date.now();
 
       if (expiresEpoch > now) {
@@ -292,10 +334,10 @@ export class SubscriptionService {
           familySlotsTotal,
           familySlotsUsed,
           familySlotsRemaining,
-          expiresAt: user.subscription_expires_at,
+          expiresAt,
           autopayEnabled: user.subscription_autopay !== 0,
           daysRemaining,
-          nextBillingAt: user.subscription_expires_at
+          nextBillingAt: expiresAt
         };
       }
     }

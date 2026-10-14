@@ -846,15 +846,19 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
                     cursor: 'pointer',
                     display: 'inline-flex',
                     alignItems: 'center',
+                    justifyContent: 'center',
                     gap: 3,
-                    padding: '6px 4px',
-                    marginRight: 2,
-                    flexShrink: 0
+                    padding: '4px 2px',
+                    marginRight: 4,
+                    flexShrink: 0,
+                    lineHeight: 1
                   }}
                   title="Back to conversation list"
                   aria-label="Back to conversation list"
                 >
-                  <ChevronLeft size={24} color="#007AFF" strokeWidth={2.5} />
+                  <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
+                    <ChevronLeft size={24} color="#007AFF" strokeWidth={2.5} style={{ display: 'block' }} />
+                  </span>
                   {(() => {
                     const unreadCount = conversations.reduce(
                       (acc, conv) => (conv.id !== selectedConv?.id ? acc + (conv.unread_admin_count || 0) : acc),
@@ -868,11 +872,15 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
                           color: '#FFFFFF',
                           fontSize: 11,
                           fontWeight: 700,
-                          padding: '1px 6px',
-                          borderRadius: 9999,
+                          height: 18,
                           minWidth: 18,
-                          textAlign: 'center',
-                          lineHeight: '16px'
+                          padding: '0 5px',
+                          borderRadius: 9999,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          lineHeight: 1,
+                          boxSizing: 'border-box'
                         }}
                       >
                         {unreadCount > 99 ? '99+' : unreadCount}

@@ -690,9 +690,6 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                       {(user?.name || 'S').charAt(0).toUpperCase()}
                     </div>
                   )}
-                  <div style={{ position: 'absolute', top: -4, right: -4 }}>
-                    <PlanBadge badge={user?.role === 'admin' ? 'Admin' : (user?.planBadge || 'Free(Trial)')} size="micro" />
-                  </div>
                 </button>
               </div>
             ) : (
@@ -733,9 +730,6 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                         {(user?.name || 'S').charAt(0).toUpperCase()}
                       </div>
                     )}
-                    <div style={{ position: 'absolute', top: -3, right: -3 }}>
-                      <PlanBadge badge={user?.role === 'admin' ? 'Admin' : (user?.planBadge || 'Free(Trial)')} size="micro" />
-                    </div>
                   </div>
 
                   <div style={{ minWidth: 0, flex: 1 }}>
@@ -820,10 +814,6 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
               }}
             >
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <span className="apple-badge-gold">Seeker Portal</span>
-                  <PlanBadge badge={user?.role === 'admin' ? 'Admin' : (user?.planBadge || 'Free(Trial)')} size="sm" />
-                </div>
                 <h1 className="text-h1" style={{ fontSize: 24, color: '#1D1D1F', margin: 0 }}>
                   Namaste, {user?.name || 'Seeker'}
                 </h1>
@@ -1208,13 +1198,15 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
 
         {/* 3. APPLE MESSAGES CLIENT - DIRECT CHAT WITH AMIT */}
         {activeTab === 'chat' && (
-          <AppleCustomerChat onOpenBooking={onOpenBooking} />
+          <div className="portal-chat-desktop-container">
+            <AppleCustomerChat onOpenBooking={onOpenBooking} />
+          </div>
         )}
 
         {/* 4. BIRTH PROFILES (FAMILY MEMBERS) (Section 7) */}
         {/* 4. BIRTH PROFILES (FAMILY MEMBERS) (Section 7) */}
         {activeTab === 'profile' && (() => {
-          const isFamilyEligible = Boolean(user?.isFamilySubscriber || user?.role === 'admin');
+          const isFamilyEligible = Boolean(user?.isFamilySubscriber || user?.plan === 'family' || user?.planBadge === 'Family' || user?.role === 'admin');
           const familyCount = profiles.filter((p) => p.relation !== 'self').length;
 
           const handleOpenAddFamily = () => {
@@ -1269,7 +1261,6 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                         <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#1D1D1F' }}>
                           Family Member Profiles (Preserved for Family 360)
                         </h3>
-                        <PlanBadge badge="Family" size="micro" />
                       </div>
                       <p style={{ margin: 0, fontSize: 13, color: '#6E6E73', maxWidth: 620 }}>
                         Adding spouse, children, or parents (up to 4 members) with unlimited consultations for 1 complete year is exclusively reserved for <strong>Family 360 Plan</strong> subscribers.

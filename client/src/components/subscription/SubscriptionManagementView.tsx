@@ -19,7 +19,6 @@ import {
 import { useAuth, type BirthProfile } from '../../context/AuthContext';
 import { useCountry } from '../../context/CountryContext';
 import { apiRequest } from '../../utils/api';
-import { PlanBadge } from '../common/PlanBadge';
 import { FamilyUpgradeModal } from './FamilyUpgradeModal';
 
 interface SubscriptionData {
@@ -115,15 +114,26 @@ export const SubscriptionManagementView: React.FC<SubscriptionManagementViewProp
     }
   };
 
-  const isFamily = user?.isFamilySubscriber || subData?.isFamilySubscriber || user?.role === 'admin';
+  const isFamily = Boolean(user?.isFamilySubscriber || user?.plan === 'family' || user?.planBadge === 'Family' || subData?.isFamilySubscriber || user?.role === 'admin');
   const familyPricing = countryInfo.prices.family || {
     amount: 100000,
     formatted: '₹1,00,000 / yr',
     label: '1-Year Unlimited Family 360 Plan'
   };
 
+  const selfProfile = profiles.find((p) => p.relation === 'self') || {
+    id: 'self-primary',
+    user_id: user?.id || '',
+    relation: 'self',
+    full_name: user?.name || 'Primary Seeker',
+    dob: (user as any)?.birthDate || 'Registered Account',
+    tob: (user as any)?.birthTime || '--:--',
+    tob_uncertain: 0,
+    pob: (user as any)?.birthPlace || 'India'
+  };
+
   const familyMembers = profiles.filter((p) => p.relation !== 'self');
-  const slotsUsed = familyMembers.length;
+  const slotsUsed = 1 + familyMembers.length;
   const slotsTotal = 4;
 
   return (
@@ -169,12 +179,8 @@ export const SubscriptionManagementView: React.FC<SubscriptionManagementViewProp
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-              <PlanBadge
-                badge={user?.role === 'admin' ? 'Admin' : (user?.planBadge || 'Free(Trial)')}
-                size="md"
-              />
-              {isFamily ? (
+            {isFamily && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                 <span
                   style={{
                     display: 'inline-flex',
@@ -192,12 +198,8 @@ export const SubscriptionManagementView: React.FC<SubscriptionManagementViewProp
                   <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block' }} />
                   Active Membership
                 </span>
-              ) : (
-                <span style={{ fontSize: 13, color: '#6E6E73', fontWeight: 600 }}>
-                  One-Time Pay Plan
-                </span>
-              )}
-            </div>
+              </div>
+            )}
 
             <h2 style={{ fontSize: 26, fontWeight: 800, color: '#1D1D1F', letterSpacing: '-0.02em', marginBottom: 6 }}>
               {isFamily ? 'Family 360 Royal Pass (Annual)' : 'Upgrade to Family 360 Plan'}
@@ -388,15 +390,47 @@ export const SubscriptionManagementView: React.FC<SubscriptionManagementViewProp
               className="apple-btn-secondary"
               style={{ fontSize: 13.5, padding: '8px 16px', color: '#7928CA', borderColor: '#D8B4FE' }}
             >
-              <Crown size={15} /> Unlock 4 Family Slots
+              <Crown size={15} /> Unlock 3 Family Slots
             </button>
           )}
         </div>
 
-        {/* 4 Slots Grid */}
+        {/* 4 Slots Grid: Slot 1 is Primary Customer itself */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
-          {[0, 1, 2, 3].map((slotIndex) => {
-            const member = familyMembers[slotIndex];
+          {/* SLOT #1: Customer itself (Primary Account Holder) */}
+          <div
+            key="slot-1-primary-self"
+            style={{
+              backgroundColor: '#FAF5FF',
+              border: '1.5px solid #E9D5FF',
+              borderRadius: 16,
+              padding: '16px 18px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              boxShadow: '0 2px 8px rgba(121, 40, 202, 0.05)'
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#7928CA', backgroundColor: '#EDE9FE', padding: '2px 8px', borderRadius: 999 }}>
+                  SLOT #1 · SELF (PRIMARY)
+                </span>
+                <Check size={14} color="#10B981" />
+              </div>
+              <h4 style={{ fontSize: 16, fontWeight: 700, color: '#1D1D1F', marginBottom: 4 }}>
+                {selfProfile.full_name}
+              </h4>
+              <div style={{ fontSize: 12.5, color: '#6B7280', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <div>DOB: <strong>{selfProfile.dob}</strong> {selfProfile.tob && selfProfile.tob !== '--:--' ? `(${selfProfile.tob})` : ''}</div>
+                <div>Place: <strong>{selfProfile.pob}</strong></div>
+              </div>
+            </div>
+          </div>
+
+          {/* SLOTS #2, #3, #4: Family Members */}
+          {[1, 2, 3].map((slotIdx) => {
+            const member = familyMembers[slotIdx - 1];
             if (member) {
               return (
                 <div
@@ -414,7 +448,7 @@ export const SubscriptionManagementView: React.FC<SubscriptionManagementViewProp
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                       <span style={{ fontSize: 11, fontWeight: 700, color: '#7928CA', backgroundColor: '#EDE9FE', padding: '2px 8px', borderRadius: 999 }}>
-                        SLOT #{slotIndex + 1} · {member.relation.toUpperCase()}
+                        SLOT #{slotIdx + 1} · {member.relation.toUpperCase()}
                       </span>
                       <Check size={14} color="#10B981" />
                     </div>
@@ -432,9 +466,9 @@ export const SubscriptionManagementView: React.FC<SubscriptionManagementViewProp
 
             return (
               <div
-                key={`empty-slot-${slotIndex}`}
+                key={`empty-slot-${slotIdx}`}
                 style={{
-                  border: '1.5px dashed #D1D5DB',
+                  border: isFamily ? '1.5px dashed #C084FC' : '1.5px dashed #D1D5DB',
                   borderRadius: 16,
                   padding: '18px',
                   display: 'flex',
@@ -442,12 +476,12 @@ export const SubscriptionManagementView: React.FC<SubscriptionManagementViewProp
                   alignItems: 'center',
                   justifyContent: 'center',
                   minHeight: 120,
-                  backgroundColor: '#FAFAFA',
+                  backgroundColor: isFamily ? '#FAF5FF' : '#FAFAFA',
                   textAlign: 'center'
                 }}
               >
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF', marginBottom: 4 }}>
-                  SLOT #{slotIndex + 1} (EMPTY)
+                <div style={{ fontSize: 12, fontWeight: 700, color: isFamily ? '#7928CA' : '#9CA3AF', marginBottom: 4 }}>
+                  SLOT #{slotIdx + 1} {isFamily ? '(AVAILABLE)' : '(EMPTY)'}
                 </div>
                 {isFamily ? (
                   <button
@@ -464,7 +498,7 @@ export const SubscriptionManagementView: React.FC<SubscriptionManagementViewProp
                       gap: 4
                     }}
                   >
-                    <Plus size={14} /> Add Member
+                    <Plus size={14} /> Add Family Member
                   </button>
                 ) : (
                   <span style={{ fontSize: 12, color: '#9CA3AF' }}>
