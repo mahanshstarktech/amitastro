@@ -252,7 +252,7 @@ export const App: React.FC = () => {
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#FBFBFD' }}>
       {/* Apple Header: On desktop admin it is hidden via CSS for full-window app view; on mobile/tablet it provides the 2-line Apple hamburger curtain menu */}
       <AppleHeader
-        className={currentPath.startsWith('/admin') ? 'apple-header-admin-portal' : ''}
+        className={currentPath.startsWith('/admin') ? 'apple-header-admin-portal' : currentPath.startsWith('/app') ? 'apple-header-customer-portal' : ''}
         onOpenAuth={handleOpenAuth}
         onOpenBooking={() => handleOpenBooking()}
         onOpenTrial={handleOpenTrial}
@@ -276,8 +276,8 @@ export const App: React.FC = () => {
         onOpenSettings={() => setSettingsModalOpen(true)}
       />
 
-      {/* Apple Footer (hidden in admin views and active chat views for focused application workflow) */}
-      {!currentPath.startsWith('/admin') && !isCustomerChat && <AppleFooter onNavigate={navigateTo} />}
+      {/* Apple Footer (hidden in admin views and customer portal app for focused application workflow) */}
+      {!currentPath.startsWith('/admin') && !currentPath.startsWith('/app') && <AppleFooter onNavigate={navigateTo} />}
 
       {/* Global Modals */}
       <MobileSettingsModal

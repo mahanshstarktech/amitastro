@@ -57,7 +57,7 @@ export const AppleBottomNav: React.FC<AppleBottomNavProps> = ({
       } else {
         onNavigate('/admin#chat');
       }
-    } else if (hasActivePlan) {
+    } else if (isAuthenticated) {
       if (currentPath.startsWith('/app')) {
         window.location.hash = 'chat';
         window.dispatchEvent(new HashChangeEvent('hashchange'));

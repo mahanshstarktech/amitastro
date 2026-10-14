@@ -1828,13 +1828,15 @@ body {
 }
 
 @media (min-width: 1040px) {
-  .apple-header-admin-portal {
+  .apple-header-admin-portal,
+  .apple-header-customer-portal {
     display: none !important;
   }
 }
 
 @media (max-width: 1039px) {
-  .apple-header-admin-portal {
+  .apple-header-admin-portal,
+  .apple-header-customer-portal {
     display: block !important;
   }
   .desktop-header-controls {
@@ -1843,30 +1845,89 @@ body {
   .portal-app-rail {
     display: none !important;
   }
-  .admin-portal-root {
+  .admin-portal-root,
+  .customer-portal-root {
     height: auto !important;
-    min-height: calc(100dvh - 62px) !important;
+    min-height: calc(100dvh - 56px) !important;
     width: 100% !important;
     overflow: visible !important;
   }
-  .admin-app-workspace {
+  .admin-app-workspace,
+  .customer-app-workspace {
     height: auto !important;
-    min-height: calc(100dvh - 62px) !important;
+    min-height: calc(100dvh - 56px) !important;
     width: 100% !important;
     overflow: visible !important;
     flex-direction: column !important;
   }
-  .admin-portal-main-content {
+  .admin-portal-main-content,
+  .customer-portal-main-content {
     height: auto !important;
     overflow: visible !important;
-    padding: 16px 14px 96px !important;
+    padding: 16px 14px calc(76px + env(safe-area-inset-bottom, 12px)) !important;
     width: 100% !important;
   }
-  .admin-portal-main-content.chat-mode {
-    height: calc(100dvh - 62px - 64px) !important;
-    min-height: calc(100dvh - 62px - 64px) !important;
+  .admin-portal-main-content.chat-mode,
+  .customer-portal-main-content.portal-chat-mode {
+    height: calc(100dvh - 56px - (54px + max(10px, env(safe-area-inset-bottom, 12px)))) !important;
+    min-height: calc(100dvh - 56px - (54px + max(10px, env(safe-area-inset-bottom, 12px)))) !important;
+    max-height: calc(100dvh - 56px - (54px + max(10px, env(safe-area-inset-bottom, 12px)))) !important;
     overflow: hidden !important;
     padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Admin Chat Thread Active on Mobile (WhatsApp iOS mode: hide bottom nav & site header) */
+  body.admin-chat-thread-active .apple-header-admin-portal,
+  body.admin-chat-thread-active .apple-bottom-nav {
+    display: none !important;
+  }
+
+  body.admin-chat-thread-active,
+  body.admin-chat-thread-active #root,
+  body.admin-chat-thread-active .admin-portal-root,
+  body.admin-chat-thread-active .admin-app-workspace,
+  body.admin-chat-thread-active .admin-portal-main-content,
+  body.admin-chat-thread-active .admin-portal-main-content.chat-mode,
+  body.admin-chat-thread-active .hybrid-chat-wrapper,
+  body.admin-chat-thread-active .apple-messages-thread {
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    max-height: 100dvh !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100vw !important;
+  }
+
+  body.admin-chat-thread-active .hybrid-chat-composer {
+    padding-bottom: max(10px, env(safe-area-inset-bottom, 12px)) !important;
+  }
+
+  /* Customer Chat Active on Mobile (Full-window directly docked above bottom nav) */
+  body.customer-chat-active .apple-header-customer-portal {
+    display: none !important;
+  }
+
+  body.customer-chat-active,
+  body.customer-chat-active #root,
+  body.customer-chat-active .customer-portal-root,
+  body.customer-chat-active .customer-app-workspace,
+  body.customer-chat-active .customer-portal-main-content,
+  body.customer-chat-active .customer-portal-main-content.portal-chat-mode {
+    height: calc(100dvh - (54px + max(10px, env(safe-area-inset-bottom, 12px)))) !important;
+    max-height: calc(100dvh - (54px + max(10px, env(safe-area-inset-bottom, 12px)))) !important;
+    min-height: calc(100dvh - (54px + max(10px, env(safe-area-inset-bottom, 12px)))) !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100vw !important;
+  }
+
+  body.customer-chat-active .hybrid-customer-chat {
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
   }
 }
 
@@ -1901,11 +1962,12 @@ body {
 }
 
 /* WhatsApp macOS Style Left Icon Rail & Full-Window Layout */
-.admin-app-workspace {
+.admin-app-workspace,
+.customer-app-workspace {
   display: flex;
   flex: 1;
   width: 100vw;
-  height: calc(100vh - 42px);
+  height: 100vh;
   overflow: hidden;
   background-color: #F0F2F5;
 }
@@ -2248,15 +2310,31 @@ body {
 
   .hybrid-customer-chat,
   .hybrid-chat-wrapper {
-    width: 100vw !important;
+    width: 100% !important;
     max-width: 100vw !important;
-    height: calc(100dvh - 54px - 64px) !important;
+    height: 100% !important;
     min-height: 0 !important;
     max-height: none !important;
     border-radius: 0 !important;
     border: none !important;
     box-shadow: none !important;
     margin: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+
+  .hybrid-chat-canvas {
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    height: 100% !important;
+  }
+
+  .hybrid-chat-composer {
+    flex-shrink: 0 !important;
+    position: relative !important;
+    bottom: auto !important;
   }
 
   /* Admin Chat Mobile Split Transitions */
@@ -2278,7 +2356,10 @@ body {
   .apple-messages-thread {
     width: 100vw !important;
     max-width: 100vw !important;
+    border-right: none !important;
     height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
   }
 }
 

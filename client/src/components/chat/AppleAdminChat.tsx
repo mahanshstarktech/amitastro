@@ -458,6 +458,22 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
     setTimeout(() => setCopiedProfileId(null), 2000);
   };
 
+  // Manage mobile full-window thread state (WhatsApp iOS behavior: hide bottom nav & header when in conversation)
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      if (mobileView === 'thread') {
+        document.body.classList.add('admin-chat-thread-active');
+      } else {
+        document.body.classList.remove('admin-chat-thread-active');
+      }
+    }
+    return () => {
+      if (typeof document !== 'undefined') {
+        document.body.classList.remove('admin-chat-thread-active');
+      }
+    };
+  }, [mobileView]);
+
   return (
     <div
       className="apple-messages-container hybrid-chat-wrapper hybrid-admin-chat"
@@ -798,7 +814,7 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
       >
         {selectedConv ? (
           <>
-            {/* Apple Translucent Chat Header (60px fixed, responsive, no overflow) */}
+            {/* WhatsApp / Apple Clean Translucent Chat Header (60px fixed, no clutter, no Connected indicator) */}
             <div
               style={{
                 height: 60,
@@ -816,7 +832,7 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
-                {/* Mobile Back Button (only visible on mobile screens) */}
+                {/* Mobile Back Button (WhatsApp iOS style: < Chats) */}
                 <button
                   type="button"
                   onClick={() => setMobileView('list')}
@@ -825,19 +841,19 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
                     background: 'none',
                     border: 'none',
                     color: '#007AFF',
-                    fontSize: 15,
+                    fontSize: 16,
                     fontWeight: 500,
                     cursor: 'pointer',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: 2,
-                    padding: '4px 6px',
-                    marginRight: 4,
+                    gap: 1,
+                    padding: '6px 4px',
+                    marginRight: 2,
                     flexShrink: 0
                   }}
                   title="Back to Chats"
                 >
-                  <ChevronLeft size={20} color="#007AFF" />
+                  <ChevronLeft size={22} color="#007AFF" />
                   <span>Chats</span>
                 </button>
 
@@ -859,7 +875,7 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontWeight: 700,
-                      fontSize: 15,
+                      fontSize: 16,
                       flexShrink: 0
                     }}
                   >
@@ -867,64 +883,55 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
                   </div>
                 )}
 
-                <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                    <span
-                      style={{
-                        fontWeight: 700,
-                        fontSize: 15,
-                        color: '#111B21',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        letterSpacing: '-0.01em'
-                      }}
-                    >
-                      {selectedConv.customer_name}
-                    </span>
-                    {selectedConv.trial_used ? (
-                      <span style={{ fontSize: 10.5, backgroundColor: '#F2E7FE', color: '#6A1B9A', padding: '1px 7px', borderRadius: 9999, fontWeight: 600, flexShrink: 0, whiteSpace: 'nowrap' }}>
-                        Trial Used
-                      </span>
-                    ) : selectedConv.is_new_customer ? (
-                      <span style={{ fontSize: 10.5, backgroundColor: '#E8F5E9', color: '#1B873F', padding: '1px 7px', borderRadius: 9999, fontWeight: 600, flexShrink: 0, whiteSpace: 'nowrap' }}>
-                        New Client
-                      </span>
-                    ) : null}
-                  </div>
-                  <div
+                <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column' }}>
+                  <span
                     style={{
-                      fontSize: 12,
-                      color: '#667781',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      minWidth: 0,
+                      fontWeight: 700,
+                      fontSize: 16,
+                      color: '#111B21',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
-                      textOverflow: 'ellipsis'
+                      textOverflow: 'ellipsis',
+                      letterSpacing: '-0.01em'
                     }}
                   >
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{selectedConv.customer_phone || 'No phone'}</span>
-                    <span>·</span>
-                    <span style={{ color: '#25D366', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-                      <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#25D366' }} />
-                      Connected
+                    {selectedConv.customer_name}
+                  </span>
+                  {selectedConv.customer_phone && (
+                    <span
+                      style={{
+                        fontSize: 12,
+                        color: '#667781',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}
+                    >
+                      {selectedConv.customer_phone}
                     </span>
-                  </div>
+                  )}
                 </div>
               </div>
 
-              {/* Action Toolbar */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+              {/* Action Toolbar: Clean Phone + Info icons (Delete customer is accessible via Kundli 360) */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                 {selectedConv.customer_phone && (
                   <a
                     href={`tel:${selectedConv.customer_phone}`}
                     className="chat-header-action-btn"
                     title="Direct Phone Call"
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: '#F0F2F5',
+                      textDecoration: 'none'
+                    }}
                   >
-                    <Phone size={14} color="#007AFF" />
-                    <span className="header-btn-label">Call</span>
+                    <Phone size={17} color="#007AFF" />
                   </a>
                 )}
 
@@ -933,30 +940,30 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
                   onClick={() => setShowInspector(!showInspector)}
                   className={`chat-header-action-btn ${showInspector ? 'active' : ''}`}
                   title="Toggle Kundli & Client 360"
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: showInspector ? '#E8F2FF' : '#F0F2F5',
+                    border: 'none',
+                    cursor: 'pointer'
+                  }}
                 >
-                  <Info size={15} color={showInspector ? '#007AFF' : '#54656F'} />
-                  <span className="header-btn-label">Kundli 360</span>
-                </button>
-
-                {/* Delete Customer Button */}
-                <button
-                  type="button"
-                  onClick={() => setCustomerToDelete({ id: selectedConv.customer_id, name: selectedConv.customer_name })}
-                  className="chat-header-action-btn danger"
-                  title="Delete this customer completely"
-                >
-                  <Trash2 size={14} />
-                  <span className="header-btn-label">Delete</span>
+                  <Info size={18} color={showInspector ? '#007AFF' : '#54656F'} />
                 </button>
               </div>
             </div>
 
-            {/* Chat Messages Body */}
+            {/* Chat Messages Body: flex: 1 1 0% and min-height: 0 ensures full height scroll canvas */}
             <div
               ref={adminChatCanvasRef}
               className="hybrid-chat-canvas"
               style={{
-                flex: 1,
+                flex: '1 1 0%',
+                minHeight: 0,
                 padding: '14px 16px',
                 overflowY: 'auto',
                 display: 'flex',
@@ -1164,11 +1171,6 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
                 >
                   <ArrowUp size={19} strokeWidth={2.4} />
                 </button>
-              </div>
-
-              {/* Subtext info */}
-              <div style={{ fontSize: 11, color: '#8E8E93', textAlign: 'center', letterSpacing: '-0.01em' }}>
-                Consultation Desk · Messages sent here appear live to customer
               </div>
             </form>
           </>

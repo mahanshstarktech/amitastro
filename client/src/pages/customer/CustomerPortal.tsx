@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Calendar, MessageSquare, User, CreditCard, Clock, Plus, Trash2, Edit3, 
   CheckCircle2, AlertCircle, ArrowRight, ShieldCheck, Sparkles, Send, Paperclip, X,
-  Settings, Globe, Check, PanelLeft, Pencil, Crown
+  Settings, Globe, Check, PanelLeft, Pencil, Crown, MoreVertical, LogOut, ExternalLink, ChevronLeft
 } from 'lucide-react';
 import { useAuth, type BirthProfile } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
@@ -26,12 +26,28 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
   onOpenTrial,
   initialTab = 'dashboard'
 }) => {
-  const { user, profiles, addProfile, deleteProfile, updateProfilePhoto } = useAuth();
+  const { user, profiles, addProfile, deleteProfile, updateProfilePhoto, logout } = useAuth();
   const { showToast } = useNotification();
   const { language, setLanguage, t } = useLanguage();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isRailToggleHovered, setIsRailToggleHovered] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const profileCardRef = useRef<HTMLDivElement>(null);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (profileCardRef.current && !profileCardRef.current.contains(e.target as Node)) {
+        setShowProfileMenu(false);
+      }
+    };
+    if (showProfileMenu) {
+      document.addEventListener('mousedown', handleOutsideClick);
+      return () => document.removeEventListener('mousedown', handleOutsideClick);
+    }
+  }, [showProfileMenu]);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -86,6 +102,23 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
+
+  // Manage mobile full-window chat view state (hide top header, keep bottom nav visible, pin composer above nav)
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      if (activeTab === 'chat') {
+        document.body.classList.add('customer-chat-active');
+      } else {
+        document.body.classList.remove('customer-chat-active');
+      }
+    }
+    return () => {
+      if (typeof document !== 'undefined') {
+        document.body.classList.remove('customer-chat-active');
+      }
+    };
+  }, [activeTab]);
+
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -255,198 +288,563 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
   }, [activeTab, appointments.length, profiles.length, unreadChatCount, user?.isFamilySubscriber]);
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#FBFBFD', paddingBottom: 80 }}>
-      {/* Top Welcome Bar */}
-      <div className={`portal-header-banner ${activeTab === 'chat' ? 'hide-on-mobile-chat' : ''}`} style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid #E5E5EA', padding: '24px 0' }}>
-        <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-            {/* User Profile Avatar with Plan Badge and Pencil Edit Option */}
-            <div style={{ position: 'relative', width: 64, height: 64, flexShrink: 0 }}>
-              <div
-                style={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: '50%',
-                  overflow: 'hidden',
-                  background: 'linear-gradient(135deg, #F5F5F7, #E5E5EA)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '2.5px solid #C9A24B',
-                  boxShadow: '0 4px 14px rgba(201, 162, 75, 0.2)'
-                }}
-              >
-                {user?.photoURL ? (
-                  <img
-                    src={user.photoURL}
-                    alt={user.name || 'User'}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
-                ) : (
-                  <span style={{ fontSize: 24, fontWeight: 700, color: '#3A3A6E' }}>
-                    {(user?.name || 'S').charAt(0).toUpperCase()}
-                  </span>
-                )}
-              </div>
-              {/* Micro PlanBadge Overlay on avatar icon */}
-              <div style={{ position: 'absolute', top: -5, right: -6, zIndex: 3 }}>
-                <PlanBadge badge={user?.role === 'admin' ? 'Admin' : (user?.planBadge || 'Free(Trial)')} size="micro" />
-              </div>
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploadingPhoto}
-                title="Change Profile Photo"
-                style={{
-                  position: 'absolute',
-                  bottom: -2,
-                  right: -2,
-                  width: 26,
-                  height: 26,
-                  borderRadius: '50%',
-                  backgroundColor: '#C9A24B',
-                  color: '#FFFFFF',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '2px solid #FFFFFF',
-                  boxShadow: '0 2px 6px rgba(0, 0, 0, 0.25)',
-                  cursor: isUploadingPhoto ? 'wait' : 'pointer'
-                }}
-              >
-                <Pencil size={13} />
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoUpload}
-                style={{ display: 'none' }}
-              />
-            </div>
-
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                <span className="apple-badge-gold">
-                  Seeker Portal
-                </span>
-                <PlanBadge badge={user?.role === 'admin' ? 'Admin' : (user?.planBadge || 'Free(Trial)')} size="sm" />
-              </div>
-              <h1 className="text-h1" style={{ fontSize: 26, color: '#1D1D1F', marginTop: 4 }}>
-                Namaste, {user?.name || 'Seeker'}
-              </h1>
-              <p style={{ fontSize: 13.5, color: '#6E6E73' }}>
-                Mobile: {user?.phone ? `+91 ${user.phone}` : 'Not linked'} · Personal Charts & Consultations
-              </p>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: 10 }}>
-            {(user?.isNewCustomer && !user?.trialUsed) && (
-              <button
-                onClick={onOpenTrial}
-                className="apple-btn-secondary"
-                style={{ padding: '10px 18px', fontSize: 14, color: '#3A3A6E', borderColor: '#3A3A6E' }}
-              >
-                <Clock size={15} /> 5-Min Free Trial
-              </button>
-            )}
-
-            <button
-              onClick={onOpenBooking}
-              className="apple-btn-primary"
-              style={{ padding: '10px 20px', fontSize: 14 }}
-            >
-              <Calendar size={15} /> Book a Consultation
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Layout Container (Desktop Sidebar + Tab Content) */}
-      <div className={`container ${activeTab === 'chat' ? 'portal-chat-container-mobile' : ''}`} style={{ maxWidth: 1380, marginTop: activeTab === 'chat' ? 0 : 32 }}>
-        <div style={{ display: 'flex', gap: 28, alignItems: 'flex-start' }}>
-          {/* Desktop Left Sidebar */}
-          <aside
-            style={{
-              width: sidebarCollapsed ? 72 : 280,
-              flexShrink: 0,
-              backgroundColor: '#FFFFFF',
-              border: '1px solid #E5E5EA',
-              borderRadius: 20,
-              padding: sidebarCollapsed ? '16px 10px' : '20px 16px',
-              boxShadow: '0 2px 12px rgba(0, 0, 0, 0.03)',
-              position: 'sticky',
-              top: 76,
-              transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
-            }}
-            className="portal-desktop-sidebar"
-          >
+    <div className="customer-portal-root">
+      {/* Customer App Workspace - Full-bleed, matching Admin Portal look and feel */}
+      <div
+        className="customer-app-workspace"
+        style={{
+          display: 'flex',
+          flex: 1,
+          height: '100vh',
+          width: '100vw',
+          overflow: 'hidden',
+          backgroundColor: '#FFFFFF'
+        }}
+      >
+        {/* Apple macOS / WhatsApp Style Left Icon Rail (Smooth CSS Transition 68px <-> 240px) */}
+        <aside
+          className="portal-app-rail"
+          style={{
+            width: sidebarCollapsed ? 68 : 240,
+            flexShrink: 0,
+            backgroundColor: '#F0F2F5',
+            borderRight: '1px solid #E5E5EA',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            transition: 'width 0.32s cubic-bezier(0.16, 1, 0.3, 1)',
+            overflow: 'visible',
+            position: 'relative',
+            zIndex: 30,
+            willChange: 'width'
+          }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {/* Top Logo & Rail Header with reference hover interchange */}
             <div
               style={{
+                height: 60,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: sidebarCollapsed ? 'center' : 'space-between',
-                marginBottom: 16,
-                paddingBottom: 12,
-                borderBottom: '1px solid #E5E5EA'
+                padding: sidebarCollapsed ? '0 10px' : '0 14px',
+                borderBottom: '1px solid #E5E5EA',
+                flexShrink: 0
               }}
             >
-              {!sidebarCollapsed && (
-                <span style={{ fontWeight: 700, fontSize: 15, color: '#1D1D1F', letterSpacing: '-0.01em' }}>
-                  Navigation
-                </span>
+              {!sidebarCollapsed ? (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                    <img
+                      src="/icons/logo-mark.png"
+                      alt="Amit Astro Logo"
+                      style={{
+                        width: 30,
+                        height: 30,
+                        borderRadius: 8,
+                        objectFit: 'contain',
+                        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
+                        flexShrink: 0
+                      }}
+                    />
+                    <span
+                      style={{
+                        fontWeight: 700,
+                        fontSize: 15,
+                        color: '#111B21',
+                        letterSpacing: '-0.01em',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}
+                    >
+                      Amit Astro
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSidebarCollapsed(true)}
+                    className="sidebar-collapse-toggle-btn"
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      width: 32,
+                      height: 32,
+                      borderRadius: 8,
+                      color: '#54656F',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.15s ease'
+                    }}
+                    title="Collapse sidebar"
+                    aria-label="Collapse sidebar"
+                  >
+                    <PanelLeft size={18} />
+                  </button>
+                </>
+              ) : (
+                /* Collapsed state: Hover interchange between original logo and PanelLeft toggle */
+                <button
+                  type="button"
+                  onClick={() => setSidebarCollapsed(false)}
+                  onMouseEnter={() => setIsRailToggleHovered(true)}
+                  onMouseLeave={() => setIsRailToggleHovered(false)}
+                  className="sidebar-rail-hover-toggle"
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 9,
+                    position: 'relative',
+                    border: 'none',
+                    background: isRailToggleHovered ? '#E5E5EA' : 'transparent',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 0,
+                    transition: 'background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                  }}
+                  title="Expand sidebar"
+                  aria-label="Expand sidebar"
+                >
+                  {/* 1. Original Logo Mark (shown when mouse is away) */}
+                  <img
+                    src="/icons/logo-mark.png"
+                    alt="Amit Astro"
+                    style={{
+                      position: 'absolute',
+                      width: 28,
+                      height: 28,
+                      borderRadius: 7,
+                      objectFit: 'contain',
+                      boxShadow: '0 2px 5px rgba(0, 0, 0, 0.08)',
+                      opacity: isRailToggleHovered ? 0 : 1,
+                      transform: isRailToggleHovered ? 'scale(0.8)' : 'scale(1)',
+                      transition: 'opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+                      pointerEvents: 'none'
+                    }}
+                  />
+
+                  {/* 2. Collapse/Expand Icon (appears smoothly when mouse is in range / hovered) */}
+                  <span
+                    style={{
+                      position: 'absolute',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#111B21',
+                      opacity: isRailToggleHovered ? 1 : 0,
+                      transform: isRailToggleHovered ? 'scale(1)' : 'scale(0.8)',
+                      transition: 'opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+                      pointerEvents: 'none'
+                    }}
+                  >
+                    <PanelLeft size={19} />
+                  </span>
+                </button>
               )}
-              <button
-                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: 6,
-                  borderRadius: 8,
-                  color: '#3A3A6E',
-                  display: 'flex',
-                  alignItems: 'center',
-                  transition: 'background 0.15s ease'
-                }}
-                title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              >
-                <PanelLeft size={19} />
-              </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {/* Nav Items List */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: sidebarCollapsed ? '10px 0' : '10px 10px' }}>
               {navTabs.map((item) => {
                 const Icon = item.icon;
                 const active = activeTab === item.id;
-                return (
+                return sidebarCollapsed ? (
+                  <div key={item.id} style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectTab(item.id)}
+                      className={`rail-item-btn-collapsed ${active ? 'active' : ''}`}
+                      title={item.label}
+                    >
+                      <Icon size={20} color={active ? '#3A3A6E' : '#54656F'} />
+                      {item.badge !== undefined && (typeof item.badge === 'number' ? item.badge > 0 : Boolean(item.badge)) && (
+                        <span className="rail-badge-collapsed">
+                          {item.badge}
+                        </span>
+                      )}
+                    </button>
+                  </div>
+                ) : (
                   <button
                     key={item.id}
+                    type="button"
                     onClick={() => handleSelectTab(item.id)}
-                    className={`sidebar-nav-item ${active ? 'active' : ''}`}
-                    title={sidebarCollapsed ? item.label : undefined}
-                    style={{
-                      justifyContent: sidebarCollapsed ? 'center' : 'space-between',
-                      padding: sidebarCollapsed ? '12px' : '10px 12px'
-                    }}
+                    className={`rail-item-btn ${active ? 'active' : ''}`}
                   >
-                    <div className="sidebar-nav-item-content">
-                      <Icon size={18} color={active ? '#3A3A6E' : '#6E6E73'} />
-                      {!sidebarCollapsed && <span>{item.label}</span>}
-                    </div>
-                    {!sidebarCollapsed && item.badge !== undefined && (typeof item.badge === 'number' ? item.badge > 0 : Boolean(item.badge)) && (
-                      <span className="sidebar-nav-item-badge">{item.badge}</span>
+                    <Icon size={18} color={active ? '#3A3A6E' : '#54656F'} />
+                    <span style={{ flex: 1, textAlign: 'left' }}>{item.label}</span>
+                    {item.badge !== undefined && (typeof item.badge === 'number' ? item.badge > 0 : Boolean(item.badge)) && (
+                      <span style={{ backgroundColor: item.id === 'chat' ? '#25D366' : '#3A3A6E', color: '#FFF', fontSize: 10.5, fontWeight: 700, padding: '2px 7px', borderRadius: 9999 }}>
+                        {item.badge}
+                      </span>
                     )}
                   </button>
                 );
               })}
             </div>
-          </aside>
+          </div>
 
-          {/* Right Main Content Area */}
-          <main style={{ flex: 1, minWidth: 0 }}>
+          {/* Bottom Profile ID Card & 3-Dots Popover Menu */}
+          <div
+            ref={profileCardRef}
+            style={{
+              padding: sidebarCollapsed ? '12px 8px' : '10px 12px',
+              borderTop: '1px solid #E5E5EA',
+              backgroundColor: '#F0F2F5',
+              position: 'relative'
+            }}
+          >
+            {/* Floating Apple-Style Popover Menu */}
+            {showProfileMenu && (
+              <div
+                ref={profileMenuRef}
+                style={{
+                  position: 'absolute',
+                  bottom: 'calc(100% + 10px)',
+                  left: sidebarCollapsed ? 8 : 12,
+                  width: 236,
+                  backgroundColor: '#FFFFFF',
+                  borderRadius: 14,
+                  boxShadow: '0 12px 32px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.06)',
+                  border: '1px solid rgba(0, 0, 0, 0.08)',
+                  padding: '6px',
+                  zIndex: 100,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 2,
+                  animation: 'applePopoverFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                }}
+              >
+                {/* 1. Change Photo */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowProfileMenu(false);
+                    fileInputRef.current?.click();
+                  }}
+                  className="profile-popover-item"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    border: 'none',
+                    background: 'none',
+                    cursor: 'pointer',
+                    width: '100%',
+                    textAlign: 'left',
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: '#1D1D1F',
+                    transition: 'background 0.15s ease'
+                  }}
+                >
+                  <Pencil size={16} color="#54656F" />
+                  <span>Update Profile Photo</span>
+                </button>
+
+                <div style={{ height: 1, backgroundColor: '#E5E5EA', margin: '4px 6px' }} />
+
+                {/* 2. View Public Site */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowProfileMenu(false);
+                    window.open('/', '_blank');
+                  }}
+                  className="profile-popover-item"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    border: 'none',
+                    background: 'none',
+                    cursor: 'pointer',
+                    width: '100%',
+                    textAlign: 'left',
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: '#1D1D1F',
+                    transition: 'background 0.15s ease'
+                  }}
+                >
+                  <ExternalLink size={16} color="#54656F" />
+                  <span>View Public Website</span>
+                </button>
+
+                {/* 3. Legal & Privacy */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowProfileMenu(false);
+                    window.open('/legal', '_blank');
+                  }}
+                  className="profile-popover-item"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    border: 'none',
+                    background: 'none',
+                    cursor: 'pointer',
+                    width: '100%',
+                    textAlign: 'left',
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: '#1D1D1F',
+                    transition: 'background 0.15s ease'
+                  }}
+                >
+                  <ShieldCheck size={16} color="#54656F" />
+                  <span>Privacy & Terms</span>
+                </button>
+
+                <div style={{ height: 1, backgroundColor: '#E5E5EA', margin: '4px 6px' }} />
+
+                {/* 4. Sign Out */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowProfileMenu(false);
+                    logout();
+                  }}
+                  className="profile-popover-item"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    border: 'none',
+                    background: 'none',
+                    cursor: 'pointer',
+                    width: '100%',
+                    textAlign: 'left',
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: '#FF3B30',
+                    transition: 'background 0.15s ease'
+                  }}
+                >
+                  <LogOut size={16} color="#FF3B30" />
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            )}
+
+            {/* The Profile ID Card Trigger */}
+            {sidebarCollapsed ? (
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowProfileMenu(!showProfileMenu)}
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 12,
+                    border: 'none',
+                    background: 'none',
+                    cursor: 'pointer',
+                    padding: 0,
+                    position: 'relative'
+                  }}
+                  title={user?.name || 'Customer Account'}
+                >
+                  {user?.photoURL ? (
+                    <img
+                      src={user.photoURL}
+                      alt={user.name || 'User'}
+                      style={{ width: '100%', height: '100%', borderRadius: 12, objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        borderRadius: 12,
+                        backgroundColor: '#3A3A6E',
+                        color: '#FFFFFF',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 700,
+                        fontSize: 14
+                      }}
+                    >
+                      {(user?.name || 'S').charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div style={{ position: 'absolute', top: -4, right: -4 }}>
+                    <PlanBadge badge={user?.role === 'admin' ? 'Admin' : (user?.planBadge || 'Free(Trial)')} size="micro" />
+                  </div>
+                </button>
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '6px 8px',
+                  borderRadius: 10,
+                  backgroundColor: showProfileMenu ? '#E5E5EA' : 'transparent',
+                  transition: 'background 0.15s ease'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+                  <div style={{ position: 'relative', flexShrink: 0 }}>
+                    {user?.photoURL ? (
+                      <img
+                        src={user.photoURL}
+                        alt={user.name || 'User'}
+                        style={{ width: 36, height: 36, borderRadius: 10, objectFit: 'cover' }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: 10,
+                          backgroundColor: '#3A3A6E',
+                          color: '#FFFFFF',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 700,
+                          fontSize: 14
+                        }}
+                      >
+                        {(user?.name || 'S').charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div style={{ position: 'absolute', top: -3, right: -3 }}>
+                      <PlanBadge badge={user?.role === 'admin' ? 'Admin' : (user?.planBadge || 'Free(Trial)')} size="micro" />
+                    </div>
+                  </div>
+
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div
+                      style={{
+                        fontWeight: 600,
+                        fontSize: 13,
+                        color: '#111B21',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}
+                    >
+                      {user?.name || 'Seeker'}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 1 }}>
+                      <PlanBadge badge={user?.role === 'admin' ? 'Admin' : (user?.planBadge || 'Free(Trial)')} size="micro" />
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowProfileMenu(!showProfileMenu)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 6,
+                    borderRadius: 6,
+                    color: '#54656F',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'background 0.15s ease'
+                  }}
+                  title="Account Settings & Profile Options"
+                  aria-label="Profile options"
+                >
+                  <MoreVertical size={17} />
+                </button>
+              </div>
+            )}
+          </div>
+        </aside>
+
+        {/* Hidden File Input for Avatar Photo Upload */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handlePhotoUpload}
+          style={{ display: 'none' }}
+        />
+
+        {/* Right Main Content Area */}
+        <main
+          className={`customer-portal-main-content ${activeTab === 'chat' ? 'portal-chat-mode' : ''}`}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: activeTab === 'chat' ? 'hidden' : 'auto',
+            padding: activeTab === 'chat' ? 0 : '24px 32px',
+            backgroundColor: activeTab === 'chat' ? '#FFFFFF' : '#F5F5F7'
+          }}
+        >
+          {/* Header Action Bar when not in Chat mode */}
+          {activeTab !== 'chat' && (
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 16,
+                marginBottom: 24,
+                paddingBottom: 20,
+                borderBottom: '1px solid #E5E5EA'
+              }}
+            >
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <span className="apple-badge-gold">Seeker Portal</span>
+                  <PlanBadge badge={user?.role === 'admin' ? 'Admin' : (user?.planBadge || 'Free(Trial)')} size="sm" />
+                </div>
+                <h1 className="text-h1" style={{ fontSize: 24, color: '#1D1D1F', margin: 0 }}>
+                  Namaste, {user?.name || 'Seeker'}
+                </h1>
+                <p style={{ fontSize: 13, color: '#6E6E73', margin: '3px 0 0' }}>
+                  {user?.phone ? `+91 ${user.phone}` : 'Account'} · Personal Charts, Vedic Guidance & Consultations
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10 }}>
+                {user?.isNewCustomer && !user?.trialUsed && (
+                  <button
+                    onClick={onOpenTrial}
+                    className="apple-btn-secondary"
+                    style={{ padding: '9px 16px', fontSize: 13.5, color: '#3A3A6E', borderColor: '#3A3A6E' }}
+                  >
+                    <Clock size={15} /> 5-Min Free Trial
+                  </button>
+                )}
+                <button
+                  onClick={onOpenBooking}
+                  className="apple-btn-primary"
+                  style={{ padding: '9px 18px', fontSize: 13.5 }}
+                >
+                  <Calendar size={15} /> Book a Consultation
+                </button>
+              </div>
+            </div>
+          )}
             {/* 1. OVERVIEW DASHBOARD */}
         {activeTab === 'dashboard' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
@@ -1262,8 +1660,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
             </div>
           </div>
         )}
-          </main>
-        </div>
+        </main>
       </div>
 
       {/* Dedicated Follow-up Consultation Thread Modal */}

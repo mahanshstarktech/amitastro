@@ -90,4 +90,153 @@ test.describe('E2E: Admin Sidebar Collapse, Logo Hover, Profile Alterations & Cu
     const aboutFooter = page.locator('text=About Amit Astro');
     await expect(aboutFooter).not.toBeVisible();
   });
+
+  test('validates Customer Portal UI layout, collapsible rail, and profile ID card matching Admin Portal', async ({ page }) => {
+    // 1. Visit /app and log in
+    await page.goto('/app');
+    await page.waitForLoadState('networkidle');
+
+    const signInBtn = page.getByRole('button', { name: /Sign In to Account|Sign In|Login/i }).first();
+    await signInBtn.click();
+    await page.fill('input[type="email"]', 'priya.sharma@example.com');
+    await page.fill('input[type="password"]', 'Customer@123');
+    await page.click('button[type="submit"]');
+
+    const rail = page.locator('.portal-app-rail');
+    await expect(rail).toBeVisible({ timeout: 15000 });
+
+    // Verify initial expanded rail width (~240px)
+    const expandedBox = await rail.boundingBox();
+    expect(expandedBox?.width).toBeCloseTo(240, -1);
+
+    // Verify original logo mark and Amit Astro branding
+    await expect(rail.locator('img[alt="Amit Astro Logo"]')).toBeVisible();
+    await expect(rail.getByText('Amit Astro')).toBeVisible();
+
+    // Verify customer operational tabs
+    await expect(rail.getByRole('button', { name: /Overview/i })).toBeVisible();
+    await expect(rail.getByRole('button', { name: /Consultation Chat/i })).toBeVisible();
+    await expect(rail.getByRole('button', { name: /Birth Profiles/i })).toBeVisible();
+    await expect(rail.getByRole('button', { name: /Family 360 Plan/i })).toBeVisible();
+
+    // 2. Test smooth rail collapse (240px -> 68px)
+    const collapseBtn = rail.getByRole('button', { name: 'Collapse sidebar' });
+    await expect(collapseBtn).toBeVisible();
+    await collapseBtn.click();
+    await page.waitForTimeout(400);
+
+    const collapsedBox = await rail.boundingBox();
+    expect(collapsedBox?.width).toBeCloseTo(68, -1);
+
+    // Verify hover interchange button appears
+    const railToggle = rail.locator('.sidebar-rail-hover-toggle');
+    await expect(railToggle).toBeVisible();
+
+    // Expand back
+    await railToggle.click();
+    await page.waitForTimeout(400);
+
+    const reExpandedBox = await rail.boundingBox();
+    expect(reExpandedBox?.width).toBeCloseTo(240, -1);
+
+    // 3. Verify profile options menu
+    const profileOptionsBtn = rail.getByRole('button', { name: /Profile options/i });
+    await expect(profileOptionsBtn).toBeVisible();
+    await profileOptionsBtn.click();
+    await expect(page.getByRole('button', { name: /View Public (Site|Website)/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Privacy & Terms/i })).toBeVisible();
+  });
+
+  test('validates Mobile WhatsApp fixed elements UI: no Connected indicator, bottom nav rules, and composer pinning', async ({ page }) => {
+    // Set mobile viewport (iPhone dimensions 375x812)
+    await page.setViewportSize({ width: 375, height: 812 });
+
+    // --- Part A: Customer Portal Mobile Chat ---
+    await page.goto('/app');
+    await page.waitForLoadState('networkidle');
+
+    const signInBtn = page.getByRole('button', { name: /Sign In to Account|Sign In|Login/i }).first();
+    await signInBtn.click();
+    await page.fill('input[type="email"]', 'priya.sharma@example.com');
+    await page.fill('input[type="password"]', 'Customer@123');
+    await page.click('button[type="submit"]');
+
+    // Switch to Chat tab
+    await page.goto('/app#chat');
+    await page.waitForTimeout(800);
+
+    // 1. Verify bottom nav is VISIBLE for customer (customer only has 1 chat)
+    const customerBottomNav = page.locator('.apple-bottom-nav');
+    await expect(customerBottomNav).toBeVisible();
+
+    // 2. Verify no "Connected" indicator anywhere in chat
+    const connectedText = page.locator('text=• Connected');
+    await expect(connectedText).not.toBeVisible();
+    const liveSubtext = page.locator('text=Consultation Desk · Messages sent here appear live to customer');
+    await expect(liveSubtext).not.toBeVisible();
+
+    // 3. Verify composer is pinned at the bottom and above the bottom nav without overlapping
+    const customerComposer = page.locator('.hybrid-chat-composer').first();
+    await expect(customerComposer).toBeVisible();
+    const composerBox = await customerComposer.boundingBox();
+    const navBox = await customerBottomNav.boundingBox();
+
+    expect(composerBox).not.toBeNull();
+    expect(navBox).not.toBeNull();
+    if (composerBox && navBox) {
+      // Bottom of composer should meet top of bottom nav (within 5px tolerance)
+      expect(composerBox.y + composerBox.height).toBeLessThanOrEqual(navBox.y + 6);
+      expect(composerBox.y).toBeGreaterThan(400); // Definitely pinned near bottom, not floating at the top/middle
+    }
+
+    // --- Part B: Admin Portal Mobile Chat Thread ---
+    await page.goto('/admin');
+    await page.waitForLoadState('networkidle');
+
+    const adminSignInBtn = page.getByRole('button', { name: /Sign In|Login/i }).first();
+    await adminSignInBtn.click();
+    await page.fill('input[type="email"]', 'admin@amitastro.com');
+    await page.fill('input[type="password"]', 'AmitAstro@2026');
+    await page.click('button[type="submit"]');
+
+    await expect(page.locator('text=Astrologer Access Required')).not.toBeVisible({ timeout: 15000 });
+
+    // Switch to Chats tab
+    await page.goto('/admin#chat');
+    await page.waitForTimeout(600);
+
+    // Click first conversation to enter thread view
+    const firstConv = page.locator('.hybrid-chat-list-item').first();
+    if (await firstConv.isVisible()) {
+      await firstConv.click();
+      await page.waitForTimeout(400);
+
+      // In admin thread view:
+      // 1. WhatsApp style back button < Chats is visible
+      const backBtn = page.locator('.mobile-back-btn');
+      await expect(backBtn).toBeVisible();
+
+      // 2. Bottom nav MUST disappear completely (WhatsApp-style full chat window)
+      const adminBottomNav = page.locator('.apple-bottom-nav');
+      await expect(adminBottomNav).not.toBeVisible();
+
+      // 3. Verify no "Connected" indicator
+      await expect(page.locator('text=• Connected')).not.toBeVisible();
+      await expect(page.locator('text=Consultation Desk · Messages sent here appear live to customer')).not.toBeVisible();
+
+      // 4. Verify admin composer is pinned at bottom of viewport
+      const adminComposer = page.locator('.hybrid-chat-composer').first();
+      await expect(adminComposer).toBeVisible();
+      const adminComposerBox = await adminComposer.boundingBox();
+      if (adminComposerBox) {
+        expect(adminComposerBox.y + adminComposerBox.height).toBeCloseTo(812, -1);
+      }
+
+      // 5. Clicking < Chats restores list view and reveals bottom nav
+      await backBtn.click();
+      await page.waitForTimeout(400);
+      await expect(adminBottomNav).toBeVisible();
+    }
+  });
 });
+

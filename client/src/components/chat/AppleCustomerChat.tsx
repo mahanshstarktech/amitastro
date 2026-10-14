@@ -320,18 +320,17 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
 
   return (
     <div
-      className="apple-card hybrid-chat-wrapper hybrid-customer-chat"
+      className="hybrid-chat-wrapper hybrid-customer-chat"
       style={{
-        height: 'calc(100vh - 180px)',
-        minHeight: 560,
-        maxHeight: 780,
+        width: '100%',
+        height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        borderRadius: 22,
+        borderRadius: 0,
         overflow: 'hidden',
         backgroundColor: '#F2F2F7',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
-        border: '1px solid #E5E5EA',
+        boxShadow: 'none',
+        border: 'none',
         position: 'relative'
       }}
     >
@@ -340,14 +339,16 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
       {/* ======================================================== */}
       <div
         style={{
-          padding: '10px 16px',
-          backgroundColor: 'rgba(255, 255, 255, 0.94)',
+          height: 60,
+          padding: '0 16px',
+          backgroundColor: 'rgba(255, 255, 255, 0.96)',
           backdropFilter: 'blur(20px) saturate(180%)',
           WebkitBackdropFilter: 'blur(20px) saturate(180%)',
           borderBottom: '1px solid #E5E5EA',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
+          flexShrink: 0,
           zIndex: 20
         }}
       >
@@ -356,8 +357,8 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
           <div style={{ position: 'relative' }}>
             <div
               style={{
-                width: 42,
-                height: 42,
+                width: 40,
+                height: 40,
                 borderRadius: '50%',
                 background: 'linear-gradient(135deg, #FAF8F5, #EDE6D8)',
                 border: '1.5px solid #D6B97A',
@@ -374,26 +375,12 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
                 style={{ width: '100%', height: '100%', objectFit: 'contain' }}
               />
             </div>
-            {/* Green Presence Dot */}
-            <span
-              style={{
-                position: 'absolute',
-                bottom: 0,
-                right: 0,
-                width: 11,
-                height: 11,
-                borderRadius: '50%',
-                backgroundColor: '#25D366',
-                border: '2px solid #FFFFFF',
-                boxShadow: '0 0 4px rgba(37, 211, 102, 0.6)'
-              }}
-            />
           </div>
 
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <span style={{ fontWeight: 700, fontSize: 15.5, color: '#1D1D1F', letterSpacing: '-0.01em' }}>
-                Amit (Astrologer)
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontWeight: 700, fontSize: 16, color: '#111B21', letterSpacing: '-0.01em' }}>
+                Amit Astro
               </span>
               <span
                 style={{
@@ -403,56 +390,55 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
                   backgroundColor: '#FCF8ED',
                   border: '1px solid #E6D2A7',
                   color: '#9E741F',
-                  fontSize: 10,
+                  fontSize: 10.5,
                   fontWeight: 600,
-                  padding: '1px 5px',
+                  padding: '1px 6px',
                   borderRadius: 9999
                 }}
               >
                 <ShieldCheck size={10} /> Verified
               </span>
             </div>
-            <div style={{ fontSize: 11.5, color: '#6E6E73', display: 'flex', alignItems: 'center', gap: 5, marginTop: 1 }}>
-              <span style={{ color: '#25D366', fontWeight: 600 }}>Active Desk</span>
-              <span>·</span>
-              <span>Private Vedic Guidance</span>
+            <div style={{ fontSize: 12, color: '#667781', marginTop: 1 }}>
+              Vedic Astrologer · Online Consultation Desk
             </div>
           </div>
         </div>
 
         {/* Right Action Icons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button
             type="button"
             onClick={() => setSoundEnabled(!soundEnabled)}
             style={{
-              background: 'none',
+              background: '#F0F2F5',
               border: 'none',
               cursor: 'pointer',
               color: soundEnabled ? '#3A3A6E' : '#8E8E93',
-              padding: 6,
-              borderRadius: 8
+              width: 36,
+              height: 36,
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
             title={soundEnabled ? 'Chime sound enabled' : 'Mute send chime'}
           >
-            {soundEnabled ? <Volume2 size={17} /> : <VolumeX size={17} />}
+            {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
           </button>
 
           <button
             type="button"
             onClick={onOpenBooking}
+            className="apple-btn-primary"
             style={{
-              backgroundColor: '#F5F5F7',
-              border: '1px solid #D2D2D7',
-              borderRadius: 20,
-              padding: '6px 12px',
-              fontSize: 12,
+              padding: '6px 14px',
+              fontSize: 12.5,
               fontWeight: 600,
-              color: '#3A3A6E',
               display: 'inline-flex',
               alignItems: 'center',
               gap: 5,
-              cursor: 'pointer'
+              borderRadius: 20
             }}
           >
             <Calendar size={13} />
@@ -493,7 +479,8 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
         ref={chatCanvasRef}
         className="hybrid-chat-canvas"
         style={{
-          flex: 1,
+          flex: '1 1 0%',
+          minHeight: 0,
           padding: '14px 14px',
           overflowY: 'auto',
           display: 'flex',
