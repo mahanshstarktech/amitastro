@@ -2096,44 +2096,69 @@ body {
 
 .hybrid-bubble {
   position: relative;
+  min-width: 80px;
   max-width: 82%;
-  padding: 8px 12px 6px 12px;
-  font-size: var(--chat-font-bubble);
-  line-height: 1.45;
+  padding: 6px 10px 7px 11px;
+  font-size: var(--chat-font-bubble, 14.5px);
+  line-height: 1.42;
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
-  word-break: break-word;
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
+  hyphens: none !important;
   color: #111B21;
 }
 
 .hybrid-bubble-in {
   background-color: #FFFFFF;
-  border-radius: 14px 14px 14px 3px;
+  border-radius: 12px 12px 12px 2px;
   align-self: flex-start;
-  border: 1px solid rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .hybrid-bubble-out {
   background-color: #E7FFDB;
-  border-radius: 14px 14px 3px 14px;
+  border-radius: 12px 12px 2px 12px;
   align-self: flex-end;
   border: 1px solid rgba(0, 0, 0, 0.03);
 }
 
-.hybrid-bubble-time {
+.hybrid-message-text {
+  display: inline;
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
+  font-size: var(--chat-font-bubble, 14.5px);
+  color: #111B21;
+  line-height: 1.42;
+}
+
+.hybrid-bubble-meta {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  font-size: var(--chat-font-meta);
-  color: #667781;
   float: right;
-  margin-left: 12px;
-  margin-top: 4px;
+  margin-left: 10px;
+  margin-top: 5px;
+  white-space: nowrap !important;
   user-select: none;
+  vertical-align: bottom;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.hybrid-bubble-time {
+  font-size: 11px;
+  color: #667781;
+  white-space: nowrap !important;
+  line-height: 1;
 }
 
 .hybrid-read-ticks {
   color: #53BDEB;
-  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  white-space: nowrap !important;
+  margin-left: 2px;
 }
 
 .hybrid-chat-composer {
@@ -2366,9 +2391,10 @@ body {
 /* Compact Mobile (iPhone mini, 320px - 380px) */
 @media (max-width: 380px) {
   .hybrid-bubble {
+    min-width: 76px !important;
     max-width: 88% !important;
     font-size: 13.5px !important;
-    padding: 8px 11px !important;
+    padding: 6px 9px !important;
   }
   .hybrid-date-pill {
     font-size: 10.5px !important;

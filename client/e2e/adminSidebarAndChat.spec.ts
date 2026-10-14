@@ -189,6 +189,20 @@ test.describe('E2E: Admin Sidebar Collapse, Logo Hover, Profile Alterations & Cu
       expect(composerBox.y).toBeGreaterThan(400); // Definitely pinned near bottom, not floating at the top/middle
     }
 
+    // 4. Verify Customer Chat Header is de-cluttered (no verified badge, no mute volume icon)
+    await expect(page.getByText('Verified', { exact: true })).not.toBeVisible();
+    await expect(page.locator('button[title*="Chime sound"]').or(page.locator('button[title*="Mute send chime"]'))).not.toBeVisible();
+
+    // 5. Verify Vedic Quick Inquiry Dropdown (single message preview, click reveals options)
+    const promptTrigger = page.locator('.quick-prompt-dropdown-trigger');
+    await expect(promptTrigger).toBeVisible();
+    await promptTrigger.click();
+
+    const promptOption = page.locator('.prompt-dropdown-option').first();
+    await expect(promptOption).toBeVisible();
+    await promptOption.click();
+    await expect(page.locator('.prompt-dropdown-option')).not.toBeVisible();
+
     // --- Part B: Admin Portal Mobile Chat Thread ---
     await page.goto('/admin');
     await page.waitForLoadState('networkidle');
@@ -212,9 +226,10 @@ test.describe('E2E: Admin Sidebar Collapse, Logo Hover, Profile Alterations & Cu
       await page.waitForTimeout(400);
 
       // In admin thread view:
-      // 1. WhatsApp style back button < Chats is visible
+      // 1. WhatsApp style back button is visible, but the word "Chats" is REMOVED
       const backBtn = page.locator('.mobile-back-btn');
       await expect(backBtn).toBeVisible();
+      await expect(backBtn.getByText('Chats')).not.toBeVisible();
 
       // 2. Bottom nav MUST disappear completely (WhatsApp-style full chat window)
       const adminBottomNav = page.locator('.apple-bottom-nav');
@@ -232,7 +247,7 @@ test.describe('E2E: Admin Sidebar Collapse, Logo Hover, Profile Alterations & Cu
         expect(adminComposerBox.y + adminComposerBox.height).toBeCloseTo(812, -1);
       }
 
-      // 5. Clicking < Chats restores list view and reveals bottom nav
+      // 5. Clicking back button restores list view and reveals bottom nav
       await backBtn.click();
       await page.waitForTimeout(400);
       await expect(adminBottomNav).toBeVisible();

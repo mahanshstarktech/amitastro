@@ -18,7 +18,8 @@ import {
   AlertCircle,
   Play,
   Pause,
-  ShieldCheck
+  ShieldCheck,
+  ChevronDown
 } from 'lucide-react';
 import { apiRequest } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
@@ -75,7 +76,12 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('chat_sound_enabled') !== 'false';
+    }
+    return true;
+  });
 
   // Attachments
   const [attachmentPreview, setAttachmentPreview] = useState<string | null>(null);
@@ -303,7 +309,7 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
     }
   };
 
-  // 5. Vedic Quick Prompts
+  // 5. Vedic Quick Inquiry Prompts
   const quickPrompts = [
     '🙏 Namaste Amit ji, I need career guidance.',
     '💍 Kundli Milan / Marriage compatibility query.',
@@ -312,11 +318,58 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
     '⚡ Guidance regarding Sade Sati and planetary transits.'
   ];
 
-  const handleSelectPrompt = (prompt: string) => {
-    setInputText(prompt);
+  const [showPromptDropdown, setShowPromptDropdown] = useState(false);
+  const [selectedPromptPreview, setSelectedPromptPreview] = useState(quickPrompts[0]);
+  const promptDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (promptDropdownRef.current && !promptDropdownRef.current.contains(e.target as Node)) {
+        setShowPromptDropdown(false);
+      }
+    };
+    if (showPromptDropdown) {
+      document.addEventListener('mousedown', handleOutsideClick);
+      return () => document.removeEventListener('mousedown', handleOutsideClick);
+    }
+  }, [showPromptDropdown]);
+
+  const sendDirectMessage = async (text: string) => {
+    if (!text.trim() || !conversation || isSending) return;
+    setIsSending(true);
+    if (soundEnabled) playAppleSendChime();
+    try {
+      const res = await apiRequest<{ message: CustomerChatMessage }>('/chat/message', {
+        method: 'POST',
+        body: JSON.stringify({
+          conversationId: conversation.id,
+          content: text.trim(),
+          messageType: 'text'
+        })
+      });
+      if (res.message) {
+        setMessages((prev) => [...prev, res.message]);
+        scrollToBottom('smooth');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Failed to send message', 'error');
+    } finally {
+      setIsSending(false);
+    }
   };
 
-  const isTrialActive = Boolean(user?.isNewCustomer && !user?.trialUsed);
+  const isTrialCustomer = Boolean(user?.isNewCustomer && !user?.trialUsed);
+  const [showTrialBanner, setShowTrialBanner] = useState(isTrialCustomer);
+
+  useEffect(() => {
+    if (isTrialCustomer) {
+      setShowTrialBanner(true);
+      const timer = setTimeout(() => {
+        setShowTrialBanner(false);
+      }, 10000);
+      return () => clearTimeout(timer);
+    }
+  }, [isTrialCustomer]);
 
   return (
     <div
@@ -377,56 +430,38 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
             </div>
           </div>
 
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontWeight: 700, fontSize: 16, color: '#111B21', letterSpacing: '-0.01em' }}>
-                Amit Astro
-              </span>
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 3,
-                  backgroundColor: '#FCF8ED',
-                  border: '1px solid #E6D2A7',
-                  color: '#9E741F',
-                  fontSize: 10.5,
-                  fontWeight: 600,
-                  padding: '1px 6px',
-                  borderRadius: 9999
-                }}
-              >
-                <ShieldCheck size={10} /> Verified
-              </span>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div
+              style={{
+                fontWeight: 700,
+                fontSize: 16,
+                color: '#111B21',
+                letterSpacing: '-0.01em',
+                lineHeight: 1.2,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+              }}
+            >
+              Amit Astro
             </div>
-            <div style={{ fontSize: 12, color: '#667781', marginTop: 1 }}>
-              Vedic Astrologer · Online Consultation Desk
+            <div
+              style={{
+                fontSize: 12,
+                color: '#667781',
+                marginTop: 2,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+              }}
+            >
+              Vedic Astrologer
             </div>
           </div>
         </div>
 
-        {/* Right Action Icons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <button
-            type="button"
-            onClick={() => setSoundEnabled(!soundEnabled)}
-            style={{
-              background: '#F0F2F5',
-              border: 'none',
-              cursor: 'pointer',
-              color: soundEnabled ? '#3A3A6E' : '#8E8E93',
-              width: 36,
-              height: 36,
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-            title={soundEnabled ? 'Chime sound enabled' : 'Mute send chime'}
-          >
-            {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
-          </button>
-
+        {/* Right Action: Clean Consultation Booking Button */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
           <button
             type="button"
             onClick={onOpenBooking}
@@ -450,25 +485,49 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
       {/* ======================================================== */}
       {/* 2. TRIAL OR CONSULTATION STATUS BANNER                   */}
       {/* ======================================================== */}
-      {isTrialActive && (
+      {isTrialCustomer && showTrialBanner && (
         <div
           style={{
-            backgroundColor: '#F3FAF3',
-            borderBottom: '1px solid #D8EED8',
-            padding: '6px 14px',
+            backgroundColor: '#F0FDF4',
+            borderBottom: '1px solid #DCFCE7',
+            padding: '7px 12px 7px 14px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
+            gap: 8,
             fontSize: 12,
-            color: '#1E682E'
+            color: '#166534',
+            flexShrink: 0,
+            zIndex: 5
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Sparkles size={13} color="#25D366" />
-            <span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1 }}>
+            <Sparkles size={14} color="#16A34A" style={{ flexShrink: 0 }} />
+            <span style={{ lineHeight: 1.35 }}>
               <strong>Free 5-Min Vedic Chat Active:</strong> Share your birth query or palm chart directly with Amit ji.
             </span>
           </div>
+          <button
+            type="button"
+            onClick={() => setShowTrialBanner(false)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#166534',
+              cursor: 'pointer',
+              padding: 4,
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              opacity: 0.8
+            }}
+            title="Dismiss notification"
+            aria-label="Dismiss notification"
+          >
+            <X size={15} />
+          </button>
         </div>
       )}
 
@@ -527,7 +586,7 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
             const timeStr = new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
             return (
-              <React.Fragment key={m.id || idx}>
+              <React.Fragment key={m.id ? `${m.id}-${idx}` : idx}>
                 {showTimestamp && (
                   <div className="hybrid-date-pill">
                     {new Date(m.created_at).toLocaleDateString([], {
@@ -634,9 +693,14 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
                           {m.content}
                         </div>
                       )}
-                      <div className="hybrid-bubble-time" style={{ padding: '0 6px 4px 0' }}>
-                        {timeStr} {isMe && <span className="hybrid-read-ticks">✓✓</span>}
-                      </div>
+                      <span className="hybrid-bubble-meta" style={{ padding: '0 6px 4px 0' }}>
+                        <span className="hybrid-bubble-time">{timeStr}</span>
+                        {isMe && (
+                          <span className="hybrid-read-ticks">
+                            <CheckCheck size={14} color="#53BDEB" />
+                          </span>
+                        )}
+                      </span>
                     </div>
                   ) : m.message_type === 'voice' ? (
                     /* Message Type 3: Voice Note Message */
@@ -674,21 +738,29 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
                         </div>
                         <div style={{ fontSize: 10.5, color: '#667781' }}>0:15 · Audio query</div>
                       </div>
-                      <div className="hybrid-bubble-time">
-                        {timeStr} {isMe && <span className="hybrid-read-ticks">✓✓</span>}
-                      </div>
+                      <span className="hybrid-bubble-meta">
+                        <span className="hybrid-bubble-time">{timeStr}</span>
+                        {isMe && (
+                          <span className="hybrid-read-ticks">
+                            <CheckCheck size={14} color="#53BDEB" />
+                          </span>
+                        )}
+                      </span>
                     </div>
                   ) : (
                     /* Message Type 4: Text Message Bubble */
                     <div
                       className={`hybrid-bubble ${isMe ? 'hybrid-bubble-out' : 'hybrid-bubble-in'}`}
                     >
-                      <div style={{ fontSize: 'var(--chat-font-bubble)', color: '#111B21', lineHeight: 1.45 }}>
-                        {m.content}
-                      </div>
-                      <div className="hybrid-bubble-time">
-                        {timeStr} {isMe && <span className="hybrid-read-ticks">✓✓</span>}
-                      </div>
+                      <span className="hybrid-message-text">{m.content}</span>
+                      <span className="hybrid-bubble-meta">
+                        <span className="hybrid-bubble-time">{timeStr}</span>
+                        {isMe && (
+                          <span className="hybrid-read-ticks">
+                            <CheckCheck size={14} color="#53BDEB" />
+                          </span>
+                        )}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -741,39 +813,130 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
       )}
 
       {/* ======================================================== */}
-      {/* 5. VEDIC QUICK INQUIRY CHIPS                             */}
+      {/* 5. VEDIC QUICK INQUIRY TEMPLATE DROPDOWN                 */}
       {/* ======================================================== */}
       <div
+        ref={promptDropdownRef}
         style={{
+          position: 'relative',
           padding: '6px 14px',
           backgroundColor: '#FFFFFF',
           borderTop: '1px solid #F0F0F2',
           display: 'flex',
-          gap: 6,
-          overflowX: 'auto',
-          whiteSpace: 'nowrap'
+          alignItems: 'center',
+          justifyContent: 'flex-start',
+          flexShrink: 0
         }}
       >
-        {quickPrompts.map((p, i) => (
-          <button
-            key={i}
-            type="button"
-            onClick={() => handleSelectPrompt(p)}
+        <button
+          type="button"
+          onClick={() => setShowPromptDropdown(!showPromptDropdown)}
+          className="quick-prompt-dropdown-trigger"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '5px 12px',
+            backgroundColor: '#F5F5F7',
+            border: '1px solid #E5E5EA',
+            borderRadius: 16,
+            fontSize: 12,
+            fontWeight: 500,
+            color: '#1D1D1F',
+            cursor: 'pointer',
+            maxWidth: '100%',
+            transition: 'background-color 0.15s ease'
+          }}
+          title="Choose a quick inquiry template to send"
+          aria-expanded={showPromptDropdown}
+        >
+          <span
             style={{
-              border: '1px solid #E5E5EA',
-              backgroundColor: '#F7F7F9',
-              borderRadius: 14,
-              padding: '4px 10px',
-              fontSize: 11.5,
-              color: '#3A3A3C',
-              cursor: 'pointer',
-              transition: 'background-color 0.15s ease',
-              flexShrink: 0
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              maxWidth: 'calc(100vw - 80px)'
             }}
           >
-            {p}
-          </button>
-        ))}
+            {selectedPromptPreview}
+          </span>
+          <ChevronDown
+            size={14}
+            color="#86868B"
+            style={{
+              transform: showPromptDropdown ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform 0.2s ease',
+              flexShrink: 0
+            }}
+          />
+        </button>
+
+        {/* Upward Dropdown Menu */}
+        {showPromptDropdown && (
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '100%',
+              left: 14,
+              right: 14,
+              marginBottom: 6,
+              backgroundColor: '#FFFFFF',
+              borderRadius: 14,
+              border: '1px solid #E5E5EA',
+              boxShadow: '0 12px 32px rgba(0, 0, 0, 0.12)',
+              padding: 6,
+              zIndex: 60,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 2,
+              animation: 'applePopoverFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+            }}
+          >
+            <div
+              style={{
+                padding: '6px 10px 4px',
+                fontSize: 11,
+                fontWeight: 700,
+                color: '#8E8E93',
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em'
+              }}
+            >
+              Tap Query to Send to Amit
+            </div>
+            {quickPrompts.map((p, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => {
+                  setSelectedPromptPreview(p);
+                  setShowPromptDropdown(false);
+                  sendDirectMessage(p);
+                }}
+                className="prompt-dropdown-option"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '9px 12px',
+                  borderRadius: 8,
+                  border: 'none',
+                  background: 'none',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  fontSize: 12.5,
+                  color: '#111B21',
+                  transition: 'background 0.15s ease'
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F2F2F7')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+              >
+                <span style={{ flex: 1, marginRight: 8 }}>{p}</span>
+                <Send size={13} color="#007AFF" style={{ flexShrink: 0 }} />
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ======================================================== */}

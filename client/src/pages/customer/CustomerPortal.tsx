@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Calendar, MessageSquare, User, CreditCard, Clock, Plus, Trash2, Edit3, 
   CheckCircle2, AlertCircle, ArrowRight, ShieldCheck, Sparkles, Send, Paperclip, X,
-  Settings, Globe, Check, PanelLeft, Pencil, Crown, MoreVertical, LogOut, ExternalLink, ChevronLeft
+  Settings, Globe, Check, PanelLeft, Pencil, Crown, MoreVertical, LogOut, ExternalLink, ChevronLeft,
+  Volume2, VolumeX
 } from 'lucide-react';
 import { useAuth, type BirthProfile } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
@@ -36,6 +37,12 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileCardRef = useRef<HTMLDivElement>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
+  const [chatSoundSetting, setChatSoundSetting] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('chat_sound_enabled') !== 'false';
+    }
+    return true;
+  });
 
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
@@ -1631,6 +1638,95 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                     <Check size={16} strokeWidth={2.5} />
                   </div>
                 )}
+              </div>
+            </div>
+
+            {/* Consultation Sound & Notification Settings */}
+            <div style={{ borderTop: '1px solid #E5E5EA', paddingTop: 24, marginBottom: 28 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    backgroundColor: 'rgba(58, 58, 110, 0.08)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#3A3A6E'
+                  }}
+                >
+                  <Volume2 size={20} />
+                </div>
+                <div>
+                  <h4 style={{ fontSize: 16, fontWeight: 600, color: '#1D1D1F', margin: 0 }}>
+                    Chat Sound & Notification Chimes
+                  </h4>
+                  <p style={{ fontSize: 12.5, color: '#6E6E73', margin: '2px 0 0' }}>
+                    Control sound effects when sending or receiving messages with Amit
+                  </p>
+                </div>
+              </div>
+
+              <div
+                onClick={() => {
+                  const nextVal = !chatSoundSetting;
+                  setChatSoundSetting(nextVal);
+                  localStorage.setItem('chat_sound_enabled', nextVal ? 'true' : 'false');
+                  showToast(nextVal ? 'Chat sounds enabled' : 'Chat muted', 'info');
+                }}
+                style={{
+                  padding: '16px 20px',
+                  borderRadius: 14,
+                  border: '1px solid #E5E5EA',
+                  backgroundColor: '#FFFFFF',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  transition: 'background-color 0.15s ease'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  {chatSoundSetting ? <Volume2 size={20} color="#007AFF" /> : <VolumeX size={20} color="#8E8E93" />}
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 14, color: '#1D1D1F' }}>
+                      {chatSoundSetting ? 'Chat Sounds: Active' : 'Chat Sounds: Muted'}
+                    </div>
+                    <div style={{ fontSize: 12, color: '#6E6E73', marginTop: 2 }}>
+                      {chatSoundSetting
+                        ? 'Play subtle audio chime when messages are sent and received'
+                        : 'Mute all in-chat sound effects'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* iOS Style Toggle Switch */}
+                <div
+                  style={{
+                    width: 46,
+                    height: 28,
+                    borderRadius: 14,
+                    backgroundColor: chatSoundSetting ? '#34C759' : '#E5E5EA',
+                    position: 'relative',
+                    transition: 'background-color 0.2s ease',
+                    flexShrink: 0
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: 12,
+                      backgroundColor: '#FFFFFF',
+                      position: 'absolute',
+                      top: 2,
+                      left: chatSoundSetting ? 20 : 2,
+                      transition: 'left 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.15)'
+                    }}
+                  />
+                </div>
               </div>
             </div>
 

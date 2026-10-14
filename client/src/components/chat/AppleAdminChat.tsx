@@ -832,7 +832,7 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
-                {/* Mobile Back Button (WhatsApp iOS style: < Chats) */}
+                {/* Mobile Back Button (WhatsApp iOS style: < [unseen count]) */}
                 <button
                   type="button"
                   onClick={() => setMobileView('list')}
@@ -841,20 +841,44 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
                     background: 'none',
                     border: 'none',
                     color: '#007AFF',
-                    fontSize: 16,
-                    fontWeight: 500,
+                    fontSize: 15,
+                    fontWeight: 600,
                     cursor: 'pointer',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: 1,
+                    gap: 3,
                     padding: '6px 4px',
                     marginRight: 2,
                     flexShrink: 0
                   }}
-                  title="Back to Chats"
+                  title="Back to conversation list"
+                  aria-label="Back to conversation list"
                 >
-                  <ChevronLeft size={22} color="#007AFF" />
-                  <span>Chats</span>
+                  <ChevronLeft size={24} color="#007AFF" strokeWidth={2.5} />
+                  {(() => {
+                    const unreadCount = conversations.reduce(
+                      (acc, conv) => (conv.id !== selectedConv?.id ? acc + (conv.unread_admin_count || 0) : acc),
+                      0
+                    );
+                    if (unreadCount <= 0) return null;
+                    return (
+                      <span
+                        style={{
+                          backgroundColor: '#007AFF',
+                          color: '#FFFFFF',
+                          fontSize: 11,
+                          fontWeight: 700,
+                          padding: '1px 6px',
+                          borderRadius: 9999,
+                          minWidth: 18,
+                          textAlign: 'center',
+                          lineHeight: '16px'
+                        }}
+                      >
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                    );
+                  })()}
                 </button>
 
                 {selectedConv.customer_photo ? (
@@ -998,7 +1022,7 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
                   const timeStr = new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                   return (
-                    <React.Fragment key={m.id}>
+                    <React.Fragment key={m.id ? `${m.id}-${idx}` : idx}>
                       {showDateDivider && (
                         <div className="hybrid-date-pill">
                           {new Date(m.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -1036,14 +1060,16 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
                             </div>
                           )}
 
-                          <div style={{ fontSize: 'var(--chat-font-bubble)', color: '#111B21', lineHeight: 1.45 }}>
-                            {m.content}
-                          </div>
+                          <span className="hybrid-message-text">{m.content}</span>
 
-                          <div className="hybrid-bubble-time">
-                            {timeStr}
-                            {isMe && <span className="hybrid-read-ticks">✓✓</span>}
-                          </div>
+                          <span className="hybrid-bubble-meta">
+                            <span className="hybrid-bubble-time">{timeStr}</span>
+                            {isMe && (
+                              <span className="hybrid-read-ticks">
+                                <CheckCheck size={14} color="#53BDEB" />
+                              </span>
+                            )}
+                          </span>
                         </div>
                       </div>
                     </React.Fragment>
