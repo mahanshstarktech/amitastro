@@ -301,6 +301,7 @@ export const WhatsAppVoicePlayer: React.FC<WhatsAppVoicePlayerProps> = ({
             padding: '0 4px'
           }}
           title="Click to seek"
+          aria-label="Seek voice note waveform"
         >
           {/* Waveform Bars */}
           <div
@@ -333,6 +334,8 @@ export const WhatsAppVoicePlayer: React.FC<WhatsAppVoicePlayerProps> = ({
 
           {/* Draggable/Interactive Scrub Knob */}
           <div
+            data-testid="scrubber-knob"
+            aria-label="Scrub knob"
             style={{
               position: 'absolute',
               left: `calc(${progressRatio * 100}% - 5px)`,

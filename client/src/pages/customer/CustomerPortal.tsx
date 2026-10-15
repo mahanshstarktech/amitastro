@@ -295,17 +295,30 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
   }, [activeTab, appointments.length, profiles.length, unreadChatCount, user?.isFamilySubscriber]);
 
   return (
-    <div className="customer-portal-root">
+    <div
+      className="customer-portal-root"
+      style={{
+        height: '100vh',
+        width: '100vw',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        margin: 0,
+        padding: 0
+      }}
+    >
       {/* Customer App Workspace - Full-bleed, matching Admin Portal look and feel */}
       <div
         className="customer-app-workspace"
         style={{
           display: 'flex',
           flex: 1,
-          height: '100vh',
-          width: '100vw',
+          height: '100%',
+          width: '100%',
           overflow: 'hidden',
-          backgroundColor: '#FFFFFF'
+          backgroundColor: '#FFFFFF',
+          margin: 0,
+          padding: 0
         }}
       >
         {/* Apple macOS / WhatsApp Style Left Icon Rail (Smooth CSS Transition 68px <-> 240px) */}
@@ -791,12 +804,14 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
           style={{
             flex: 1,
             minWidth: 0,
+            width: '100%',
             height: '100%',
             display: 'flex',
             flexDirection: 'column',
             overflow: activeTab === 'chat' ? 'hidden' : 'auto',
             padding: activeTab === 'chat' ? 0 : '24px 32px',
-            backgroundColor: activeTab === 'chat' ? '#FFFFFF' : '#F5F5F7'
+            backgroundColor: activeTab === 'chat' ? '#FFFFFF' : '#F5F5F7',
+            margin: 0
           }}
         >
           {/* Header Action Bar when not in Chat mode */}

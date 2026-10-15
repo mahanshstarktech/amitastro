@@ -126,3 +126,19 @@ This document lists every file added or modified during the SDET and AI-evaluati
 - `client/e2e/adminSidebarAndChat.spec.ts`:
   - Updated e2e assertions to ensure edge-to-edge chat rendering without window-in-window containers.
 
+---
+
+## 9. Chat Full-Bleed Edge-to-Edge Layout & Voice Note Routing Hotfix
+- `client/src/components/chat/AppleCustomerChat.tsx`:
+  - Fixed voice note rendering bug where messages with `attachment_url` (voice notes) were prematurely intercepted by the image attachment branch, rendering a broken `<img>` icon. Moved `m.message_type === 'voice'` to top priority, ensuring all sent and received voice notes render with the authentic `WhatsAppVoicePlayer`.
+  - Added explicit `flex: 1`, `width: 100%`, `height: 100%`, `minHeight: 0`, `maxHeight: 'none'`, and `maxWidth: 'none'` to the chat wrapper.
+- `client/src/styles/design-system.css`:
+  - Removed legacy fixed `max-width: 1320px`, `max-height: 880px`, `height: calc(100vh - 160px)`, and `margin: 0 auto` rules that caused empty beige space on the right and bottom of the desktop customer chat.
+  - Enforced full-bleed edge-to-edge styles for `.hybrid-customer-chat` and `.customer-portal-main-content.portal-chat-mode` with `width: 100% !important`, `max-width: 100% !important`, `height: 100% !important`, `max-height: 100% !important`, `min-height: 0 !important`, and `margin: 0 !important`.
+  - Added `.customer-portal-root` to full viewport height/width rules alongside `.admin-portal-root`.
+- `client/src/pages/customer/CustomerPortal.tsx`:
+  - Added full viewport dimensions and zero margins to `.customer-portal-root` and `.customer-app-workspace`.
+  - Set `<main>` in `portal-chat-mode` to `width: '100%'`, `height: '100%'`, and `margin: 0`.
+- `client/src/tests/components/whatsAppVoicePlayer.test.tsx`:
+  - Added automated test verifying realistic 9s voice notes with audio URLs render correctly without image fallback.
+

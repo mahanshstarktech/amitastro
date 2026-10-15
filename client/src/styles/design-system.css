@@ -1818,13 +1818,16 @@ body {
 }
 
 /* Responsive rules for Admin Portal Header and Workspace */
-.admin-portal-root {
+.admin-portal-root,
+.customer-portal-root {
   height: 100vh;
   width: 100vw;
   background-color: #F0F2F5;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  margin: 0;
+  padding: 0;
 }
 
 @media (min-width: 1040px) {
@@ -2292,23 +2295,34 @@ body {
 }
 
 /* ======================================================== */
-/* ULTRA-RESPONSIVE CHAT: 320PX (IPHONE MINI) TO 4K / 65" TV */
+/* ULTRA-RESPONSIVE CHAT: FULL VIEWPORT EDGE-TO-EDGE        */
 /* ======================================================== */
-.hybrid-customer-chat {
-  width: 100%;
-  max-width: 1320px;
-  margin: 0 auto;
-  height: calc(100vh - 160px);
-  min-height: 520px;
-  max-height: 880px;
+.hybrid-customer-chat,
+.hybrid-chat-wrapper {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
 }
 
 /* 65-inch TV & 4K Displays (2000px+) */
 @media (min-width: 2000px) {
-  .hybrid-customer-chat {
-    max-width: 1600px;
-    height: calc(100vh - 220px);
-    max-height: 1200px;
+  .hybrid-customer-chat,
+  .hybrid-chat-wrapper {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    margin: 0 !important;
   }
   .hybrid-chat-canvas {
     font-size: 16px !important;
@@ -2423,20 +2437,28 @@ body {
   margin: 0 !important;
   display: flex !important;
   flex-direction: column !important;
+  flex: 1 1 auto !important;
   height: 100% !important;
+  min-height: 0 !important;
   width: 100% !important;
   max-width: 100% !important;
+  max-height: 100% !important;
   overflow: hidden !important;
   border: none !important;
   border-radius: 0 !important;
   box-shadow: none !important;
 }
 
-.hybrid-customer-chat {
+.hybrid-customer-chat,
+.customer-portal-main-content.portal-chat-mode .hybrid-customer-chat {
   width: 100% !important;
+  max-width: 100% !important;
   height: 100% !important;
+  max-height: 100% !important;
+  min-height: 0 !important;
   display: flex !important;
   flex-direction: column !important;
+  flex: 1 1 auto !important;
   border: none !important;
   border-radius: 0 !important;
   box-shadow: none !important;

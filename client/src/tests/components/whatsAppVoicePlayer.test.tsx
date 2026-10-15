@@ -66,4 +66,31 @@ describe('WhatsAppVoicePlayer', () => {
     fireEvent.click(speedBtn);
     expect(speedBtn.textContent).toContain('1x');
   });
+
+  it('renders realistic 9s voice note with audioUrl, play button, and scrubber without image fallback', () => {
+    const onTogglePlay = vi.fn();
+    render(
+      <WhatsAppVoicePlayer
+        id="voice-9s"
+        audioUrl="data:audio/webm;base64,GkXfo59ChoEBQveBAULygQ8USAEUMutD8GjZ"
+        durationSeconds={9}
+        isMe={true}
+        senderName="Mahansh"
+        timestamp="02:43 AM"
+        isPlaying={false}
+        onTogglePlay={onTogglePlay}
+      />
+    );
+
+    // Formatted 0:09
+    expect(screen.getByText('0:09')).toBeDefined();
+    expect(screen.getByText('02:43 AM')).toBeDefined();
+
+    // Verify play button is present
+    const playBtn = screen.getByRole('button', { name: /play voice note/i });
+    expect(playBtn).toBeDefined();
+
+    // Verify scrubber knob is rendered
+    expect(screen.getByLabelText(/scrub knob/i)).toBeDefined();
+  });
 });

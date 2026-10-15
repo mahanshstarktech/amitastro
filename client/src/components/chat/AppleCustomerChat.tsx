@@ -653,8 +653,12 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
     <div
       className="hybrid-chat-wrapper hybrid-customer-chat"
       style={{
+        flex: 1,
         width: '100%',
         height: '100%',
+        minHeight: 0,
+        maxHeight: 'none',
+        maxWidth: 'none',
         display: 'flex',
         flexDirection: 'column',
         borderRadius: 0,
@@ -662,7 +666,9 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
         backgroundColor: '#F2F2F7',
         boxShadow: 'none',
         border: 'none',
-        position: 'relative'
+        position: 'relative',
+        margin: 0,
+        padding: 0
       }}
     >
       {/* ======================================================== */}
@@ -912,8 +918,21 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
                         {timeStr}
                       </div>
                     </div>
+                  ) : m.message_type === 'voice' ? (
+                    /* Message Type 2: Authentic WhatsApp Voice Note Player */
+                    <WhatsAppVoicePlayer
+                      id={m.id}
+                      audioUrl={m.attachment_url}
+                      durationSeconds={parseVoiceDuration(m.content)}
+                      isMe={isMe}
+                      senderName={isMe ? (user?.name || 'You') : 'Amit Astro'}
+                      senderPhoto={isMe ? user?.photoURL : '/icons/logo-mark.png'}
+                      timestamp={timeStr}
+                      isPlaying={playingVoiceId === m.id}
+                      onTogglePlay={() => setPlayingVoiceId(playingVoiceId === m.id ? null : m.id)}
+                    />
                   ) : m.message_type === 'image' || m.attachment_url ? (
-                    /* Message Type 2: Image Attachment */
+                    /* Message Type 3: Image Attachment */
                     <div
                       className={`hybrid-bubble ${isMe ? 'hybrid-bubble-out' : 'hybrid-bubble-in'}`}
                       style={{ padding: 4 }}
@@ -980,19 +999,6 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
                         )}
                       </span>
                     </div>
-                  ) : m.message_type === 'voice' ? (
-                    /* Message Type 3: Authentic WhatsApp Voice Note Player */
-                    <WhatsAppVoicePlayer
-                      id={m.id}
-                      audioUrl={m.attachment_url}
-                      durationSeconds={parseVoiceDuration(m.content)}
-                      isMe={isMe}
-                      senderName={isMe ? (user?.name || 'You') : 'Amit Astro'}
-                      senderPhoto={isMe ? user?.photoURL : '/icons/logo-mark.png'}
-                      timestamp={timeStr}
-                      isPlaying={playingVoiceId === m.id}
-                      onTogglePlay={() => setPlayingVoiceId(playingVoiceId === m.id ? null : m.id)}
-                    />
                   ) : (
                     /* Message Type 4: Text Message Bubble */
                     <div
