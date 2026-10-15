@@ -5,7 +5,7 @@ import {
   Edit3, ArrowRight, Eye, RefreshCw, AlertTriangle, Copy, Check, ChevronDown, ChevronUp, Sparkles, Filter, X, PanelLeft,
   Wand2, Image as ImageIcon, Languages, Star, ExternalLink, ShieldAlert, UserCheck, UserX, FileText, Upload,
   Globe, Smartphone, Laptop, Tablet, Activity, TrendingUp, TrendingDown, Zap, Download, Compass, Share2, Layers, Crown,
-  MoreVertical, LogOut, Key, Lock, CheckCircle, User
+  MoreVertical, LogOut, Key, Lock, CheckCircle, User, Mail
 } from 'lucide-react';
 import { apiRequest } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
@@ -105,6 +105,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ initialTab }) => {
   const [selectedChatConvId, setSelectedChatConvId] = useState<string | undefined>(undefined);
   const [customerToDelete, setCustomerToDelete] = useState<{ id: string; name: string } | null>(null);
   const [isDeletingCustomer, setIsDeletingCustomer] = useState(false);
+  const [activeDropdownCustomerId, setActiveDropdownCustomerId] = useState<string | null>(null);
 
   // Top Rail Hover State for collapsed logo interchange
   const [isRailToggleHovered, setIsRailToggleHovered] = useState(false);
@@ -150,6 +151,19 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ initialTab }) => {
       return () => document.removeEventListener('mousedown', handleOutsideClick);
     }
   }, [showProfileMenu]);
+
+  useEffect(() => {
+    const handleOutsideMenuClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.crm-more-menu-wrapper')) {
+        setActiveDropdownCustomerId(null);
+      }
+    };
+    if (activeDropdownCustomerId) {
+      document.addEventListener('mousedown', handleOutsideMenuClick);
+      return () => document.removeEventListener('mousedown', handleOutsideMenuClick);
+    }
+  }, [activeDropdownCustomerId]);
 
   const handleSaveProfileSettings = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -2021,233 +2035,396 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
 
         {/* 5. CUSTOMERS CRM & CLIENT MANAGEMENT */}
         {activeTab === 'customers' && (
-          <div className="apple-card" style={{ padding: '28px 24px', backgroundColor: '#FFF' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 14, marginBottom: 20 }}>
+          <div className="apple-card" style={{ padding: '24px 20px', backgroundColor: '#FFF' }}>
+            {/* Header & KPI Summary */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 14, marginBottom: 16 }}>
               <div>
-                <h2 className="text-h2" style={{ fontSize: 20 }}>
-                  Client Directory & CRM
+                <h2 className="text-h2" style={{ fontSize: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span>Client Directory & CRM</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#C9A24B', backgroundColor: '#FFFDF0', border: '1px solid #FDE68A', padding: '2px 8px', borderRadius: 12 }}>
+                    {customers.length} Total
+                  </span>
                 </h2>
-                <p style={{ fontSize: 13, color: '#6E6E73', marginTop: 2 }}>
-                  Showing {filteredCustomers.length} of {customers.length} registered clients · Toggle 5-min trial eligibility for new and returning clients.
+                <p style={{ fontSize: 13, color: '#64748B', marginTop: 3 }}>
+                  Showing {filteredCustomers.length} of {customers.length} registered clients · Instant 5-min trial eligibility toggle & Family 360 management.
                 </p>
               </div>
 
               {/* Search & Filters */}
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                <div style={{ position: 'relative' }}>
-                  <Search size={14} color="#8E8E93" style={{ position: 'absolute', left: 10, top: 10 }} />
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', width: '100%', maxWidth: 580 }}>
+                {/* Search Bar */}
+                <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+                  <Search size={14} color="#94A3B8" style={{ position: 'absolute', left: 11, top: 11 }} />
                   <input
                     type="text"
                     value={customerSearch}
                     onChange={(e) => setCustomerSearch(e.target.value)}
                     placeholder="Search by name, phone, email..."
                     className="apple-input"
-                    style={{ paddingLeft: 30, fontSize: 13, padding: '7px 12px 7px 30px', minWidth: 230 }}
+                    style={{ paddingLeft: 32, fontSize: 13, padding: '8px 12px 8px 32px', width: '100%', borderRadius: 10 }}
                   />
+                  {customerSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setCustomerSearch('')}
+                      style={{ position: 'absolute', right: 10, top: 9, border: 'none', background: 'transparent', cursor: 'pointer', color: '#94A3B8', padding: 2 }}
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
                 </div>
 
-                <div style={{ display: 'flex', gap: 4, backgroundColor: '#F5F5F7', padding: 3, borderRadius: 8 }}>
-                  {(['all', 'admin', 'new', 'old'] as const).map((f) => (
-                    <button
-                      key={f}
-                      onClick={() => setCustomerFilter(f as any)}
-                      style={{
-                        border: 'none',
-                        padding: '6px 12px',
-                        borderRadius: 6,
-                        fontSize: 12,
-                        fontWeight: (customerFilter as string) === f ? 600 : 500,
-                        backgroundColor: (customerFilter as string) === f ? '#FFF' : 'transparent',
-                        boxShadow: (customerFilter as string) === f ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                        cursor: 'pointer',
-                        color: (customerFilter as string) === f ? '#1D1D1F' : '#6E6E73'
-                      }}
-                    >
-                      {f === 'all'
-                        ? `All (${customers.length})`
-                        : f === 'admin'
-                        ? `Admins (${customers.filter((c) => c.role === 'admin').length})`
-                        : f === 'new'
-                        ? `New (${customers.filter((c) => c.is_new_customer && !c.trial_used).length})`
-                        : `Established (${customers.filter((c) => !c.is_new_customer || c.trial_used).length})`}
-                    </button>
-                  ))}
+                {/* Filter Pills with Horizontal Scroll on Mobile */}
+                <div style={{ display: 'flex', gap: 4, backgroundColor: '#F1F5F9', padding: 3, borderRadius: 10, overflowX: 'auto', maxWidth: '100%' }}>
+                  {(['all', 'admin', 'new', 'old'] as const).map((f) => {
+                    const isSelected = (customerFilter as string) === f;
+                    const count = f === 'all'
+                      ? customers.length
+                      : f === 'admin'
+                      ? customers.filter((c) => c.role === 'admin').length
+                      : f === 'new'
+                      ? customers.filter((c) => c.is_new_customer && !c.trial_used).length
+                      : customers.filter((c) => !c.is_new_customer || c.trial_used).length;
+
+                    const label = f === 'all'
+                      ? 'All'
+                      : f === 'admin'
+                      ? 'Admins'
+                      : f === 'new'
+                      ? 'New'
+                      : 'Established';
+
+                    return (
+                      <button
+                        key={f}
+                        type="button"
+                        onClick={() => setCustomerFilter(f as any)}
+                        style={{
+                          border: 'none',
+                          padding: '6px 11px',
+                          borderRadius: 8,
+                          fontSize: 12,
+                          fontWeight: isSelected ? 600 : 500,
+                          backgroundColor: isSelected ? '#FFFFFF' : 'transparent',
+                          boxShadow: isSelected ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                          cursor: 'pointer',
+                          color: isSelected ? '#0F172A' : '#64748B',
+                          whiteSpace: 'nowrap',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 5
+                        }}
+                      >
+                        <span>{label}</span>
+                        <span style={{
+                          fontSize: 10.5,
+                          fontWeight: 700,
+                          padding: '1px 5px',
+                          borderRadius: 10,
+                          backgroundColor: isSelected ? '#F1F5F9' : '#E2E8F0',
+                          color: isSelected ? '#1E1B4B' : '#64748B'
+                        }}>
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
 
+            {/* Quick KPI Strip */}
+            <div className="crm-kpi-grid">
+              <div className="crm-kpi-card">
+                <span className="crm-kpi-label"><Users size={12} color="#6366F1" /> Total Registered</span>
+                <span className="crm-kpi-val">{customers.length}</span>
+              </div>
+              <div className="crm-kpi-card">
+                <span className="crm-kpi-label"><Sparkles size={12} color="#10B981" /> Trial Eligible</span>
+                <span className="crm-kpi-val" style={{ color: '#059669' }}>
+                  {customers.filter((c) => c.is_new_customer && !c.trial_used).length}
+                </span>
+              </div>
+              <div className="crm-kpi-card">
+                <span className="crm-kpi-label"><Crown size={12} color="#F59E0B" /> Family 360</span>
+                <span className="crm-kpi-val" style={{ color: '#D97706' }}>
+                  {customers.filter((c) => c.is_family_subscriber).length}
+                </span>
+              </div>
+              <div className="crm-kpi-card">
+                <span className="crm-kpi-label"><CreditCard size={12} color="#3B82F6" /> Total Revenue</span>
+                <span className="crm-kpi-val" style={{ color: '#0F172A' }}>
+                  ₹{customers.reduce((acc, c) => acc + (c.total_spent || 0), 0).toLocaleString('en-IN')}
+                </span>
+              </div>
+            </div>
+
+            {/* Client Cards List */}
             {filteredCustomers.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '48px 20px', color: '#8E8E93' }}>
-                No clients match the selected filter or search term.
+              <div style={{ textAlign: 'center', padding: '48px 20px', color: '#94A3B8', background: '#F8FAFC', borderRadius: 12, border: '1px dashed #CBD5E1' }}>
+                <Users size={32} color="#94A3B8" style={{ margin: '0 auto 8px', opacity: 0.7 }} />
+                <div style={{ fontWeight: 600, fontSize: 14, color: '#475569' }}>No clients match your filter or search</div>
+                <div style={{ fontSize: 12.5, color: '#94A3B8', marginTop: 4 }}>Try clearing the search or switching filter tabs.</div>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {filteredCustomers.map((c) => (
-                  <div
-                    key={c.id}
-                    style={{
-                      border: c.role === 'admin' ? '1.5px solid #C9A24B' : '1px solid #E5E5EA',
-                      borderRadius: 14,
-                      padding: '16px 20px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      flexWrap: 'wrap',
-                      gap: 14,
-                      backgroundColor: c.role === 'admin' ? '#FCFAF5' : '#FFF'
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                        <span style={{ fontWeight: 600, fontSize: 15, color: '#1D1D1F' }}>
-                          {c.name}
-                        </span>
+                {filteredCustomers.map((c) => {
+                  const initials = c.name
+                    ? c.name.trim().split(/\s+/).map((n: string) => n[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()
+                    : 'U';
+                  const isAdmin = c.role === 'admin';
 
-                        {/* Plan / Role Badge */}
-                        {c.role === 'admin' ? (
-                          <PlanBadge badge="Admin" size="sm" />
-                        ) : (
-                          <PlanBadge badge={c.plan_badge || (c.is_family_subscriber ? 'Family' : (c.plan === 'pro' ? 'Pro' : c.plan === 'plus' ? 'Plus' : c.plan === 'lite' ? 'Lite' : 'Free(Trial)'))} size="sm" />
-                        )}
+                  return (
+                    <div
+                      key={c.id}
+                      className={`crm-customer-card ${isAdmin ? 'admin-card' : ''}`}
+                    >
+                      {/* Top Header Row: Avatar, Name, Badges, More Menu */}
+                      <div className="crm-card-header">
+                        <div className="crm-avatar-group">
+                          {/* Avatar Circle */}
+                          <div className={`crm-avatar ${isAdmin ? 'admin-avatar' : ''}`}>
+                            {initials}
+                            {isAdmin && (
+                              <div className="crm-avatar-badge" title="Administrator">
+                                <ShieldCheck size={10} />
+                              </div>
+                            )}
+                          </div>
 
-                        {/* Status Badge */}
-                        {c.is_new_customer && !c.trial_used ? (
-                          <span className="apple-badge-success" style={{ fontSize: 11 }}>
-                            New Client · Trial Eligible
-                          </span>
-                        ) : c.trial_used ? (
-                          <span style={{ fontSize: 11, backgroundColor: '#F2E7FE', color: '#6A1B9A', padding: '2px 8px', borderRadius: 6, fontWeight: 600 }}>
-                            Trial Utilized
-                          </span>
-                        ) : (
-                          <span style={{ fontSize: 11, backgroundColor: '#F5F5F7', color: '#6E6E73', padding: '2px 8px', borderRadius: 6, fontWeight: 600 }}>
-                            Established Client · Trial Revoked
-                          </span>
-                        )}
+                          {/* Client Name & Badges */}
+                          <div className="crm-user-info">
+                            <div className="crm-name-row">
+                              <span className="crm-client-name">
+                                {c.name}
+                              </span>
+
+                              {/* Plan / Role Badge */}
+                              {isAdmin ? (
+                                <PlanBadge badge="Admin" size="sm" />
+                              ) : (
+                                <PlanBadge
+                                  badge={c.plan_badge || (c.is_family_subscriber ? 'Family' : (c.plan === 'pro' ? 'Pro' : c.plan === 'plus' ? 'Plus' : c.plan === 'lite' ? 'Lite' : 'Free(Trial)'))}
+                                  size="sm"
+                                />
+                              )}
+
+                              {/* Trial Eligibility Status Pill */}
+                              {c.is_new_customer && !c.trial_used ? (
+                                <span className="crm-badge-trial-active" title="Eligible for a 5-minute complimentary Vedic consultation">
+                                  <Sparkles size={11} /> 5-Min Free Trial
+                                </span>
+                              ) : c.trial_used ? (
+                                <span className="crm-badge-trial-used" title="Client has already utilized their 5-minute free trial">
+                                  <Clock size={11} /> Trial Used
+                                </span>
+                              ) : (
+                                <span className="crm-badge-trial-established" title="Established Client - 5-min trial is revoked">
+                                  Established Client
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Contact Info Row */}
+                            <div className="crm-contact-row">
+                              {c.phone && (
+                                <a href={`tel:${c.phone}`} className="crm-contact-item" title="Click to call">
+                                  <Phone size={12} color="#94A3B8" />
+                                  <span>{c.phone}</span>
+                                </a>
+                              )}
+                              {c.email && (
+                                <a href={`mailto:${c.email}`} className="crm-contact-item" title="Click to email" style={{ wordBreak: 'break-all' }}>
+                                  <Mail size={12} color="#94A3B8" />
+                                  <span>{c.email}</span>
+                                </a>
+                              )}
+                            </div>
+
+                            {/* Tags Chips */}
+                            {c.tags && c.tags.length > 0 && (
+                              <div className="crm-tags-row" style={{ marginTop: 4 }}>
+                                {c.tags.map((tg: string) => (
+                                  <span key={tg} className="crm-tag-chip">
+                                    {tg}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Top-Right More Menu (Promote/Demote, Delete) */}
+                        <div className="crm-more-menu-wrapper" style={{ position: 'relative' }}>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveDropdownCustomerId(activeDropdownCustomerId === c.id ? null : c.id);
+                            }}
+                            className="crm-btn-more"
+                            title="More actions"
+                            aria-label="More actions"
+                          >
+                            <MoreVertical size={16} />
+                          </button>
+
+                          {activeDropdownCustomerId === c.id && (
+                            <div className="crm-dropdown-menu" onClick={(e) => e.stopPropagation()}>
+                              {/* Copy details */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActiveDropdownCustomerId(null);
+                                  navigator.clipboard.writeText(`${c.name}\nPhone: ${c.phone}\nEmail: ${c.email}`);
+                                  showToast(`Copied ${c.name}'s contact details`, 'success');
+                                }}
+                                className="crm-dropdown-item"
+                              >
+                                <Copy size={13} color="#64748B" />
+                                <span>Copy Contact Info</span>
+                              </button>
+
+                              {/* Promote / Demote Role */}
+                              {c.id !== user?.id && (
+                                isAdmin ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setActiveDropdownCustomerId(null);
+                                      handleUpdateUserRole(c.id, 'customer', c.name);
+                                    }}
+                                    className="crm-dropdown-item"
+                                    title="Demote this admin to Customer role"
+                                  >
+                                    <UserX size={13} color="#64748B" />
+                                    <span>Demote to Customer</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setActiveDropdownCustomerId(null);
+                                      handleUpdateUserRole(c.id, 'admin', c.name);
+                                    }}
+                                    className="crm-dropdown-item crm-dropdown-item-gold"
+                                    title="Promote this user to Administrator"
+                                  >
+                                    <ShieldCheck size={13} color="#C9A24B" />
+                                    <span>Promote to Admin</span>
+                                  </button>
+                                )
+                              )}
+
+                              {/* Delete Customer */}
+                              {c.id !== user?.id && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActiveDropdownCustomerId(null);
+                                    setCustomerToDelete({ id: c.id, name: c.name });
+                                  }}
+                                  className="crm-dropdown-item crm-dropdown-item-danger"
+                                  title="Permanently delete client and all records"
+                                >
+                                  <Trash2 size={13} color="#EF4444" />
+                                  <span>Delete Client</span>
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
 
-                      <div style={{ fontSize: 13, color: '#6E6E73' }}>
-                        {c.phone} · {c.email}
-                      </div>
-
-                      {c.tags && c.tags.length > 0 && (
-                        <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-                          {c.tags.map((tg: string) => (
-                            <span key={tg} className="apple-badge-primary" style={{ fontSize: 10.5 }}>
-                              {tg}
-                            </span>
-                          ))}
+                      {/* Middle: Key Metrics Strip */}
+                      <div className="crm-metrics-strip">
+                        <div className="crm-metric-item">
+                          <span className="crm-metric-label">Appointments</span>
+                          <span className="crm-metric-val">{c.appointment_count || 0}</span>
                         </div>
-                      )}
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: 13, color: '#1D1D1F' }}>
-                          Appointments: <strong>{c.appointment_count}</strong>
+                        <div className="crm-metric-divider" />
+                        <div className="crm-metric-item">
+                          <span className="crm-metric-label">Total Spent</span>
+                          <span className="crm-metric-val crm-metric-revenue">₹{(c.total_spent || 0).toLocaleString('en-IN')}</span>
                         </div>
-                        <div style={{ fontSize: 13, color: '#2FA84F', fontWeight: 600 }}>
-                          Spent: ₹{(c.total_spent || 0).toLocaleString('en-IN')}
+                        <div className="crm-metric-divider" />
+                        <div className="crm-metric-item">
+                          <span className="crm-metric-label">Family 360</span>
+                          <span className={`crm-metric-val ${c.is_family_subscriber ? 'crm-metric-family-active' : ''}`}>
+                            {c.is_family_subscriber ? 'Active Member 👑' : 'Standard'}
+                          </span>
                         </div>
                       </div>
 
-                      {/* Admin Controls & Role Promotion */}
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        {/* Promote / Demote Action */}
-                        {c.id !== user?.id && (
-                          c.role === 'admin' ? (
-                            <button
-                              type="button"
-                              onClick={() => handleUpdateUserRole(c.id, 'customer', c.name)}
-                              className="apple-btn-secondary"
-                              style={{ fontSize: 12, padding: '7px 12px', color: '#6E6E73' }}
-                              title="Demote this admin to Customer role"
-                            >
-                              <UserX size={13} /> Demote to Customer
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => handleUpdateUserRole(c.id, 'admin', c.name)}
-                              className="apple-btn-secondary"
-                              style={{ fontSize: 12, padding: '7px 12px', color: '#C9A24B', borderColor: '#C9A24B' }}
-                              title="Promote this user to Administrator"
-                            >
-                              <ShieldCheck size={13} /> Promote to Admin
-                            </button>
-                          )
-                        )}
+                      {/* Bottom Action Section: Primary Chat CTA + Toggles (Never wraps into ovals or overflows) */}
+                      <div className="crm-actions-container">
+                        {/* Primary Action Button */}
+                        <button
+                          type="button"
+                          onClick={() => openCustomerChatFromCrm(c)}
+                          className="crm-btn-chat"
+                          title="Open real-time chat with this client"
+                        >
+                          <MessageSquare size={14} />
+                          <span>Chat & Consult</span>
+                        </button>
 
+                        {/* Free Trial Eligibility Toggle */}
                         {c.is_new_customer ? (
                           <button
                             type="button"
                             onClick={() => handleToggleNewCustomer(c.id, false)}
-                            className="apple-btn-secondary"
-                            style={{ fontSize: 12, padding: '7px 12px', color: '#D64545', borderColor: '#F5C6CB' }}
-                            title="Revoke 5-minute free trial eligibility for this client"
+                            className="crm-btn-action crm-btn-trial-active"
+                            title="Revoke 5-minute free trial eligibility"
                           >
-                            Revoke Trial (Mark Old)
+                            <Zap size={13} />
+                            <span>Revoke Trial</span>
                           </button>
                         ) : (
                           <button
                             type="button"
                             onClick={() => handleToggleNewCustomer(c.id, true)}
-                            className="apple-btn-secondary"
-                            style={{ fontSize: 12, padding: '7px 12px', color: '#2FA84F', borderColor: '#C3E6CB' }}
-                            title="Grant 5-minute free trial eligibility to this client"
+                            className="crm-btn-action crm-btn-trial-inactive"
+                            title="Grant 5-minute free trial eligibility"
                           >
-                            Grant Trial (Mark New)
+                            <Zap size={13} />
+                            <span>Grant Trial</span>
                           </button>
                         )}
 
-                        {c.role !== 'admin' && (
+                        {/* Family 360 Subscription Toggle */}
+                        {!isAdmin && (
                           c.is_family_subscriber ? (
                             <button
                               type="button"
                               onClick={() => handleRevokeFamilyPlan(c.id, c.name)}
-                              className="apple-btn-secondary"
-                              style={{ fontSize: 12, padding: '7px 12px', color: '#D64545', borderColor: '#F5C6CB' }}
-                              title="Revoke Family 360 subscription from this client"
+                              className="crm-btn-action crm-btn-family-active"
+                              title="Revoke Family 360 Plan"
                             >
-                              <Crown size={13} /> Revoke Family 360
+                              <Crown size={13} />
+                              <span>Revoke Family</span>
                             </button>
                           ) : (
                             <button
                               type="button"
                               onClick={() => handleGrantFamilyPlan(c.id, c.name)}
-                              className="apple-btn-secondary"
-                              style={{ fontSize: 12, padding: '7px 12px', color: '#8E6A1C', borderColor: '#C9A24B' }}
-                              title="Grant 1-year Family 360 subscription to this client"
+                              className="crm-btn-action crm-btn-family-inactive"
+                              title="Grant 1-Year Family 360 Plan"
                             >
-                              <Crown size={13} /> Grant Family 360
+                              <Crown size={13} />
+                              <span>Grant Family</span>
                             </button>
                           )
                         )}
-
-                        <button
-                          type="button"
-                          onClick={() => openCustomerChatFromCrm(c)}
-                          className="apple-btn-primary"
-                          style={{ fontSize: 12, padding: '7px 14px' }}
-                        >
-                          <MessageSquare size={13} /> Chat & Family 360
-                        </button>
-
-                        {c.id !== user?.id && (
-                          <button
-                            type="button"
-                            onClick={() => setCustomerToDelete({ id: c.id, name: c.name })}
-                            className="apple-btn-secondary"
-                            style={{ fontSize: 12, padding: '7px 12px', color: '#D64545', borderColor: '#F5C6CB' }}
-                            title="Permanently delete client and all records"
-                          >
-                            <Trash2 size={13} /> Delete
-                          </button>
+                        {isAdmin && (
+                          <span className="crm-admin-pill" title="Administrator account">
+                            <ShieldCheck size={13} /> System Admin
+                          </span>
                         )}
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
