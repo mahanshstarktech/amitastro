@@ -2036,24 +2036,18 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
         {/* 5. CUSTOMERS CRM & CLIENT MANAGEMENT */}
         {activeTab === 'customers' && (
           <div className="apple-card" style={{ padding: '24px 20px', backgroundColor: '#FFF' }}>
-            {/* Header & KPI Summary */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 14, marginBottom: 16 }}>
+            {/* Header & Controls */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
               <div>
-                <h2 className="text-h2" style={{ fontSize: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span>Client Directory & CRM</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: '#C9A24B', backgroundColor: '#FFFDF0', border: '1px solid #FDE68A', padding: '2px 8px', borderRadius: 12 }}>
-                    {customers.length} Total
-                  </span>
+                <h2 className="text-h2" style={{ fontSize: 20, fontWeight: 700, color: '#0F172A', margin: 0 }}>
+                  Client Directory & CRM
                 </h2>
-                <p style={{ fontSize: 13, color: '#64748B', marginTop: 3 }}>
-                  Showing {filteredCustomers.length} of {customers.length} registered clients · Instant 5-min trial eligibility toggle & Family 360 management.
-                </p>
               </div>
 
-              {/* Search & Filters */}
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', width: '100%', maxWidth: 580 }}>
+              {/* Search & Filter Dropdown */}
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', width: '100%', maxWidth: 540 }}>
                 {/* Search Bar */}
-                <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+                <div style={{ position: 'relative', flex: '1 1 200px' }}>
                   <Search size={14} color="#94A3B8" style={{ position: 'absolute', left: 11, top: 11 }} />
                   <input
                     type="text"
@@ -2074,61 +2068,37 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                   )}
                 </div>
 
-                {/* Filter Pills with Horizontal Scroll on Mobile */}
-                <div style={{ display: 'flex', gap: 4, backgroundColor: '#F1F5F9', padding: 3, borderRadius: 10, overflowX: 'auto', maxWidth: '100%' }}>
-                  {(['all', 'admin', 'new', 'old'] as const).map((f) => {
-                    const isSelected = (customerFilter as string) === f;
-                    const count = f === 'all'
-                      ? customers.length
-                      : f === 'admin'
-                      ? customers.filter((c) => c.role === 'admin').length
-                      : f === 'new'
-                      ? customers.filter((c) => c.is_new_customer && !c.trial_used).length
-                      : customers.filter((c) => !c.is_new_customer || c.trial_used).length;
-
-                    const label = f === 'all'
-                      ? 'All'
-                      : f === 'admin'
-                      ? 'Admins'
-                      : f === 'new'
-                      ? 'New'
-                      : 'Established';
-
-                    return (
-                      <button
-                        key={f}
-                        type="button"
-                        onClick={() => setCustomerFilter(f as any)}
-                        style={{
-                          border: 'none',
-                          padding: '6px 11px',
-                          borderRadius: 8,
-                          fontSize: 12,
-                          fontWeight: isSelected ? 600 : 500,
-                          backgroundColor: isSelected ? '#FFFFFF' : 'transparent',
-                          boxShadow: isSelected ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                          cursor: 'pointer',
-                          color: isSelected ? '#0F172A' : '#64748B',
-                          whiteSpace: 'nowrap',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 5
-                        }}
-                      >
-                        <span>{label}</span>
-                        <span style={{
-                          fontSize: 10.5,
-                          fontWeight: 700,
-                          padding: '1px 5px',
-                          borderRadius: 10,
-                          backgroundColor: isSelected ? '#F1F5F9' : '#E2E8F0',
-                          color: isSelected ? '#1E1B4B' : '#64748B'
-                        }}>
-                          {count}
-                        </span>
-                      </button>
-                    );
-                  })}
+                {/* Filter Dropdown */}
+                <div style={{ position: 'relative', minWidth: 155, flexShrink: 0 }}>
+                  <Filter size={13} color="#64748B" style={{ position: 'absolute', left: 11, top: 11, pointerEvents: 'none' }} />
+                  <select
+                    value={customerFilter}
+                    onChange={(e) => setCustomerFilter(e.target.value as any)}
+                    className="apple-input"
+                    style={{
+                      paddingLeft: 30,
+                      paddingRight: 28,
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      paddingTop: 8,
+                      paddingBottom: 8,
+                      borderRadius: 10,
+                      border: '1px solid #CBD5E1',
+                      background: '#FFFFFF',
+                      color: '#0F172A',
+                      appearance: 'none',
+                      WebkitAppearance: 'none',
+                      cursor: 'pointer',
+                      width: '100%',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+                    }}
+                  >
+                    <option value="all">All ({customers.length})</option>
+                    <option value="admin">Admins ({customers.filter((c) => c.role === 'admin').length})</option>
+                    <option value="new">New ({customers.filter((c) => c.is_new_customer && !c.trial_used).length})</option>
+                    <option value="old">Established ({customers.filter((c) => !c.is_new_customer || c.trial_used).length})</option>
+                  </select>
+                  <ChevronDown size={14} color="#64748B" style={{ position: 'absolute', right: 10, top: 11, pointerEvents: 'none' }} />
                 </div>
               </div>
             </div>
@@ -2154,7 +2124,7 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
               <div className="crm-kpi-card">
                 <span className="crm-kpi-label"><CreditCard size={12} color="#3B82F6" /> Total Revenue</span>
                 <span className="crm-kpi-val" style={{ color: '#0F172A' }}>
-                  ₹{customers.reduce((acc, c) => acc + (c.total_spent || 0), 0).toLocaleString('en-IN')}
+                  ₹{customers.reduce((acc, c) => acc + (Number(c.total_spent) || 0), 0).toLocaleString('en-IN')}
                 </span>
               </div>
             </div>
@@ -2182,7 +2152,7 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                       {/* Top Header Row: Avatar, Name, Badges, More Menu */}
                       <div className="crm-card-header">
                         <div className="crm-avatar-group">
-                          {/* Avatar Circle */}
+                          {/* Avatar Circle - firmly locked to top-left */}
                           <div className={`crm-avatar ${isAdmin ? 'admin-avatar' : ''}`}>
                             {initials}
                             {isAdmin && (
@@ -2199,17 +2169,18 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                                 {c.name}
                               </span>
 
-                              {/* Plan / Role Badge */}
+                              {/* Membership / Plan Badge */}
                               {isAdmin ? (
                                 <PlanBadge badge="Admin" size="sm" />
+                              ) : c.is_family_subscriber ? (
+                                <PlanBadge badge="Family" size="sm" />
+                              ) : c.plan && c.plan !== 'free' ? (
+                                <PlanBadge badge={c.plan.charAt(0).toUpperCase() + c.plan.slice(1)} size="sm" />
                               ) : (
-                                <PlanBadge
-                                  badge={c.plan_badge || (c.is_family_subscriber ? 'Family' : (c.plan === 'pro' ? 'Pro' : c.plan === 'plus' ? 'Plus' : c.plan === 'lite' ? 'Lite' : 'Free(Trial)'))}
-                                  size="sm"
-                                />
+                                <span className="crm-badge-standard">Client</span>
                               )}
 
-                              {/* Trial Eligibility Status Pill */}
+                              {/* Trial Eligibility Status Badge */}
                               {c.is_new_customer && !c.trial_used ? (
                                 <span className="crm-badge-trial-active" title="Eligible for a 5-minute complimentary Vedic consultation">
                                   <Sparkles size={11} /> 5-Min Free Trial
@@ -2218,24 +2189,20 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                                 <span className="crm-badge-trial-used" title="Client has already utilized their 5-minute free trial">
                                   <Clock size={11} /> Trial Used
                                 </span>
-                              ) : (
-                                <span className="crm-badge-trial-established" title="Established Client - 5-min trial is revoked">
-                                  Established Client
-                                </span>
-                              )}
+                              ) : null}
                             </div>
 
                             {/* Contact Info Row */}
                             <div className="crm-contact-row">
                               {c.phone && (
                                 <a href={`tel:${c.phone}`} className="crm-contact-item" title="Click to call">
-                                  <Phone size={12} color="#94A3B8" />
-                                  <span>{c.phone}</span>
+                                  <Phone size={12} color="#64748B" />
+                                  <span style={{ fontWeight: 500, color: '#334155' }}>{c.phone}</span>
                                 </a>
                               )}
                               {c.email && (
                                 <a href={`mailto:${c.email}`} className="crm-contact-item" title="Click to email" style={{ wordBreak: 'break-all' }}>
-                                  <Mail size={12} color="#94A3B8" />
+                                  <Mail size={12} color="#64748B" />
                                   <span>{c.email}</span>
                                 </a>
                               )}
@@ -2243,7 +2210,7 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
 
                             {/* Tags Chips */}
                             {c.tags && c.tags.length > 0 && (
-                              <div className="crm-tags-row" style={{ marginTop: 4 }}>
+                              <div className="crm-tags-row">
                                 {c.tags.map((tg: string) => (
                                   <span key={tg} className="crm-tag-chip">
                                     {tg}
@@ -2345,7 +2312,7 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                         <div className="crm-metric-divider" />
                         <div className="crm-metric-item">
                           <span className="crm-metric-label">Total Spent</span>
-                          <span className="crm-metric-val crm-metric-revenue">₹{(c.total_spent || 0).toLocaleString('en-IN')}</span>
+                          <span className="crm-metric-val crm-metric-revenue">₹{(Number(c.total_spent) || 0).toLocaleString('en-IN')}</span>
                         </div>
                         <div className="crm-metric-divider" />
                         <div className="crm-metric-item">
