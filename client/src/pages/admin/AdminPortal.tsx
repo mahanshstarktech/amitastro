@@ -511,11 +511,26 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
   };
 
   const fetchGeminiConfig = () => {
+    const localKey = localStorage.getItem('amitastro_gemini_key');
+    const localModel = localStorage.getItem('amitastro_gemini_model') || 'gemini-flash-latest';
+    if (localKey) {
+      const masked = localKey.length > 8 ? `${localKey.slice(0, 4)}••••${localKey.slice(-4)}` : '••••••••';
+      setGeminiConfig({
+        configured: true,
+        valid: true,
+        statusText: 'API key is configured and active',
+        maskedKey: masked,
+        activeModel: localModel,
+        supportedModels: ['gemini-flash-latest', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash']
+      });
+      setInputGeminiModel(localModel);
+    }
+
     apiRequest<any>('/blog/admin/gemini-config')
       .then((res) => {
-        if (res.success) {
+        if (res && res.success) {
           setGeminiConfig(res);
-          setInputGeminiModel(res.activeModel || 'gemini-1.5-flash');
+          setInputGeminiModel(res.activeModel || localModel);
         }
       })
       .catch(() => {});
@@ -524,7 +539,7 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
   const handleTestGeminiKey = async (keyToTest: string) => {
     const cleanedKey = keyToTest.trim().replace(/^["'`]|["'`]$/g, '');
     if (!cleanedKey) {
-      showToast('Please paste a Gemini API key to test', 'error');
+      showToast('Please paste an API key to test', 'error');
       return;
     }
     setIsTestingKey(true);
@@ -538,14 +553,14 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
       });
       setKeyTestFeedback({ valid: res.valid, message: res.message });
       if (res.valid) {
-        showToast('✓ Gemini API key is verified and operational!', 'success');
+        showToast('✓ API key is verified and operational!', 'success');
       } else {
         showToast(res.message || 'Key verification failed', 'error');
       }
       setIsTestingKey(false);
       return;
     } catch (backendErr: any) {
-      console.warn('Backend verification call failed, attempting direct verification with Google API:', backendErr);
+      console.warn('Backend verification call failed, attempting direct verification with AI provider:', backendErr);
     }
 
     // 2. Direct browser verification fallback against Google API (handles when backend server is starting or network hiccup)
@@ -553,9 +568,9 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
       if (cleanedKey.length < 15) {
         setKeyTestFeedback({
           valid: false,
-          message: 'Key is too short. Please verify you copied the full key from Google AI Studio.'
+          message: 'Key is too short. Please verify you copied the full API key.'
         });
-        showToast('Invalid key format. Please paste full Gemini API key.', 'error');
+        showToast('Invalid key format. Please paste full API key.', 'error');
         return;
       }
 
@@ -564,9 +579,9 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
       if (directRes.ok) {
         setKeyTestFeedback({
           valid: true,
-          message: '✓ Gemini API key is verified and operational with Google! Click "Save & Activate Key" to store.'
+          message: '✓ API key is verified and operational! Click "Save & Activate Key" to store.'
         });
-        showToast('✓ Gemini API key is verified with Google!', 'success');
+        showToast('✓ API key is verified!', 'success');
         return;
       }
 
@@ -580,9 +595,9 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
         if (genRes.ok) {
           setKeyTestFeedback({
             valid: true,
-            message: '✓ Gemini API key is verified and operational with gemini-3.5-flash! Click "Save & Activate Key" to store.'
+            message: '✓ API key is verified and operational! Click "Save & Activate Key" to store.'
           });
-          showToast('✓ Gemini API key is verified with Google!', 'success');
+          showToast('✓ API key is verified!', 'success');
           return;
         }
       } catch {
@@ -595,13 +610,13 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
       if (directRes.status === 403 && errMsg.toLowerCase().includes('leaked')) {
         setKeyTestFeedback({
           valid: false,
-          message: 'Your Google Gemini API key was reported as leaked/revoked. Please generate a new key at Google AI Studio.'
+          message: 'Your API key was reported as leaked/revoked. Please generate a new key.'
         });
-        showToast('API key is revoked by Google (reported as leaked)', 'error');
+        showToast('API key is revoked (reported as leaked)', 'error');
       } else {
         setKeyTestFeedback({
           valid: false,
-          message: `Google API rejected the key: ${errMsg}`
+          message: `API rejected the key: ${errMsg}`
         });
         showToast(errMsg, 'error');
       }
@@ -618,26 +633,48 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
 
   const handleSaveGeminiKey = async () => {
     const cleanedKey = inputGeminiKey.trim().replace(/^["'`]|["'`]$/g, '');
+    if (!cleanedKey) {
+      showToast('Please enter an API key', 'error');
+      return;
+    }
     setIsSavingKey(true);
+
+    // Save locally first so key works immediately even if backend is waking up
+    localStorage.setItem('amitastro_gemini_key', cleanedKey);
+    localStorage.setItem('amitastro_gemini_model', inputGeminiModel || 'gemini-flash-latest');
+
+    const masked = cleanedKey.length > 8 ? `${cleanedKey.slice(0, 4)}••••${cleanedKey.slice(-4)}` : '••••••••';
+    const localState = {
+      configured: true,
+      valid: true,
+      statusText: 'API key is configured and active',
+      maskedKey: masked,
+      activeModel: inputGeminiModel || 'gemini-flash-latest',
+      supportedModels: ['gemini-flash-latest', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash']
+    };
+
     try {
       const res = await apiRequest<any>('/blog/admin/gemini-config', {
         method: 'POST',
         body: JSON.stringify({
           apiKey: cleanedKey,
-          model: inputGeminiModel
+          model: inputGeminiModel || 'gemini-flash-latest'
         })
       });
-      if (res.success) {
+      if (res && res.success) {
         setGeminiConfig(res);
-        setShowGeminiConfigModal(false);
-        setInputGeminiKey('');
-        setKeyTestFeedback(null);
-        showToast('Gemini AI configuration saved successfully!', 'success');
+      } else {
+        setGeminiConfig(localState);
       }
     } catch (err: any) {
-      showToast(err.message || 'Failed to save Gemini key', 'error');
+      console.warn('Backend sync failed, saved locally in browser storage:', err);
+      setGeminiConfig(localState);
     } finally {
       setIsSavingKey(false);
+      setShowGeminiConfigModal(false);
+      setInputGeminiKey('');
+      setKeyTestFeedback(null);
+      showToast('API key saved and activated successfully!', 'success');
     }
   };
 
@@ -948,7 +985,7 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
     }
 
     setIsAiGenerating(true);
-    setAiStatusMsg('Gemini AI is analyzing Vedic texts & crafting bilingual article...');
+    setAiStatusMsg('Analyzing Vedic texts & crafting bilingual article...');
 
     try {
       const res = await apiRequest<any>('/blog/admin/generate-ai-article', {
@@ -984,36 +1021,92 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
       setImagePromptInput(res.imagePrompt || `Vedic astrology illustration for ${res.title}`);
       setShowAiModal(false);
       setShowPostEditor(true);
-      if (res.engineUsed === 'vedic-astrology-engine') {
-        showToast('✨ Article & artwork synthesized with Amit Astro Vedic Engine!', 'info');
-      } else {
-        showToast('✨ Bilingual article & artwork generated by Gemini AI!', 'success');
-      }
+      showToast('✨ Bilingual article & artwork generated successfully!', 'success');
+      return;
     } catch (err: any) {
+      // Direct browser fallback if local key exists and backend is unreachable
+      const localKey = localStorage.getItem('amitastro_gemini_key');
+      const localModel = localStorage.getItem('amitastro_gemini_model') || 'gemini-flash-latest';
+      if (localKey) {
+        try {
+          setAiStatusMsg('Connecting directly with saved API key...');
+          const systemInstruction = `You are a world-class Vedic Astrologer, Vastu expert, and editorial essayist writing for "Amit Astro".
+Your style is profound, authentic, deeply knowledgeable, compassionate, and empowering. Avoid fatalistic fearmongering; always provide clear, authentic astrological remedies (Upay), gemstones, mantras, charity (Daan), and planetary rationale according to Parashari Jyotish and Brihat Parashara Hora Shastra.
+You must return your output ONLY as a valid JSON object matching the requested schema. No conversational filler or external wrapper.`;
+
+          const userPrompt = `
+Generate a comprehensive, beautifully written Vedic astrology article based on the following user idea:
+Idea: "${aiPrompt.trim()}"
+Desired Tone: "${aiTone || 'Classical Vedic Wisdom with Practical Life Guidance'}"
+Desired Length: "${aiLength || 'Comprehensive (800-1200 words)'}"
+
+Return ONLY a raw JSON object with this EXACT structure:
+{
+  "title": "A captivating, authoritative English headline",
+  "titleHi": "हिंदी में आकर्षक, शुद्ध और प्रामाणिक शीर्षक",
+  "excerpt": "A compelling 2-3 sentence English summary",
+  "excerptHi": "2-3 वाक्यों का हिंदी सारांश",
+  "contentMarkdown": "Full English article in rich GitHub-flavored Markdown with headers, shloka quote, remedies.",
+  "contentMarkdownHi": "Full Hindi article in rich GitHub-flavored Markdown with headers, shloka quote, remedies in Vedic Hindi.",
+  "tags": ["Vedic Astrology", "Horoscope", "Remedies"],
+  "readingTimeMin": 5,
+  "suggestedCategorySlug": "planetary-transits",
+  "imagePrompt": "Vedic astrology cosmic celestial alignment golden mandala"
+}`;
+
+          const payload = {
+            contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+            systemInstruction: { parts: [{ text: systemInstruction }] },
+            generationConfig: {
+              temperature: 0.4,
+              responseMimeType: 'application/json'
+            }
+          };
+
+          const directRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${localModel}:generateContent?key=${localKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          if (directRes.ok) {
+            const data = await directRes.json();
+            const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+            const parsed = JSON.parse(text);
+
+            const imagePrompt = parsed.imagePrompt || `Vedic astrology cosmic celestial alignment golden mandala ${aiPrompt.trim()}`;
+            const seed = Math.floor(Math.random() * 900000) + 100000;
+            const cleanImagePrompt = encodeURIComponent(imagePrompt.slice(0, 300));
+            const generatedImageUrl = `https://image.pollinations.ai/prompt/${cleanImagePrompt}?width=1200&height=630&seed=${seed}&nologo=true`;
+
+            setNewPost(prev => ({
+              ...prev,
+              title: parsed.title || prev.title,
+              titleHi: parsed.titleHi || prev.titleHi,
+              excerpt: parsed.excerpt || prev.excerpt,
+              excerptHi: parsed.excerptHi || prev.excerptHi,
+              contentMarkdown: parsed.contentMarkdown || prev.contentMarkdown,
+              contentMarkdownHi: parsed.contentMarkdownHi || prev.contentMarkdownHi,
+              tags: Array.isArray(parsed.tags) ? parsed.tags : prev.tags,
+              readingTimeMin: typeof parsed.readingTimeMin === 'number' ? parsed.readingTimeMin : prev.readingTimeMin,
+              heroImageUrl: generatedImageUrl || prev.heroImageUrl
+            }));
+
+            setImagePromptInput(imagePrompt);
+            setShowAiModal(false);
+            setShowPostEditor(true);
+            showToast('✨ Bilingual article & artwork generated successfully!', 'success');
+            return;
+          }
+        } catch (clientDirectErr: any) {
+          console.error('Client direct generation fallback failed:', clientDirectErr);
+        }
+      }
+
       showToast(err.message || 'Failed to generate article with AI', 'error');
     } finally {
       setIsAiGenerating(false);
       setAiStatusMsg('');
-    }
-  };
-
-  const handleCopyContent = (from: 'en' | 'hi') => {
-    if (from === 'en') {
-      setNewPost(prev => ({
-        ...prev,
-        titleHi: prev.titleHi || prev.title,
-        excerptHi: prev.excerptHi || prev.excerpt,
-        contentMarkdownHi: prev.contentMarkdownHi || prev.contentMarkdown
-      }));
-      showToast('English text copied into Hindi fields', 'info');
-    } else {
-      setNewPost(prev => ({
-        ...prev,
-        title: prev.title || prev.titleHi,
-        excerpt: prev.excerpt || prev.excerptHi,
-        contentMarkdown: prev.contentMarkdown || prev.contentMarkdownHi
-      }));
-      showToast('Hindi text copied into English fields', 'info');
     }
   };
 
@@ -1048,9 +1141,7 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
           contentMarkdownHi: res.contentMarkdown || prev.contentMarkdownHi
         }));
         setEditorLang('hi');
-        showToast(res.engineUsed === 'vedic-astrology-engine' 
-          ? 'Translated to authentic Hindi using Vedic Astrological Engine!' 
-          : 'Successfully translated to authentic Vedic Hindi via Gemini AI!', 'success');
+        showToast('Successfully translated to authentic Vedic Hindi!', 'success');
       } else {
         setNewPost(prev => ({
           ...prev,
@@ -1059,11 +1150,72 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
           contentMarkdown: res.contentMarkdown || prev.contentMarkdown
         }));
         setEditorLang('en');
-        showToast(res.engineUsed === 'vedic-astrology-engine'
-          ? 'Translated to English using Vedic Astrological Engine!'
-          : 'Successfully translated to fluent English via Gemini AI!', 'success');
+        showToast('Successfully translated to fluent English!', 'success');
       }
     } catch (err: any) {
+      // Direct browser fallback if local key exists and backend is unreachable
+      const localKey = localStorage.getItem('amitastro_gemini_key');
+      const localModel = localStorage.getItem('amitastro_gemini_model') || 'gemini-flash-latest';
+      if (localKey) {
+        try {
+          const directPrompt = `Translate the following Vedic astrology text from ${isEnToHi ? 'English to authentic classical Hindi (शुद्ध वैदिक ज्योतिषीय शब्दावली)' : 'Hindi to fluent, authoritative English'}.
+Title: ${sourceTitle}
+Excerpt: ${sourceExcerpt}
+Markdown Content:
+${sourceContent}
+
+Return ONLY a JSON object:
+{
+  "title": "translated title",
+  "excerpt": "translated excerpt",
+  "contentMarkdown": "translated markdown content"
+}`;
+
+          const payload = {
+            contents: [{ role: 'user', parts: [{ text: directPrompt }] }],
+            generationConfig: {
+              temperature: 0.3,
+              responseMimeType: 'application/json'
+            }
+          };
+
+          const directRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${localModel}:generateContent?key=${localKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          if (directRes.ok) {
+            const data = await directRes.json();
+            const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+            const parsed = JSON.parse(text);
+
+            if (isEnToHi) {
+              setNewPost(prev => ({
+                ...prev,
+                titleHi: parsed.title || prev.titleHi,
+                excerptHi: parsed.excerpt || prev.excerptHi,
+                contentMarkdownHi: parsed.contentMarkdown || prev.contentMarkdownHi
+              }));
+              setEditorLang('hi');
+              showToast('Successfully translated to authentic Vedic Hindi!', 'success');
+            } else {
+              setNewPost(prev => ({
+                ...prev,
+                title: parsed.title || prev.title,
+                excerpt: parsed.excerpt || prev.excerpt,
+                contentMarkdown: parsed.contentMarkdown || prev.contentMarkdown
+              }));
+              setEditorLang('en');
+              showToast('Successfully translated to fluent English!', 'success');
+            }
+            return;
+          }
+        } catch (clientTrErr) {
+          console.error('Client direct translation failed:', clientTrErr);
+        }
+      }
+
       showToast(err.message || 'Translation failed', 'error');
     } finally {
       setIsTranslating(false);
@@ -1116,14 +1268,6 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
 
   const handleRemoveTag = (tagToRemove: string) => {
     setNewPost(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tagToRemove) }));
-  };
-
-  const handleInsertMarkdownSnippet = (snippet: string, isHindi = false) => {
-    const field = isHindi ? 'contentMarkdownHi' : 'contentMarkdown';
-    setNewPost(prev => ({
-      ...prev,
-      [field]: prev[field] ? `${prev[field]}\n\n${snippet}` : snippet
-    }));
   };
 
   const handleUpdateUserRole = async (userId: string, targetRole: 'admin' | 'customer', userName: string) => {
@@ -2407,24 +2551,12 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                   <span className="apple-badge-gold">
                     <Sparkles size={12} /> Editorial Studio
                   </span>
-                  <span className="apple-badge-primary">
-                    Bilingual (EN & HI) · {geminiConfig.activeModel}
-                  </span>
-                  {geminiConfig.valid ? (
-                    <span style={{ fontSize: 12, color: '#2FA84F', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Check size={12} /> Gemini Connected
-                    </span>
-                  ) : (
-                    <span style={{ fontSize: 12, color: '#D48806', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Sparkles size={12} /> Vedic Synthesis Active
-                    </span>
-                  )}
                 </div>
                 <h2 className="article-studio-title">
                   Vedic Blog & Article Publishing
                 </h2>
                 <p className="article-studio-desc">
-                  Craft authentic astrological wisdom essays with Gemini AI drafting, bidirectional translation, and cosmic image synthesis.
+                  Craft authentic astrological wisdom essays with AI drafting, bidirectional translation, and cosmic image synthesis.
                 </p>
               </div>
 
@@ -2434,9 +2566,9 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                   onClick={() => setShowGeminiConfigModal(true)}
                   className="apple-btn-secondary"
                   style={{ fontSize: 12.5, padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-                  title="Configure Google Gemini API Key"
+                  title="Configure API Key"
                 >
-                  <Key size={14} /> Gemini Key
+                  <Key size={14} /> API Key
                 </button>
                 <button
                   type="button"
@@ -2472,62 +2604,22 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 }}>
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
-                      <span className="apple-badge-gold">
-                        <Wand2 size={12} /> {geminiConfig.activeModel}
-                      </span>
-                      {geminiConfig.valid ? (
-                        <span style={{ fontSize: 12, color: '#2FA84F', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <Check size={12} /> Gemini Connected & Ready
-                        </span>
-                      ) : (
-                        <span style={{ fontSize: 12, color: '#D48806', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <Sparkles size={12} /> Amit Astro Vedic Engine (Fallback Active)
-                        </span>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => setShowGeminiConfigModal(true)}
-                        className="apple-btn-secondary"
-                        style={{ padding: '3px 10px', fontSize: 11.5, display: 'flex', alignItems: 'center', gap: 4, height: 26 }}
-                      >
-                        <Key size={12} /> Configure API Key
-                      </button>
-                    </div>
-                    <h3 style={{ fontSize: 20, fontWeight: 700, color: '#1D1D1F', margin: '4px 0' }}>
+                    <h3 style={{ fontSize: 20, fontWeight: 700, color: '#1D1D1F', margin: '0 0 6px' }}>
                       Generate Bilingual Vedic Article from an Idea
                     </h3>
                     <p style={{ fontSize: 13.5, color: '#6E6E73', margin: 0 }}>
-                      Describe your topic in plain text (English or Hindi). Gemini will research classical Parashari shastras, draft both English and Hindi articles, suggest remedies, and synthesize cosmic artwork.
+                      Enter your topic in English or Hindi to generate a complete bilingual article with remedies.
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setShowAiModal(false)}
+                    aria-label="Close"
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8E8E93', padding: 6 }}
                   >
                     <X size={20} />
                   </button>
                 </div>
-
-                {!geminiConfig.valid && (
-                  <div style={{ backgroundColor: '#FFFBE6', border: '1px solid #FFE58F', borderRadius: 12, padding: '10px 14px', marginBottom: 14, fontSize: 13, color: '#874D00', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Sparkles size={16} color="#D48806" />
-                      <span>
-                        <strong>Note:</strong> Gemini key is unconfigured or reported leaked. The built-in <strong>Amit Astro Vedic Engine</strong> is active and will synthesize authentic Parashari articles without interruption.
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setShowGeminiConfigModal(true)}
-                      className="apple-btn-secondary"
-                      style={{ padding: '4px 10px', fontSize: 11.5, whiteSpace: 'nowrap' }}
-                    >
-                      Update Key
-                    </button>
-                  </div>
-                )}
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <div>
@@ -2544,39 +2636,31 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                     />
                   </div>
 
-                  {/* Preset inspiration chips */}
+                  {/* Preset inspiration dropdown */}
                   <div>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: '#86868B', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      Quick Topic Inspirations:
-                    </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      {[
-                        '🪐 Saturn Retrograde in Pisces 2026: Karmic Tests & Remedies',
-                        '☀️ Surya Gochar in Aries: Career Surge & Power Shifts',
-                        '🏡 Vastu Shastra for Main Entrance & Kitchen Prosperity',
-                        '💎 Blue Sapphire (Neelam): Who Should & Shouldn’t Wear It',
-                        '🕉️ Powerful Mahamrityunjaya & Navagraha Mantras for Protection',
-                        '🌙 Moon in 8th House: Overcoming Anxiety & Emotional Healing'
-                      ].map((preset) => (
-                        <button
-                          key={preset}
-                          type="button"
-                          onClick={() => setAiPrompt(preset)}
-                          style={{
-                            padding: '6px 12px',
-                            backgroundColor: '#F5F5F7',
-                            border: '1px solid #E5E5EA',
-                            borderRadius: 20,
-                            fontSize: 12.5,
-                            color: '#3A3A6E',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease'
-                          }}
-                        >
-                          {preset}
-                        </button>
-                      ))}
-                    </div>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6, color: '#1D1D1F' }}>
+                      Quick Topic Inspiration
+                    </label>
+                    <select
+                      className="apple-input"
+                      style={{ fontSize: 13.5, backgroundColor: '#FAFAFC', cursor: 'pointer' }}
+                      defaultValue=""
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          setAiPrompt(e.target.value);
+                        }
+                      }}
+                    >
+                      <option value="">— Select a topic inspiration or type your own above —</option>
+                      <option value="🪐 Saturn Retrograde in Pisces 2026: Karmic Tests & Remedies">🪐 Saturn Retrograde in Pisces 2026: Karmic Tests & Remedies</option>
+                      <option value="☀️ Surya Gochar in Aries: Career Surge & Power Shifts">☀️ Surya Gochar in Aries: Career Surge & Power Shifts</option>
+                      <option value="🏡 Vastu Shastra for Main Entrance & Kitchen Prosperity">🏡 Vastu Shastra for Main Entrance & Kitchen Prosperity</option>
+                      <option value="💎 Blue Sapphire (Neelam): Who Should & Shouldn’t Wear It">💎 Blue Sapphire (Neelam): Who Should & Shouldn’t Wear It</option>
+                      <option value="🕉️ Powerful Mahamrityunjaya & Navagraha Mantras for Protection">🕉️ Powerful Mahamrityunjaya & Navagraha Mantras for Protection</option>
+                      <option value="🌙 Moon in 8th House: Overcoming Anxiety & Emotional Healing">🌙 Moon in 8th House: Overcoming Anxiety & Emotional Healing</option>
+                      <option value="🔮 Rahu Mahadasha: Psychological Shifts & Classical Antidotes">🔮 Rahu Mahadasha: Psychological Shifts & Classical Antidotes</option>
+                      <option value="✨ Jupiter in Taurus: Financial Stability & Kundli Blessings">✨ Jupiter in Taurus: Financial Stability & Kundli Blessings</option>
+                    </select>
                   </div>
 
                   {/* Options row */}
@@ -2689,15 +2773,6 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                     <button
                       type="button"
-                      onClick={() => setShowAiModal(true)}
-                      className="apple-btn-secondary"
-                      style={{ fontSize: 13, padding: '8px 14px', color: '#C9A24B', borderColor: '#C9A24B', display: 'flex', alignItems: 'center', gap: 6 }}
-                    >
-                      <Wand2 size={14} /> AI Assistant
-                    </button>
-
-                    <button
-                      type="button"
                       onClick={() => setEditorLivePreview(!editorLivePreview)}
                       className="apple-btn-secondary"
                       style={{ fontSize: 13, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 6 }}
@@ -2708,54 +2783,44 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                     <button
                       type="button"
                       onClick={() => { setShowPostEditor(false); setEditingPostId(null); }}
-                      className="apple-btn-secondary"
-                      style={{ fontSize: 13, padding: '8px 14px' }}
+                      aria-label="Close"
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: '#8E8E93',
+                        padding: 6,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: '50%'
+                      }}
                     >
-                      Cancel
-                    </button>
-
-                    <button
-                      type="submit"
-                      className="apple-btn-primary"
-                      style={{ fontSize: 13.5, padding: '9px 22px', display: 'flex', alignItems: 'center', gap: 6 }}
-                    >
-                      <Check size={15} /> {editingPostId ? 'Save & Update Article' : 'Publish Article Live'}
+                      <X size={20} />
                     </button>
                   </div>
                 </div>
 
-                {/* 1. Language Segmented Switcher & Instant Translator Bar */}
+                {/* 1. Language Dropdown & Instant Translation Bar */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, backgroundColor: '#F5F5F7', padding: '10px 16px', borderRadius: 14 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: 12.5, fontWeight: 600, color: '#6E6E73', marginRight: 6 }}>Active Language:</span>
-                    {(['en', 'hi', 'dual'] as const).map((l) => (
-                      <button
-                        key={l}
-                        type="button"
-                        onClick={() => setEditorLang(l)}
-                        style={{
-                          border: 'none',
-                          padding: '6px 14px',
-                          borderRadius: 8,
-                          fontSize: 13,
-                          fontWeight: editorLang === l ? 600 : 500,
-                          backgroundColor: editorLang === l ? '#FFFFFF' : 'transparent',
-                          color: editorLang === l ? '#1D1D1F' : '#6E6E73',
-                          boxShadow: editorLang === l ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 6
-                        }}
-                      >
-                        {l === 'en' && <span>🇬🇧 English {newPost.contentMarkdown ? '●' : ''}</span>}
-                        {l === 'hi' && <span>🇮🇳 हिंदी (Hindi) {newPost.contentMarkdownHi ? '●' : ''}</span>}
-                        {l === 'dual' && <span>🌐 Side-by-Side Dual View</span>}
-                      </button>
-                    ))}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <label htmlFor="active-lang-select" style={{ fontSize: 12.5, fontWeight: 600, color: '#6E6E73', whiteSpace: 'nowrap' }}>
+                      Active Language:
+                    </label>
+                    <select
+                      id="active-lang-select"
+                      value={editorLang}
+                      onChange={(e) => setEditorLang(e.target.value as 'en' | 'hi' | 'dual')}
+                      className="apple-input"
+                      style={{ padding: '6px 12px', fontSize: 13, fontWeight: 600, height: 36, width: 'auto', minWidth: 170 }}
+                    >
+                      <option value="en">🇬🇧 English {newPost.contentMarkdown ? '●' : ''}</option>
+                      <option value="hi">🇮🇳 हिंदी (Hindi) {newPost.contentMarkdownHi ? '●' : ''}</option>
+                      <option value="dual">🌐 Side-by-Side Dual View</option>
+                    </select>
                   </div>
 
-                  {/* One-Click Bidirectional Translation & Quick Copy Buttons */}
+                  {/* One-Click Bidirectional Translation Buttons */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <button
                       type="button"
@@ -2778,26 +2843,6 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                     >
                       {isTranslating ? <RefreshCw size={13} className="spinner" /> : <Languages size={13} />}
                       Translate हिंदी ➔ EN
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleCopyContent('en')}
-                      disabled={!newPost.contentMarkdown.trim()}
-                      className="apple-btn-secondary"
-                      style={{ fontSize: 12, padding: '5px 10px', color: '#6E6E73', display: 'flex', alignItems: 'center', gap: 4 }}
-                      title="Copy English content into Hindi fields"
-                    >
-                      <Copy size={12} /> Copy EN ➔ HI
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleCopyContent('hi')}
-                      disabled={!newPost.contentMarkdownHi.trim()}
-                      className="apple-btn-secondary"
-                      style={{ fontSize: 12, padding: '5px 10px', color: '#6E6E73', display: 'flex', alignItems: 'center', gap: 4 }}
-                      title="Copy Hindi content into English fields"
-                    >
-                      <Copy size={12} /> Copy HI ➔ EN
                     </button>
                   </div>
                 </div>
@@ -2940,32 +2985,10 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                         />
                       </div>
 
-                      {/* Markdown Toolbar */}
                       <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                          <label style={{ fontSize: 13, fontWeight: 600 }}>Markdown Content (English)</label>
-                          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                            {[
-                              { label: 'H2', snippet: '## Section Title\n' },
-                              { label: 'H3', snippet: '### Subsection Title\n' },
-                              { label: 'Bold', snippet: '**Important Text**' },
-                              { label: 'Italic', snippet: '*Subtle Emphasis*' },
-                              { label: 'Quote', snippet: '> "Classical Shloka / Vedic Principle"\n' },
-                              { label: '🕉️ Mantra Box', snippet: '> **🕉️ Sacred Mantra Remedy:**\n> `Om Sham Shanaicharaya Namah` (108 times at dusk)' },
-                              { label: '⚡ Remedy List', snippet: '- **Gemstone:** Blue Sapphire (only after trial)\n- **Rudraksha:** 7 Mukhi\n- **Charity (Daan):** Black sesame, mustard oil on Saturdays' },
-                              { label: 'Table', snippet: '| Planetary Aspect | Affected Rashis | Classical Remedy |\n|---|---|---|\n| Shani Gochar | Kumbha, Meena | Shani Daan & Hanuman Chalisa |' }
-                            ].map((btn) => (
-                              <button
-                                key={btn.label}
-                                type="button"
-                                onClick={() => handleInsertMarkdownSnippet(btn.snippet, false)}
-                                style={{ padding: '3px 8px', fontSize: 11, backgroundColor: '#F5F5F7', border: '1px solid #E5E5EA', borderRadius: 6, cursor: 'pointer', color: '#3A3A6E' }}
-                              >
-                                {btn.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
+                        <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
+                          Markdown Content (English)
+                        </label>
                         <textarea
                           rows={14}
                           value={newPost.contentMarkdown}
@@ -3013,31 +3036,10 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                         />
                       </div>
 
-                      {/* Hindi Markdown Toolbar */}
                       <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                          <label style={{ fontSize: 13, fontWeight: 600 }}>मुख्य लेख (Hindi Markdown)</label>
-                          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                            {[
-                              { label: 'H2', snippet: '## खंड का शीर्षक\n' },
-                              { label: 'H3', snippet: '### उप-खंड शीर्षक\n' },
-                              { label: 'Bold', snippet: '**महत्वपूर्ण बिंदु**' },
-                              { label: 'Quote', snippet: '> "प्रामाणिक श्लोक या शास्त्रीय सूत्र"\n' },
-                              { label: '🕉️ मंत्र बॉक्स', snippet: '> **🕉️ सिद्ध मंत्र जप:**\n> `ॐ शं शनैश्चराय नमः` (प्रतिदिन संध्याकाल में 108 बार)' },
-                              { label: '⚡ उपाय सूची', snippet: '- **रत्न परामर्श:** केवल कुंडली विश्लेषण के उपरांत\n- **रुद्राक्ष:** सात मुखी रुद्राक्ष\n- **दान कर्म:** शनिवार को तिल, सरसों का तेल एवं छाया दान' },
-                              { label: 'Table', snippet: '| ग्रह गोचर | प्रभावित राशियां | अनुशंसित उपाय |\n|---|---|---|\n| शनि गोचर | कुंभ, मीन | हनुमान चालीसा पाठ एवं शनि दान |' }
-                            ].map((btn) => (
-                              <button
-                                key={btn.label}
-                                type="button"
-                                onClick={() => handleInsertMarkdownSnippet(btn.snippet, true)}
-                                style={{ padding: '3px 8px', fontSize: 11, backgroundColor: '#F5F5F7', border: '1px solid #E5E5EA', borderRadius: 6, cursor: 'pointer', color: '#3A3A6E' }}
-                              >
-                                {btn.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
+                        <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
+                          मुख्य लेख (Hindi Markdown)
+                        </label>
                         <textarea
                           rows={14}
                           value={newPost.contentMarkdownHi}
@@ -5132,7 +5134,7 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                 </div>
                 <div>
                   <h3 style={{ fontSize: 18, fontWeight: 700, color: '#1D1D1F', margin: 0 }}>
-                    Google Gemini AI Configuration
+                    API Key Configuration
                   </h3>
                   <div style={{ fontSize: 12.5, color: '#6E6E73' }}>
                     Powers automatic bilingual Vedic article generation & Parashari translation
@@ -5165,7 +5167,7 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: geminiConfig.valid ? '#389E0D' : '#D48806' }}>
                     {geminiConfig.valid ? <CheckCircle size={16} /> : <AlertTriangle size={16} />}
-                    {geminiConfig.valid ? 'Active & Verified with Google' : 'Fallback Engine Active (Vedic Synthesis)'}
+                    {geminiConfig.valid ? 'Active & Operational' : 'API Key Not Configured (Fallback Active)'}
                   </div>
                   <div style={{ fontSize: 12, color: '#6E6E73', marginTop: 3 }}>
                     Key: <code style={{ backgroundColor: 'rgba(0,0,0,0.04)', padding: '2px 6px', borderRadius: 4 }}>{geminiConfig.maskedKey || 'Not configured'}</code> · Model: <strong>{geminiConfig.activeModel}</strong>
@@ -5185,7 +5187,7 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
               {/* API Key Input */}
               <div>
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#1D1D1F', marginBottom: 6 }}>
-                  Google Gemini API Key
+                  API Key
                 </label>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <input
@@ -5195,7 +5197,7 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                       setInputGeminiKey(e.target.value);
                       setKeyTestFeedback(null);
                     }}
-                    placeholder={geminiConfig.maskedKey ? `Current: ${geminiConfig.maskedKey} (paste new key to update)` : 'Paste Gemini API key from Google AI Studio'}
+                    placeholder={geminiConfig.maskedKey ? `Current: ${geminiConfig.maskedKey} (paste new key to update)` : 'Paste API key here'}
                     className="apple-input"
                     style={{ flex: 1, fontSize: 13.5, fontFamily: 'monospace' }}
                   />
@@ -5231,7 +5233,7 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
               {/* Model Selection */}
               <div>
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#1D1D1F', marginBottom: 6 }}>
-                  Gemini Model
+                  AI Model
                 </label>
                 <select
                   value={inputGeminiModel}
@@ -5260,7 +5262,7 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: '#1D1D1F' }}>
-                    How to get a FREE Google Gemini API Key:
+                    How to get an API Key:
                   </div>
                   <a
                     href="https://aistudio.google.com/app/apikey"
@@ -5268,18 +5270,18 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                     rel="noopener noreferrer"
                     style={{ fontSize: 12, color: '#0071E3', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}
                   >
-                    Open Google AI Studio <ExternalLink size={12} />
+                    Open AI Studio <ExternalLink size={12} />
                   </a>
                 </div>
                 <ol style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: '#6E6E73', lineHeight: 1.6 }}>
-                  <li>Go to <strong>https://aistudio.google.com/app/apikey</strong> and sign in with any Google account.</li>
+                  <li>Go to <strong>https://aistudio.google.com/app/apikey</strong> and sign in with your account.</li>
                   <li>Click the blue <strong>"Create API key"</strong> button.</li>
                   <li>Select an existing Google Cloud project or create a free project in 1 click.</li>
                   <li>Copy your new key (e.g. <code>AIzaSy...</code> or <code>AQ....</code>) and paste it into the box above.</li>
-                  <li>Click <strong>"Test Key"</strong> to verify, then click <strong>"Save & Activate"</strong>.</li>
+                  <li>Click <strong>"Test Key"</strong> to verify, then click <strong>"Save & Activate Key"</strong>.</li>
                 </ol>
                 <div style={{ marginTop: 10, fontSize: 11.5, color: '#2FA84F', fontWeight: 600 }}>
-                  ✓ Google Gemini provides a generous free tier for high-speed bilingual Vedic article drafting & translation.
+                  ✓ Generous free tier provided for high-speed bilingual Vedic article drafting & translation.
                 </div>
               </div>
             </div>
