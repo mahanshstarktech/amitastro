@@ -111,26 +111,29 @@ export const WhatsAppQuotedBubble: React.FC<WhatsAppQuotedBubbleProps> = ({
   return (
     <div
       onClick={onClick}
+      className="whatsapp-quoted-bubble-inset"
       style={{
         display: 'flex',
         alignItems: 'stretch',
-        backgroundColor: 'rgba(0, 0, 0, 0.05)',
+        backgroundColor: 'rgba(0, 0, 0, 0.06)',
         borderRadius: 8,
         overflow: 'hidden',
-        marginBottom: 4,
+        margin: '2px 0 6px 0',
         cursor: onClick ? 'pointer' : 'default',
-        userSelect: 'none'
+        userSelect: 'none',
+        width: '100%',
+        boxSizing: 'border-box'
       }}
     >
       {/* Left accent bar */}
-      <div style={{ width: 4, backgroundColor: accentColor, flexShrink: 0 }} />
-      <div style={{ padding: '4px 8px', minWidth: 0, flex: 1 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: accentColor }}>
+      <div style={{ width: 4, backgroundColor: accentColor, flexShrink: 0, borderRadius: '4px 0 0 4px' }} />
+      <div style={{ padding: '5px 8px', minWidth: 0, flex: 1 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: accentColor, marginBottom: 1 }}>
           {senderName}
         </div>
         <div
           style={{
-            fontSize: 12,
+            fontSize: 12.5,
             color: '#3B4A54',
             whiteSpace: 'nowrap',
             overflow: 'hidden',

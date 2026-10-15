@@ -6,13 +6,15 @@ interface WhatsAppSwipeWrapperProps {
   onReply: () => void;
   onLongPress?: () => void;
   disabled?: boolean;
+  isActive?: boolean;
 }
 
 export const WhatsAppSwipeWrapper: React.FC<WhatsAppSwipeWrapperProps> = ({
   children,
   onReply,
   onLongPress,
-  disabled = false
+  disabled = false,
+  isActive = false
 }) => {
   const [offsetX, setOffsetX] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
@@ -114,7 +116,8 @@ export const WhatsAppSwipeWrapper: React.FC<WhatsAppSwipeWrapperProps> = ({
         display: 'flex',
         alignItems: 'center',
         width: '100%',
-        touchAction: isSwiping ? 'none' : 'pan-y'
+        touchAction: isSwiping ? 'none' : 'pan-y',
+        zIndex: isActive ? 1000 : 'auto'
       }}
     >
       {/* Emerging Circular Reply Icon on the left */}
@@ -147,7 +150,7 @@ export const WhatsAppSwipeWrapper: React.FC<WhatsAppSwipeWrapperProps> = ({
           width: '100%',
           display: 'flex',
           flexDirection: 'column',
-          transform: `translateX(${offsetX}px)`,
+          transform: offsetX !== 0 ? `translateX(${offsetX}px)` : undefined,
           transition: isSwiping ? 'none' : 'transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
         }}
       >

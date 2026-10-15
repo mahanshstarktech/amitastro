@@ -115,6 +115,8 @@ function playAppleSendChime() {
   } catch (_) {}
 }
 
+const isTruthyFlag = (val?: any): boolean => Boolean(val && val !== 0 && val !== '0' && val !== false && val !== 'false');
+
 export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
   onCustomerDeleted,
   initialConversationId
@@ -166,7 +168,16 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
 
   const pinnedMessage = useMemo(() => {
-    return chatMessages.find((m) => m.is_pinned === 1);
+    return chatMessages.find((m) => isTruthyFlag(m.is_pinned));
+  }, [chatMessages]);
+
+  const deduplicatedChatMessages = useMemo(() => {
+    const seen = new Set<string>();
+    return chatMessages.filter((m) => {
+      if (seen.has(m.id)) return false;
+      seen.add(m.id);
+      return true;
+    });
   }, [chatMessages]);
 
   const scrollToMessage = (msgId?: string) => {
@@ -332,6 +343,33 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
   const handleSelectReaction = async (messageId: string, emoji: string) => {
     try {
       setActiveReactionMessageId(null);
+      // Optimistic local state update for zero-latency interaction
+      setChatMessages((prev) =>
+        prev.map((item) => {
+          if (item.id !== messageId) return item;
+          let rObj: Record<string, string[]> = {};
+          try {
+            rObj = typeof item.reactions === 'string' ? JSON.parse(item.reactions) : (item.reactions || {});
+          } catch (_) {
+            rObj = {};
+          }
+          const userKey = 'admin';
+          const existingEmoji = Object.keys(rObj).find((e) => Array.isArray(rObj[e]) && rObj[e].includes(userKey));
+          if (existingEmoji === emoji) {
+            rObj[emoji] = (rObj[emoji] || []).filter((id: string) => id !== userKey);
+            if (rObj[emoji].length === 0) delete rObj[emoji];
+          } else {
+            if (existingEmoji && rObj[existingEmoji]) {
+              rObj[existingEmoji] = rObj[existingEmoji].filter((id: string) => id !== userKey);
+              if (rObj[existingEmoji].length === 0) delete rObj[existingEmoji];
+            }
+            if (!rObj[emoji]) rObj[emoji] = [];
+            rObj[emoji].push(userKey);
+          }
+          return { ...item, reactions: JSON.stringify(rObj) };
+        })
+      );
+
       const res = await apiRequest<{ success: boolean; reactions: any }>('/chat/message/react', {
         method: 'POST',
         body: JSON.stringify({
@@ -340,22 +378,23 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
           conversationId: selectedConv?.id
         })
       });
-      if (res.reactions) {
+      if (res && res.reactions) {
         setChatMessages((prev) =>
           prev.map((item) =>
             item.id === messageId ? { ...item, reactions: res.reactions } : item
           )
         );
       }
-    } catch (err: any) {
-      showToast(err.message || 'Failed to update reaction', 'error');
+    } catch (_err) {
+      // Optimistic reaction is already rendered locally
     }
   };
 
   const handleToggleStar = async (msg: ChatMessageItem) => {
     try {
       setActiveContextMenuMessageId(null);
-      const nextStar = msg.is_starred ? 0 : 1;
+      const isStarred = isTruthyFlag(msg.is_starred);
+      const nextStar = isStarred ? 0 : 1;
       setChatMessages((prev) =>
         prev.map((m) => (m.id === msg.id ? { ...m, is_starred: nextStar } : m))
       );
@@ -364,15 +403,26 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
         body: JSON.stringify({ messageId: msg.id })
       });
       showToast(nextStar ? 'Message starred' : 'Message unstarred', 'success');
-    } catch (err: any) {
-      showToast(err.message || 'Failed to update star', 'error');
+    } catch (_err) {
+      // Local state is preserved
     }
   };
 
   const handleTogglePin = async (msg: ChatMessageItem) => {
     try {
       setActiveContextMenuMessageId(null);
-      const nextPin = msg.is_pinned ? 0 : 1;
+      const isPinned = isTruthyFlag(msg.is_pinned);
+      const nextPin = isPinned ? 0 : 1;
+
+      // Durable client-side cache so pinning persists across navigation
+      if (selectedConv?.id) {
+        if (nextPin) {
+          localStorage.setItem(`amit_pinned_msg_${selectedConv.id}`, msg.id);
+        } else {
+          localStorage.removeItem(`amit_pinned_msg_${selectedConv.id}`);
+        }
+      }
+
       setChatMessages((prev) =>
         prev.map((m) => (m.id === msg.id ? { ...m, is_pinned: nextPin } : (nextPin ? { ...m, is_pinned: 0 } : m)))
       );
@@ -381,8 +431,8 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
         body: JSON.stringify({ messageId: msg.id })
       });
       showToast(nextPin ? 'Message pinned' : 'Message unpinned', 'success');
-    } catch (err: any) {
-      showToast(err.message || 'Failed to update pin', 'error');
+    } catch (_err) {
+      // Local state and durable cache are preserved
     }
   };
 
@@ -513,7 +563,15 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
 
     try {
       const res = await apiRequest(`/chat/admin/conversation/${conv.id}`);
-      setChatMessages(res.messages || []);
+      const cachedPinnedId = localStorage.getItem(`amit_pinned_msg_${conv.id}`);
+      const rawMsgs: ChatMessageItem[] = res.messages || [];
+      const hydratedMsgs = rawMsgs.map((m) => {
+        if (cachedPinnedId && m.id === cachedPinnedId && !m.is_pinned) {
+          return { ...m, is_pinned: 1 };
+        }
+        return m;
+      });
+      setChatMessages(hydratedMsgs);
       setCustomerContext(res.customer360 || null);
       setInternalNote(res.customer360?.notes || '');
       scrollToBottom('auto');
@@ -536,6 +594,7 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
   const handleSendMessage = async (e?: React.FormEvent, customContent?: string, customType?: any) => {
     if (e) e.preventDefault();
     if (!selectedConv) return;
+    if (isSending) return;
 
     const contentToSend = (customContent !== undefined ? customContent : inputText).trim();
     const typeToSend = customType || (attachmentPreview ? 'image' : 'text');
@@ -566,7 +625,17 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
 
       if (soundEnabled) playSendChime();
 
-      setChatMessages((prev) => [...prev, res.message]);
+      const sentMsg: ChatMessageItem = {
+        ...res.message,
+        reply_to_id: res.message.reply_to_id || replyPayload.replyToId,
+        reply_to_text: res.message.reply_to_text || replyPayload.replyToText,
+        reply_to_sender: res.message.reply_to_sender || replyPayload.replyToSender
+      };
+
+      setChatMessages((prev) => {
+        if (prev.some((m) => m.id === sentMsg.id)) return prev;
+        return [...prev, sentMsg];
+      });
       setInputText('');
       setAttachmentPreview(null);
       scrollToBottom('smooth');
@@ -1389,12 +1458,12 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
                   </p>
                 </div>
               ) : (
-                chatMessages.map((m, idx) => {
+                deduplicatedChatMessages.map((m, idx) => {
                   const isMe = m.sender_type === 'admin';
                   const showDateDivider =
                     idx === 0 ||
                     new Date(m.created_at).toDateString() !==
-                      new Date(chatMessages[idx - 1].created_at).toDateString();
+                      new Date(deduplicatedChatMessages[idx - 1].created_at).toDateString();
 
                   const timeStr = new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -1435,6 +1504,7 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
                           setActiveReactionMessageId(null);
                         }}
                         disabled={isSelectionMode}
+                        isActive={activeContextMenuMessageId === m.id || activeReactionMessageId === m.id}
                       >
                         <div
                           id={`admin-msg-${m.id}`}
@@ -1445,7 +1515,8 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
                             justifyContent: isMe ? 'flex-end' : 'flex-start',
                             position: 'relative',
                             width: '100%',
-                            padding: '2px 0'
+                            padding: '2px 0',
+                            zIndex: (activeContextMenuMessageId === m.id || activeReactionMessageId === m.id) ? 9999 : 'auto'
                           }}
                         >
                           {/* Selection Checkbox */}
@@ -1483,16 +1554,6 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
                               maxWidth: m.message_type === 'voice' ? '360px' : '82%'
                             }}
                           >
-                            {/* Quoted reply box if replied to another message */}
-                            {m.reply_to_text && (
-                              <WhatsAppQuotedBubble
-                                senderName={m.reply_to_sender || (isMe ? selectedConv.customer_name : 'Amit Astro')}
-                                content={m.reply_to_text}
-                                accentColor={isMe ? '#00A884' : '#128C7E'}
-                                onClick={() => scrollToMessage(m.reply_to_id)}
-                              />
-                            )}
-
                             {/* Deleted message indicator */}
                             {m.is_deleted === 1 ? (
                               <div
@@ -1505,21 +1566,51 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
                                 </span>
                               </div>
                             ) : m.message_type === 'voice' ? (
-                              <WhatsAppVoicePlayer
-                                id={m.id}
-                                audioUrl={m.attachment_url}
-                                durationSeconds={parseVoiceDuration(m.content)}
-                                isMe={isMe}
-                                senderName={isMe ? 'Amit Astro' : selectedConv.customer_name}
-                                senderPhoto={isMe ? '/icons/logo-mark.png' : selectedConv.customer_photo}
-                                timestamp={timeStr}
-                                isPlaying={playingVoiceId === m.id}
-                                onTogglePlay={() => setPlayingVoiceId(playingVoiceId === m.id ? null : m.id)}
-                              />
+                              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                {m.reply_to_text && (
+                                  <div style={{ padding: '4px 6px', backgroundColor: isMe ? '#E7FFDB' : '#FFFFFF', borderRadius: '12px 12px 0 0', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+                                    <WhatsAppQuotedBubble
+                                      senderName={
+                                        m.reply_to_sender === 'admin' || m.reply_to_sender === 'Amit Astro'
+                                          ? (isMe ? 'You' : 'Amit Astro')
+                                          : (isMe ? selectedConv.customer_name : 'You')
+                                      }
+                                      content={m.reply_to_text}
+                                      accentColor={isMe ? '#128C7E' : '#00A884'}
+                                      onClick={() => scrollToMessage(m.reply_to_id)}
+                                    />
+                                  </div>
+                                )}
+                                <WhatsAppVoicePlayer
+                                  id={m.id}
+                                  audioUrl={m.attachment_url}
+                                  durationSeconds={parseVoiceDuration(m.content)}
+                                  isMe={isMe}
+                                  senderName={isMe ? 'Amit Astro' : selectedConv.customer_name}
+                                  senderPhoto={isMe ? '/icons/logo-mark.png' : selectedConv.customer_photo}
+                                  timestamp={timeStr}
+                                  isPlaying={playingVoiceId === m.id}
+                                  onTogglePlay={() => setPlayingVoiceId(playingVoiceId === m.id ? null : m.id)}
+                                />
+                              </div>
                             ) : (
                               <div
                                 className={`hybrid-bubble ${isMe ? 'hybrid-bubble-out' : 'hybrid-bubble-in'}`}
                               >
+                                {/* Quoted reply box INSIDE the bubble at the very top */}
+                                {m.reply_to_text && (
+                                  <WhatsAppQuotedBubble
+                                    senderName={
+                                      m.reply_to_sender === 'admin' || m.reply_to_sender === 'Amit Astro'
+                                        ? (isMe ? 'You' : 'Amit Astro')
+                                        : (isMe ? selectedConv.customer_name : 'You')
+                                    }
+                                    content={m.reply_to_text}
+                                    accentColor={isMe ? '#128C7E' : '#00A884'}
+                                    onClick={() => scrollToMessage(m.reply_to_id)}
+                                  />
+                                )}
+
                                 {/* Attachment Image Preview if present */}
                                 {m.attachment_url && (
                                   <div style={{ marginBottom: 6 }}>
@@ -1541,8 +1632,12 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
                                 <span className="hybrid-message-text">{m.content}</span>
 
                                 <span className="hybrid-bubble-meta">
-                                  {m.is_pinned === 1 && <span title="Pinned" style={{ fontSize: 11, marginRight: 2 }}>📌</span>}
-                                  {m.is_starred === 1 && <span title="Starred" style={{ fontSize: 11, marginRight: 2, color: '#F59E0B' }}>★</span>}
+                                  {isTruthyFlag(m.is_pinned) && (
+                                    <span title="Pinned" style={{ fontSize: 11, marginRight: 2 }}>📌</span>
+                                  )}
+                                  {isTruthyFlag(m.is_starred) && (
+                                    <span title="Starred" style={{ fontSize: 11, marginRight: 2, color: '#F59E0B' }}>★</span>
+                                  )}
                                   <span className="hybrid-bubble-time">{timeStr}</span>
                                   {isMe && (
                                     <span className="hybrid-read-ticks">
@@ -1610,8 +1705,8 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
                             {/* WhatsApp Context Menu Popover */}
                             {activeContextMenuMessageId === m.id && (
                               <WhatsAppContextMenu
-                                isStarred={m.is_starred === 1}
-                                isPinned={m.is_pinned === 1}
+                                isStarred={isTruthyFlag(m.is_starred)}
+                                isPinned={isTruthyFlag(m.is_pinned)}
                                 onReply={() => {
                                   setReplyingToMessage(m);
                                   setActiveContextMenuMessageId(null);
@@ -1647,7 +1742,7 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
                                   setActiveContextMenuMessageId(null);
                                 }}
                                 onClose={() => setActiveContextMenuMessageId(null)}
-                                position="bottom"
+                                position="auto"
                                 align={isMe ? 'right' : 'left'}
                               />
                             )}

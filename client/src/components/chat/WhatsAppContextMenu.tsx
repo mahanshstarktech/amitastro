@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useState, useRef } from 'react';
 import {
   Reply,
   Smile,
@@ -24,7 +24,7 @@ export interface WhatsAppContextMenuProps {
   onClose: () => void;
   isStarred?: boolean;
   isPinned?: boolean;
-  position?: 'top' | 'bottom';
+  position?: 'auto' | 'top' | 'bottom';
   align?: 'left' | 'right';
 }
 
@@ -41,10 +41,40 @@ export const WhatsAppContextMenu: React.FC<WhatsAppContextMenuProps> = ({
   onClose,
   isStarred = false,
   isPinned = false,
-  position = 'bottom',
+  position = 'auto',
   align = 'right'
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
+  const [effectivePosition, setEffectivePosition] = useState<'top' | 'bottom'>(
+    position === 'top' ? 'top' : 'bottom'
+  );
+
+  // Auto-detect free vertical space: if space below trigger is limited, open upwards
+  useLayoutEffect(() => {
+    if (position === 'top') {
+      setEffectivePosition('top');
+      return;
+    }
+    if (menuRef.current) {
+      const rect = menuRef.current.getBoundingClientRect();
+      const scrollParent =
+        menuRef.current.closest('.hybrid-chat-canvas') ||
+        menuRef.current.closest('.apple-messages-thread') ||
+        menuRef.current.closest('.apple-messages-container');
+      const containerBottom = scrollParent
+        ? scrollParent.getBoundingClientRect().bottom
+        : window.innerHeight;
+      const bottomLimit = Math.min(window.innerHeight, containerBottom);
+
+      const triggerEl = menuRef.current.parentElement;
+      const triggerBottom = triggerEl ? triggerEl.getBoundingClientRect().bottom : rect.top;
+
+      // WhatsApp context menu is ~320px tall. If remaining space below is under 320px, flip to top
+      if (bottomLimit - triggerBottom < 320 || rect.bottom > bottomLimit - 15) {
+        setEffectivePosition('top');
+      }
+    }
+  }, [position]);
 
   // Close on outside click
   useEffect(() => {
@@ -77,15 +107,17 @@ export const WhatsAppContextMenu: React.FC<WhatsAppContextMenuProps> = ({
       className="whatsapp-context-menu-root"
       style={{
         position: 'absolute',
-        [position === 'top' ? 'bottom' : 'top']: 'calc(100% + 4px)',
+        [effectivePosition === 'top' ? 'bottom' : 'top']: 'calc(100% + 6px)',
         [align === 'left' ? 'left' : 'right']: 0,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: 'rgba(255, 255, 255, 0.88)',
+        backdropFilter: 'blur(24px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(24px) saturate(180%)',
         borderRadius: 14,
-        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.16), 0 2px 6px rgba(0, 0, 0, 0.08)',
-        border: '1px solid rgba(0, 0, 0, 0.08)',
+        boxShadow: '0 12px 36px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.08)',
+        border: '1px solid rgba(255, 255, 255, 0.7)',
         padding: '6px 0',
         minWidth: 190,
-        zIndex: 99995,
+        zIndex: 99999,
         userSelect: 'none',
         animation: 'whatsappPopoverPop 0.15s cubic-bezier(0.16, 1, 0.3, 1)'
       }}

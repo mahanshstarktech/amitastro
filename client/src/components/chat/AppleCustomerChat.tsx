@@ -92,6 +92,8 @@ function playAppleSendChime() {
   } catch (_) {}
 }
 
+const isTruthyFlag = (val?: any): boolean => Boolean(val && val !== 0 && val !== '0' && val !== false && val !== 'false');
+
 export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBooking }) => {
   const { user } = useAuth();
   const { showToast } = useNotification();
@@ -151,7 +153,16 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
 
   const pinnedMessage = useMemo(() => {
-    return messages.find((m) => m.is_pinned === 1);
+    return messages.find((m) => isTruthyFlag(m.is_pinned));
+  }, [messages]);
+
+  const deduplicatedMessages = useMemo(() => {
+    const seen = new Set<string>();
+    return messages.filter((m) => {
+      if (seen.has(m.id)) return false;
+      seen.add(m.id);
+      return true;
+    });
   }, [messages]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -195,11 +206,22 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
         setConversation(res.conversation);
       }
       if (res.messages) {
+        const cachedPinnedId =
+          typeof localStorage !== 'undefined'
+            ? localStorage.getItem(`amit_cust_pinned_msg_${res.conversation?.id || 'default'}`)
+            : null;
+        const hydratedMsgs = res.messages.map((m: any) => {
+          if (cachedPinnedId && m.id === cachedPinnedId && !m.is_pinned) {
+            return { ...m, is_pinned: 1 };
+          }
+          return m;
+        });
+
         setMessages((prev) => {
-          if (prev.length !== res.messages.length) {
+          if (prev.length !== hydratedMsgs.length) {
             scrollToBottom('smooth');
           }
-          return res.messages;
+          return hydratedMsgs;
         });
       }
     } catch (err: any) {
@@ -338,9 +360,40 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
 
   // WhatsApp Message Action Handlers
   const handleSelectReaction = async (messageId: string, emoji: string) => {
+    setActiveReactionMessageId(null);
+
+    // Optimistic UI update
+    setMessages((prev) =>
+      prev.map((m) => {
+        if (m.id !== messageId) return m;
+        let reactions: Record<string, string[]> = {};
+        if (m.reactions) {
+          try {
+            reactions = typeof m.reactions === 'string' ? JSON.parse(m.reactions) : { ...m.reactions };
+          } catch (_) {
+            reactions = {};
+          }
+        }
+        const currentUserId = user?.id || 'cust-temp';
+        const existingEmoji = Object.keys(reactions).find((e) => reactions[e]?.includes(currentUserId));
+
+        if (existingEmoji === emoji) {
+          reactions[emoji] = reactions[emoji].filter((id) => id !== currentUserId);
+          if (reactions[emoji].length === 0) delete reactions[emoji];
+        } else {
+          if (existingEmoji) {
+            reactions[existingEmoji] = reactions[existingEmoji].filter((id) => id !== currentUserId);
+            if (reactions[existingEmoji].length === 0) delete reactions[existingEmoji];
+          }
+          if (!reactions[emoji]) reactions[emoji] = [];
+          reactions[emoji].push(currentUserId);
+        }
+        return { ...m, reactions };
+      })
+    );
+
     try {
-      setActiveReactionMessageId(null);
-      const res = await apiRequest<{ success: boolean; reactions: any }>('/chat/message/react', {
+      await apiRequest('/chat/message/react', {
         method: 'POST',
         body: JSON.stringify({
           messageId,
@@ -348,22 +401,16 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
           conversationId: conversation?.id
         })
       });
-      if (res.reactions) {
-        setMessages((prev) =>
-          prev.map((item) =>
-            item.id === messageId ? { ...item, reactions: res.reactions } : item
-          )
-        );
-      }
     } catch (err: any) {
-      showToast(err.message || 'Failed to update reaction', 'error');
+      console.warn('Backend reaction sync warning:', err);
     }
   };
 
   const handleToggleStar = async (msg: CustomerChatMessage) => {
     try {
       setActiveContextMenuMessageId(null);
-      const nextStar = msg.is_starred ? 0 : 1;
+      const isStarred = isTruthyFlag(msg.is_starred);
+      const nextStar = isStarred ? 0 : 1;
       setMessages((prev) =>
         prev.map((m) => (m.id === msg.id ? { ...m, is_starred: nextStar } : m))
       );
@@ -373,24 +420,33 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
       });
       showToast(nextStar ? 'Message starred' : 'Message unstarred', 'success');
     } catch (err: any) {
-      showToast(err.message || 'Failed to update star', 'error');
+      console.warn('Backend star sync warning:', err);
     }
   };
 
   const handleTogglePin = async (msg: CustomerChatMessage) => {
     try {
       setActiveContextMenuMessageId(null);
-      const nextPin = msg.is_pinned ? 0 : 1;
+      const isPinned = isTruthyFlag(msg.is_pinned);
+      const nextPin = isPinned ? 0 : 1;
       setMessages((prev) =>
         prev.map((m) => (m.id === msg.id ? { ...m, is_pinned: nextPin } : (nextPin ? { ...m, is_pinned: 0 } : m)))
       );
+
+      const convId = conversation?.id || 'default';
+      if (nextPin) {
+        try { localStorage.setItem(`amit_cust_pinned_msg_${convId}`, msg.id); } catch (_) {}
+      } else {
+        try { localStorage.removeItem(`amit_cust_pinned_msg_${convId}`); } catch (_) {}
+      }
+
       await apiRequest('/chat/message/pin', {
         method: 'POST',
         body: JSON.stringify({ messageId: msg.id })
       });
       showToast(nextPin ? 'Message pinned' : 'Message unpinned', 'success');
     } catch (err: any) {
-      showToast(err.message || 'Failed to update pin', 'error');
+      console.warn('Backend pin sync warning:', err);
     }
   };
 
@@ -747,7 +803,7 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
         const replyPayload = replyingToMessage ? {
           replyToId: replyingToMessage.id,
           replyToText: replyingToMessage.content,
-          replyToSender: replyingToMessage.sender_type === 'customer' ? (user?.name || 'Customer') : 'Amit Astro'
+          replyToSender: replyingToMessage.sender_type === 'customer' ? 'You' : 'Amit Astro'
         } : {};
         setReplyingToMessage(null);
         const res = await apiRequest<{ message: CustomerChatMessage }>('/chat/message', {
@@ -761,7 +817,16 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
           })
         });
         if (res.message) {
-          setMessages((prev) => [...prev, res.message]);
+          const sentMsg: CustomerChatMessage = {
+            ...res.message,
+            reply_to_id: res.message.reply_to_id || replyPayload.replyToId,
+            reply_to_text: res.message.reply_to_text || replyPayload.replyToText,
+            reply_to_sender: res.message.reply_to_sender || replyPayload.replyToSender
+          };
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === sentMsg.id)) return prev;
+            return [...prev, sentMsg];
+          });
           scrollToBottom('smooth');
         }
       } catch (err: any) {
@@ -806,7 +871,7 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
     const replyPayload = replyingToMessage ? {
       replyToId: replyingToMessage.id,
       replyToText: replyingToMessage.content,
-      replyToSender: replyingToMessage.sender_type === 'customer' ? (user?.name || 'Customer') : 'Amit Astro'
+      replyToSender: replyingToMessage.sender_type === 'customer' ? 'You' : 'Amit Astro'
     } : {};
 
     setInputText('');
@@ -830,7 +895,16 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
       });
 
       if (res.message) {
-        setMessages((prev) => [...prev, res.message]);
+        const sentMsg: CustomerChatMessage = {
+          ...res.message,
+          reply_to_id: res.message.reply_to_id || replyPayload.replyToId,
+          reply_to_text: res.message.reply_to_text || replyPayload.replyToText,
+          reply_to_sender: res.message.reply_to_sender || replyPayload.replyToSender
+        };
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === sentMsg.id)) return prev;
+          return [...prev, sentMsg];
+        });
         scrollToBottom('smooth');
       }
     } catch (err: any) {
@@ -1231,11 +1305,11 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
             </div>
           </div>
         ) : (
-          messages.map((m, idx) => {
+          deduplicatedMessages.map((m, idx) => {
             const isMe = m.sender_type === 'customer';
             const showTimestamp =
               idx === 0 ||
-              new Date(m.created_at).getTime() - new Date(messages[idx - 1].created_at).getTime() > 10 * 60 * 1000;
+              new Date(m.created_at).getTime() - new Date(deduplicatedMessages[idx - 1].created_at).getTime() > 10 * 60 * 1000;
 
             const timeStr = new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -1280,6 +1354,7 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
                     setActiveReactionMessageId(null);
                   }}
                   disabled={isSelectionMode}
+                  isActive={activeContextMenuMessageId === m.id || activeReactionMessageId === m.id}
                 >
                   <div
                     id={`msg-${m.id}`}
@@ -1290,7 +1365,8 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
                       justifyContent: isMe ? 'flex-end' : 'flex-start',
                       position: 'relative',
                       width: '100%',
-                      padding: '2px 0'
+                      padding: '2px 0',
+                      zIndex: (activeContextMenuMessageId === m.id || activeReactionMessageId === m.id) ? 9999 : 'auto'
                     }}
                   >
                     {/* Selection Checkbox */}
@@ -1328,16 +1404,6 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
                         maxWidth: m.message_type === 'voice' ? '360px' : '82%'
                       }}
                     >
-                      {/* Quoted reply box if replied to another message */}
-                      {m.reply_to_text && (
-                        <WhatsAppQuotedBubble
-                          senderName={m.reply_to_sender || (isMe ? 'Amit Astro' : 'You')}
-                          content={m.reply_to_text}
-                          accentColor={isMe ? '#00A884' : '#128C7E'}
-                          onClick={() => scrollToMessage(m.reply_to_id)}
-                        />
-                      )}
-
                       {/* Deleted message indicator */}
                       {m.is_deleted === 1 ? (
                         <div
@@ -1362,6 +1428,18 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
                             position: 'relative'
                           }}
                         >
+                          {m.reply_to_text && (
+                            <WhatsAppQuotedBubble
+                              senderName={
+                                m.reply_to_sender === 'customer' || m.reply_to_sender === 'You' || m.reply_to_sender === user?.name
+                                  ? (isMe ? 'You' : (user?.name || 'Customer'))
+                                  : (isMe ? 'Amit Astro' : 'You')
+                              }
+                              content={m.reply_to_text}
+                              accentColor={isMe ? '#128C7E' : '#00A884'}
+                              onClick={() => scrollToMessage(m.reply_to_id)}
+                            />
+                          )}
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                             <span style={{ fontSize: 18 }}>🕉️</span>
                             <div>
@@ -1375,30 +1453,64 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
                             {m.content}
                           </div>
                           <div className="hybrid-bubble-time" style={{ float: 'right', marginTop: 6 }}>
-                            {m.is_pinned === 1 && <span title="Pinned" style={{ fontSize: 11, marginRight: 2 }}>📌</span>}
-                            {m.is_starred === 1 && <span title="Starred" style={{ fontSize: 11, marginRight: 2, color: '#F59E0B' }}>★</span>}
+                            {isTruthyFlag(m.is_pinned) && (
+                              <span title="Pinned" style={{ fontSize: 11, marginRight: 2 }}>📌</span>
+                            )}
+                            {isTruthyFlag(m.is_starred) && (
+                              <span title="Starred" style={{ fontSize: 11, marginRight: 2, color: '#F59E0B' }}>★</span>
+                            )}
                             {timeStr}
                           </div>
                         </div>
                       ) : m.message_type === 'voice' ? (
                         /* Message Type 2: Authentic WhatsApp Voice Note Player */
-                        <WhatsAppVoicePlayer
-                          id={m.id}
-                          audioUrl={m.attachment_url}
-                          durationSeconds={parseVoiceDuration(m.content)}
-                          isMe={isMe}
-                          senderName={isMe ? (user?.name || 'You') : 'Amit Astro'}
-                          senderPhoto={isMe ? user?.photoURL : '/icons/logo-mark.png'}
-                          timestamp={timeStr}
-                          isPlaying={playingVoiceId === m.id}
-                          onTogglePlay={() => setPlayingVoiceId(playingVoiceId === m.id ? null : m.id)}
-                        />
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          {m.reply_to_text && (
+                            <div style={{ padding: '4px 6px', backgroundColor: isMe ? '#E7FFDB' : '#FFFFFF', borderRadius: '12px 12px 0 0', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+                              <WhatsAppQuotedBubble
+                                senderName={
+                                  m.reply_to_sender === 'customer' || m.reply_to_sender === 'You' || m.reply_to_sender === user?.name
+                                    ? (isMe ? 'You' : (user?.name || 'Customer'))
+                                    : (isMe ? 'Amit Astro' : 'You')
+                                }
+                                content={m.reply_to_text}
+                                accentColor={isMe ? '#128C7E' : '#00A884'}
+                                onClick={() => scrollToMessage(m.reply_to_id)}
+                              />
+                            </div>
+                          )}
+                          <WhatsAppVoicePlayer
+                            id={m.id}
+                            audioUrl={m.attachment_url}
+                            durationSeconds={parseVoiceDuration(m.content)}
+                            isMe={isMe}
+                            senderName={isMe ? (user?.name || 'You') : 'Amit Astro'}
+                            senderPhoto={isMe ? user?.photoURL : '/icons/logo-mark.png'}
+                            timestamp={timeStr}
+                            isPlaying={playingVoiceId === m.id}
+                            onTogglePlay={() => setPlayingVoiceId(playingVoiceId === m.id ? null : m.id)}
+                          />
+                        </div>
                       ) : m.message_type === 'image' || m.attachment_url ? (
                         /* Message Type 3: Image Attachment */
                         <div
                           className={`hybrid-bubble ${isMe ? 'hybrid-bubble-out' : 'hybrid-bubble-in'}`}
                           style={{ padding: 4 }}
                         >
+                          {/* Quoted reply box INSIDE the bubble at the very top */}
+                          {m.reply_to_text && (
+                            <WhatsAppQuotedBubble
+                              senderName={
+                                m.reply_to_sender === 'customer' || m.reply_to_sender === 'You' || m.reply_to_sender === user?.name
+                                  ? (isMe ? 'You' : (user?.name || 'Customer'))
+                                  : (isMe ? 'Amit Astro' : 'You')
+                              }
+                              content={m.reply_to_text}
+                              accentColor={isMe ? '#128C7E' : '#00A884'}
+                              onClick={() => scrollToMessage(m.reply_to_id)}
+                            />
+                          )}
+
                           {m.attachment_url && (
                             <div
                               onClick={() => setZoomedImage(m.attachment_url || null)}
@@ -1453,8 +1565,12 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
                             </div>
                           )}
                           <span className="hybrid-bubble-meta" style={{ padding: '0 6px 4px 0' }}>
-                            {m.is_pinned === 1 && <span title="Pinned" style={{ fontSize: 11, marginRight: 2 }}>📌</span>}
-                            {m.is_starred === 1 && <span title="Starred" style={{ fontSize: 11, marginRight: 2, color: '#F59E0B' }}>★</span>}
+                            {isTruthyFlag(m.is_pinned) && (
+                              <span title="Pinned" style={{ fontSize: 11, marginRight: 2 }}>📌</span>
+                            )}
+                            {isTruthyFlag(m.is_starred) && (
+                              <span title="Starred" style={{ fontSize: 11, marginRight: 2, color: '#F59E0B' }}>★</span>
+                            )}
                             <span className="hybrid-bubble-time">{timeStr}</span>
                             {isMe && (
                               <span className="hybrid-read-ticks">
@@ -1468,10 +1584,27 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
                         <div
                           className={`hybrid-bubble ${isMe ? 'hybrid-bubble-out' : 'hybrid-bubble-in'}`}
                         >
+                          {/* Quoted reply box INSIDE the bubble at the very top */}
+                          {m.reply_to_text && (
+                            <WhatsAppQuotedBubble
+                              senderName={
+                                m.reply_to_sender === 'customer' || m.reply_to_sender === 'You' || m.reply_to_sender === user?.name
+                                  ? (isMe ? 'You' : (user?.name || 'Customer'))
+                                  : (isMe ? 'Amit Astro' : 'You')
+                              }
+                              content={m.reply_to_text}
+                              accentColor={isMe ? '#128C7E' : '#00A884'}
+                              onClick={() => scrollToMessage(m.reply_to_id)}
+                            />
+                          )}
                           <span className="hybrid-message-text">{m.content}</span>
                           <span className="hybrid-bubble-meta">
-                            {m.is_pinned === 1 && <span title="Pinned" style={{ fontSize: 11, marginRight: 2 }}>📌</span>}
-                            {m.is_starred === 1 && <span title="Starred" style={{ fontSize: 11, marginRight: 2, color: '#F59E0B' }}>★</span>}
+                            {isTruthyFlag(m.is_pinned) && (
+                              <span title="Pinned" style={{ fontSize: 11, marginRight: 2 }}>📌</span>
+                            )}
+                            {isTruthyFlag(m.is_starred) && (
+                              <span title="Starred" style={{ fontSize: 11, marginRight: 2, color: '#F59E0B' }}>★</span>
+                            )}
                             <span className="hybrid-bubble-time">{timeStr}</span>
                             {isMe && (
                               <span className="hybrid-read-ticks">
@@ -1539,8 +1672,8 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
                       {/* WhatsApp Context Menu Popover */}
                       {activeContextMenuMessageId === m.id && (
                         <WhatsAppContextMenu
-                          isStarred={m.is_starred === 1}
-                          isPinned={m.is_pinned === 1}
+                          isStarred={isTruthyFlag(m.is_starred)}
+                          isPinned={isTruthyFlag(m.is_pinned)}
                           onReply={() => {
                             setReplyingToMessage(m);
                             setActiveContextMenuMessageId(null);
@@ -1576,7 +1709,7 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
                             setActiveContextMenuMessageId(null);
                           }}
                           onClose={() => setActiveContextMenuMessageId(null)}
-                          position="bottom"
+                          position="auto"
                           align={isMe ? 'right' : 'left'}
                         />
                       )}

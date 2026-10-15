@@ -2310,8 +2310,16 @@ body {
   border: none !important;
   box-shadow: none !important;
   display: flex !important;
-  flex-direction: column !important;
   flex: 1 1 auto !important;
+}
+
+.hybrid-customer-chat {
+  flex-direction: column !important;
+}
+
+.hybrid-admin-chat,
+.apple-messages-container {
+  flex-direction: row !important;
 }
 
 /* 65-inch TV & 4K Displays (2000px+) */
@@ -2359,8 +2367,16 @@ body {
     box-shadow: none !important;
     margin: 0 !important;
     display: flex !important;
-    flex-direction: column !important;
     overflow: hidden !important;
+  }
+
+  .hybrid-customer-chat {
+    flex-direction: column !important;
+  }
+
+  .hybrid-admin-chat,
+  .apple-messages-container {
+    flex-direction: row !important;
   }
 
   .hybrid-chat-canvas {

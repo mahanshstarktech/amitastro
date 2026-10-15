@@ -373,7 +373,11 @@ export const pinMessage = async (req: AuthRequest, res: Response) => {
     const message = await getOne<any>('SELECT * FROM chat_messages WHERE id = ?', [messageId]);
     if (!message) return res.status(404).json({ error: 'Message not found' });
 
-    const newPin = message.is_pinned ? 0 : 1;
+    const isCurrentlyPinned = Boolean(message.is_pinned === 1 || message.is_pinned === true || message.is_pinned === '1');
+    const newPin = isCurrentlyPinned ? 0 : 1;
+    if (newPin === 1) {
+      await runQuery('UPDATE chat_messages SET is_pinned = 0 WHERE conversation_id = ?', [message.conversation_id]);
+    }
     await runQuery('UPDATE chat_messages SET is_pinned = ? WHERE id = ?', [newPin, messageId]);
 
     const io = req.app.get('io');
