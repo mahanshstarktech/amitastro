@@ -1079,6 +1079,9 @@ When dealing with deep planetary cycles, generic horoscope readings cannot subst
     setIsAiGenerating(true);
     setAiStatusMsg('Analyzing Vedic texts & crafting bilingual article...');
 
+    const localKey = localStorage.getItem('amitastro_gemini_key') || '';
+    const localModel = localStorage.getItem('amitastro_gemini_model') || 'gemini-2.0-flash';
+
     try {
       const res = await apiRequest<any>('/blog/admin/generate-ai-article', {
         method: 'POST',
@@ -1086,7 +1089,9 @@ When dealing with deep planetary cycles, generic horoscope readings cannot subst
           idea: aiPrompt.trim(),
           tone: aiTone,
           length: aiLength,
-          categoryId: newPost.categoryId || (categories[0]?.id || '')
+          categoryId: newPost.categoryId || (categories[0]?.id || ''),
+          apiKey: localKey,
+          model: localModel
         })
       });
 
@@ -1117,8 +1122,6 @@ When dealing with deep planetary cycles, generic horoscope readings cannot subst
       return;
     } catch (err: any) {
       // 1. Direct browser fallback if local key exists and backend is unreachable
-      const localKey = localStorage.getItem('amitastro_gemini_key');
-      const localModel = localStorage.getItem('amitastro_gemini_model') || 'gemini-flash-latest';
       if (localKey) {
         try {
           setAiStatusMsg('Connecting directly with saved API key...');
@@ -1155,9 +1158,13 @@ Return ONLY a raw JSON object with this EXACT structure:
             }
           };
 
-          const directRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${localModel}:generateContent?key=${localKey}`, {
+          const directModel = localModel === 'gemini-flash-latest' ? 'gemini-2.0-flash' : localModel;
+          const directRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${directModel}:generateContent?key=${localKey}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'x-goog-api-key': localKey
+            },
             body: JSON.stringify(payload)
           });
 
@@ -1218,8 +1225,11 @@ Return ONLY a raw JSON object with this EXACT structure:
 
       const errStr = (err?.message || '') + (err?.error ? JSON.stringify(err.error) : '');
       const isLeaked = errStr.toLowerCase().includes('leaked');
+      const isUnrestricted = errStr.toLowerCase().includes('unrestricted') || errStr.toLowerCase().includes('restriction');
       if (isLeaked) {
-        showToast('⚠️ API key was reported as leaked by Google. Generated article using built-in Vedic Engine! Please paste a fresh key in settings.', 'info');
+        showToast('⚠️ API key was reported as leaked/revoked by Google. Generated article using built-in Vedic Engine! Please create a fresh key.', 'info');
+      } else if (isUnrestricted) {
+        showToast('⚠️ Google requires restricting your key in AI Studio. Generated with Vedic Engine in the meantime!', 'info');
       } else {
         showToast('✨ Article & artwork synthesized with Amit Astro Vedic Engine!', 'info');
       }
@@ -1240,6 +1250,9 @@ Return ONLY a raw JSON object with this EXACT structure:
       return;
     }
 
+    const localKey = localStorage.getItem('amitastro_gemini_key') || '';
+    const localModel = localStorage.getItem('amitastro_gemini_model') || 'gemini-2.0-flash';
+
     setIsTranslating(true);
     try {
       const res = await apiRequest<any>('/blog/admin/translate', {
@@ -1248,7 +1261,9 @@ Return ONLY a raw JSON object with this EXACT structure:
           title: sourceTitle,
           excerpt: sourceExcerpt,
           contentMarkdown: sourceContent,
-          direction
+          direction,
+          apiKey: localKey,
+          model: localModel
         })
       });
 

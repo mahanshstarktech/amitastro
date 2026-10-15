@@ -7,16 +7,14 @@ import fs from 'fs';
 import path from 'path';
 
 let inMemoryApiKey = process.env.GEMINI_API_KEY || '';
-let inMemoryModel = process.env.GEMINI_MODEL || 'gemini-flash-latest';
+let inMemoryModel = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
 
 // Standard supported Gemini models
 export const SUPPORTED_MODELS = [
-  'gemini-flash-latest',
-  'gemini-3.5-flash',
-  'gemini-3.5-flash-lite',
-  'gemini-2.5-flash',
   'gemini-2.0-flash',
-  'gemini-1.5-flash'
+  'gemini-1.5-flash',
+  'gemini-2.5-flash',
+  'gemini-1.5-pro'
 ];
 
 export function getGeminiApiKey(): string {
@@ -45,7 +43,7 @@ export function setGeminiApiKey(key: string): void {
 }
 
 export function getGeminiModel(): string {
-  return inMemoryModel || process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+  return inMemoryModel || process.env.GEMINI_MODEL || 'gemini-2.0-flash';
 }
 
 export function setGeminiModel(model: string): void {
@@ -88,7 +86,10 @@ export async function verifyGeminiKey(keyToTest?: string): Promise<{
   // 1. Try testing via models.list
   try {
     const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${key}`;
-    const res = await fetch(url, { method: 'GET' });
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: { 'x-goog-api-key': key }
+    });
 
     if (res.ok) {
       const data: any = await res.json();
@@ -98,7 +99,7 @@ export async function verifyGeminiKey(keyToTest?: string): Promise<{
       return {
         valid: true,
         message: '✓ Gemini API key is verified and operational for generation & translation.',
-        availableModels: models
+        availableModels: models.length ? models : SUPPORTED_MODELS
       };
     }
 
@@ -113,39 +114,64 @@ export async function verifyGeminiKey(keyToTest?: string): Promise<{
       };
     }
 
-    // 2. Fallback check: try a minimal generation call on gemini-3.5-flash
-    const genUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${key}`;
-    const genRes = await fetch(genUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: 'ping' }] }]
-      })
-    });
-
-    if (genRes.ok) {
-      return {
-        valid: true,
-        message: '✓ Gemini API key is verified and operational with gemini-3.5-flash.',
-        availableModels: SUPPORTED_MODELS
-      };
-    }
-
-    const genErrJson: any = await genRes.json().catch(() => ({}));
-    const genErrMsg = genErrJson?.error?.message || errMsg;
-
-    if (genRes.status === 403 && genErrMsg.toLowerCase().includes('leaked')) {
+    if (errMsg.toLowerCase().includes('unrestricted') || errMsg.toLowerCase().includes('restriction')) {
       return {
         valid: false,
         statusCode: 403,
-        message: 'Your Google Gemini API key was reported as leaked/revoked. Please generate a new key at Google AI Studio.'
+        message: 'Unrestricted keys are rejected by Google. In Google AI Studio, please click "Add restrictions" -> "Restrict to Gemini API only".'
       };
+    }
+
+    // 2. Fallback check: try a minimal generation call on gemini-2.0-flash or gemini-1.5-flash
+    for (const testModel of ['gemini-2.0-flash', 'gemini-1.5-flash']) {
+      try {
+        const genUrl = `https://generativelanguage.googleapis.com/v1beta/models/${testModel}:generateContent?key=${key}`;
+        const genRes = await fetch(genUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': key
+          },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: 'ping' }] }]
+          })
+        });
+
+        if (genRes.ok) {
+          return {
+            valid: true,
+            message: `✓ Gemini API key is verified and operational with ${testModel}.`,
+            availableModels: SUPPORTED_MODELS
+          };
+        }
+
+        const genErrJson: any = await genRes.json().catch(() => ({}));
+        const genErrMsg = genErrJson?.error?.message || errMsg;
+
+        if (genRes.status === 403 && genErrMsg.toLowerCase().includes('leaked')) {
+          return {
+            valid: false,
+            statusCode: 403,
+            message: 'Your Google Gemini API key was reported as leaked/revoked. Please generate a new key at Google AI Studio.'
+          };
+        }
+
+        if (genErrMsg.toLowerCase().includes('unrestricted') || genErrMsg.toLowerCase().includes('restriction')) {
+          return {
+            valid: false,
+            statusCode: 403,
+            message: 'Unrestricted keys are rejected by Google. In Google AI Studio, please click "Add restrictions" -> "Restrict to Gemini API only".'
+          };
+        }
+      } catch {
+        // Try next model
+      }
     }
 
     return {
       valid: false,
-      statusCode: genRes.status,
-      message: `Google API rejected the key (${genRes.status}): ${genErrMsg}`
+      statusCode: res.status,
+      message: `Google API rejected the key (${res.status}): ${errMsg}`
     };
   } catch (err: any) {
     return {
@@ -199,6 +225,8 @@ export interface GenerateArticleParams {
   tone?: string;
   length?: string;
   categoryName?: string;
+  customApiKey?: string;
+  customModel?: string;
 }
 
 export interface GeneratedArticleResult {
@@ -220,20 +248,24 @@ export interface GeneratedArticleResult {
 /**
  * Call Gemini REST API with clean error handling, model fallback, and structured extraction
  */
-async function callGemini(prompt: string, systemInstruction?: string, temperature = 0.4): Promise<string> {
-  const apiKey = getGeminiApiKey();
+export async function callGemini(
+  prompt: string,
+  systemInstruction?: string,
+  temperature = 0.4,
+  customApiKey?: string,
+  customModel?: string
+): Promise<string> {
+  const apiKey = (customApiKey || getGeminiApiKey()).trim().replace(/^["'`]|["'`]$/g, '');
   if (!apiKey) {
     throw new Error('Gemini API key is missing or not configured');
   }
 
   const modelsToTry = [
-    getGeminiModel(),
-    'gemini-3.5-flash',
-    'gemini-3.5-flash-lite',
-    'gemini-flash-latest',
-    'gemini-2.5-flash',
+    customModel || getGeminiModel(),
     'gemini-2.0-flash',
-    'gemini-1.5-flash'
+    'gemini-1.5-flash',
+    'gemini-2.5-flash',
+    'gemini-1.5-pro'
   ].filter((m, idx, arr) => arr.indexOf(m) === idx);
 
   let lastError: any = null;
@@ -265,17 +297,29 @@ async function callGemini(prompt: string, systemInstruction?: string, temperatur
 
       const response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey
+        },
         body: JSON.stringify(body)
       });
 
       if (!response.ok) {
         const errorText = await response.text();
+        let parsedErr: any = {};
+        try { parsedErr = JSON.parse(errorText); } catch {}
+        const errorMsg = parsedErr?.error?.message || errorText;
+
         // If 403 leaked key, no point retrying other models with same key
-        if (response.status === 403 && errorText.toLowerCase().includes('leaked')) {
-          throw new Error('Gemini API key was reported as leaked/revoked by Google. Please enter a new key in settings.');
+        if (response.status === 403 && errorMsg.toLowerCase().includes('leaked')) {
+          throw new Error('Your Google API key was reported as leaked/revoked. Please generate a fresh key in Google AI Studio.');
         }
-        throw new Error(`Gemini model ${model} error (${response.status}): ${errorText}`);
+
+        if (errorMsg.toLowerCase().includes('unrestricted') || errorMsg.toLowerCase().includes('restriction')) {
+          throw new Error('Unrestricted keys are rejected by Google. In Google AI Studio, please click "Add restrictions" -> "Restrict to Gemini API only".');
+        }
+
+        throw new Error(`Gemini model ${model} error (${response.status}): ${errorMsg}`);
       }
 
       const data: any = await response.json();
@@ -287,7 +331,7 @@ async function callGemini(prompt: string, systemInstruction?: string, temperatur
       return candidateText;
     } catch (err: any) {
       lastError = err;
-      if (err.message && err.message.includes('leaked')) {
+      if (err.message && (err.message.includes('leaked') || err.message.includes('Unrestricted'))) {
         throw err;
       }
       console.warn(`Gemini attempt with model ${model} failed, trying fallback model...`);
@@ -518,7 +562,7 @@ Return ONLY a raw JSON object with this EXACT structure:
 `;
 
   try {
-    const rawJson = await callGemini(userPrompt, systemInstruction, 0.4);
+    const rawJson = await callGemini(userPrompt, systemInstruction, 0.4, params.customApiKey, params.customModel);
     const parsed = extractJsonFromText<any>(rawJson);
 
     const imagePrompt = parsed.imagePrompt || `Vedic astrology cosmic celestial alignment golden mandala ${params.idea}`;
@@ -654,6 +698,8 @@ export async function translateArticleContent(params: {
   excerpt: string;
   contentMarkdown: string;
   direction: 'en-to-hi' | 'hi-to-en';
+  customApiKey?: string;
+  customModel?: string;
 }): Promise<{ title: string; excerpt: string; contentMarkdown: string; engineUsed: string }> {
   const isEnToHi = params.direction === 'en-to-hi';
 
@@ -685,7 +731,7 @@ Return ONLY this JSON structure:
 `;
 
   try {
-    const rawJson = await callGemini(userPrompt, systemInstruction, 0.3);
+    const rawJson = await callGemini(userPrompt, systemInstruction, 0.3, params.customApiKey, params.customModel);
     const parsed = extractJsonFromText<any>(rawJson);
 
     return {

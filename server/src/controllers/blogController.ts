@@ -260,7 +260,7 @@ export const adminDeletePost = async (req: AuthRequest, res: Response) => {
  */
 export const adminGenerateAiArticle = async (req: AuthRequest, res: Response) => {
   try {
-    const { idea, tone, length, categoryId } = req.body;
+    const { idea, tone, length, categoryId, apiKey, model } = req.body;
     if (!idea || typeof idea !== 'string' || idea.trim().length === 0) {
       return res.status(400).json({ error: 'Please provide an article idea or topic description' });
     }
@@ -271,11 +271,20 @@ export const adminGenerateAiArticle = async (req: AuthRequest, res: Response) =>
       if (cat?.name) categoryName = cat.name;
     }
 
+    if (apiKey && typeof apiKey === 'string' && apiKey.trim().length > 15) {
+      setGeminiApiKey(apiKey.trim());
+    }
+    if (model && typeof model === 'string') {
+      setGeminiModel(model.trim());
+    }
+
     const result = await generateBilingualArticle({
       idea: idea.trim(),
       tone,
       length,
-      categoryName
+      categoryName,
+      customApiKey: apiKey,
+      customModel: model
     });
 
     return res.json({ success: true, ...result });
@@ -290,16 +299,22 @@ export const adminGenerateAiArticle = async (req: AuthRequest, res: Response) =>
  */
 export const adminTranslateArticle = async (req: AuthRequest, res: Response) => {
   try {
-    const { title, excerpt, contentMarkdown, direction } = req.body;
+    const { title, excerpt, contentMarkdown, direction, apiKey, model } = req.body;
     if (!contentMarkdown && !title) {
       return res.status(400).json({ error: 'Content or title is required for translation' });
+    }
+
+    if (apiKey && typeof apiKey === 'string' && apiKey.trim().length > 15) {
+      setGeminiApiKey(apiKey.trim());
     }
 
     const translated = await translateArticleContent({
       title: title || '',
       excerpt: excerpt || '',
       contentMarkdown: contentMarkdown || '',
-      direction: direction === 'hi-to-en' ? 'hi-to-en' : 'en-to-hi'
+      direction: direction === 'hi-to-en' ? 'hi-to-en' : 'en-to-hi',
+      customApiKey: apiKey,
+      customModel: model
     });
 
     return res.json({ success: true, ...translated });
@@ -349,18 +364,18 @@ export const updateGeminiConfig = async (req: AuthRequest, res: Response) => {
     }
 
     if (apiKey !== undefined) {
-      const trimmedKey = String(apiKey).trim();
+      const trimmedKey = String(apiKey).trim().replace(/^["'`]|["'`]$/g, '');
       if (trimmedKey) {
+        setGeminiApiKey(trimmedKey);
         // Test key live against Google Generative Language API
         const testResult = await verifyGeminiKey(trimmedKey);
-        if (!testResult.valid) {
-          return res.status(400).json({
-            success: false,
-            error: testResult.message,
-            statusCode: testResult.statusCode
-          });
-        }
-        setGeminiApiKey(trimmedKey);
+        const updatedStatus = await getGeminiStatus();
+        return res.json({
+          success: true,
+          ...updatedStatus,
+          valid: testResult.valid,
+          message: testResult.message
+        });
       } else {
         setGeminiApiKey('');
       }
