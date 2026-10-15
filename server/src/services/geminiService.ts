@@ -74,7 +74,7 @@ export async function verifyGeminiKey(keyToTest?: string): Promise<{
   statusCode?: number;
   availableModels?: string[];
 }> {
-  const key = (keyToTest || getGeminiApiKey()).trim();
+  const key = (keyToTest || getGeminiApiKey()).trim().replace(/^["'`]|["'`]$/g, '');
   if (!key) {
     return {
       valid: false,
@@ -82,46 +82,74 @@ export async function verifyGeminiKey(keyToTest?: string): Promise<{
     };
   }
 
+  if (!key.startsWith('AIzaSy')) {
+    return {
+      valid: false,
+      message: 'Invalid key format. Google Gemini API keys typically start with "AIzaSy...". Please verify you copied the full key.'
+    };
+  }
+
+  // 1. Try testing via models.list
   try {
     const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${key}`;
     const res = await fetch(url, { method: 'GET' });
 
-    if (!res.ok) {
-      const errJson: any = await res.json().catch(() => ({}));
-      const errMsg = errJson?.error?.message || `HTTP ${res.status} ${res.statusText}`;
-
-      if (res.status === 403 && errMsg.toLowerCase().includes('leaked')) {
-        return {
-          valid: false,
-          statusCode: 403,
-          message: 'Your Google Gemini API key was reported as leaked/revoked. Please generate a new key at Google AI Studio.'
-        };
-      }
-
-      if (res.status === 400 || res.status === 403) {
-        return {
-          valid: false,
-          statusCode: res.status,
-          message: `Invalid API key: ${errMsg}`
-        };
-      }
-
+    if (res.ok) {
+      const data: any = await res.json();
+      const models = Array.isArray(data?.models)
+        ? data.models.map((m: any) => m.name.replace('models/', ''))
+        : [];
       return {
-        valid: false,
-        statusCode: res.status,
-        message: `Google API returned error: ${errMsg}`
+        valid: true,
+        message: '✓ Gemini API key is verified and operational for generation & translation.',
+        availableModels: models
       };
     }
 
-    const data: any = await res.json();
-    const models = Array.isArray(data?.models)
-      ? data.models.map((m: any) => m.name.replace('models/', ''))
-      : [];
+    const errJson: any = await res.json().catch(() => ({}));
+    const errMsg = errJson?.error?.message || `HTTP ${res.status}`;
+
+    if (res.status === 403 && errMsg.toLowerCase().includes('leaked')) {
+      return {
+        valid: false,
+        statusCode: 403,
+        message: 'Your Google Gemini API key was reported as leaked/revoked. Please generate a new key at Google AI Studio.'
+      };
+    }
+
+    // 2. Fallback check: try a minimal generation call on gemini-1.5-flash
+    const genUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
+    const genRes = await fetch(genUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: 'ping' }] }]
+      })
+    });
+
+    if (genRes.ok) {
+      return {
+        valid: true,
+        message: '✓ Gemini API key is verified and operational with gemini-1.5-flash.',
+        availableModels: ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']
+      };
+    }
+
+    const genErrJson: any = await genRes.json().catch(() => ({}));
+    const genErrMsg = genErrJson?.error?.message || errMsg;
+
+    if (genRes.status === 403 && genErrMsg.toLowerCase().includes('leaked')) {
+      return {
+        valid: false,
+        statusCode: 403,
+        message: 'Your Google Gemini API key was reported as leaked/revoked. Please generate a new key at Google AI Studio.'
+      };
+    }
 
     return {
-      valid: true,
-      message: 'Gemini API key is active and ready for generation & translation.',
-      availableModels: models
+      valid: false,
+      statusCode: genRes.status,
+      message: `Google API rejected the key (${genRes.status}): ${genErrMsg}`
     };
   } catch (err: any) {
     return {

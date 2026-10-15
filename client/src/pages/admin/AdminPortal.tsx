@@ -508,38 +508,108 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
   };
 
   const handleTestGeminiKey = async (keyToTest: string) => {
-    if (!keyToTest.trim()) {
+    const cleanedKey = keyToTest.trim().replace(/^["'`]|["'`]$/g, '');
+    if (!cleanedKey) {
       showToast('Please paste a Gemini API key to test', 'error');
       return;
     }
     setIsTestingKey(true);
     setKeyTestFeedback(null);
+
+    // 1. Try testing via backend first
     try {
       const res = await apiRequest<any>('/blog/admin/test-gemini-key', {
         method: 'POST',
-        body: JSON.stringify({ apiKey: keyToTest.trim() })
+        body: JSON.stringify({ apiKey: cleanedKey })
       });
       setKeyTestFeedback({ valid: res.valid, message: res.message });
       if (res.valid) {
-        showToast('Gemini API key is verified and operational!', 'success');
+        showToast('✓ Gemini API key is verified and operational!', 'success');
       } else {
         showToast(res.message || 'Key verification failed', 'error');
       }
-    } catch (err: any) {
-      setKeyTestFeedback({ valid: false, message: err.message });
-      showToast(err.message, 'error');
+      setIsTestingKey(false);
+      return;
+    } catch (backendErr: any) {
+      console.warn('Backend verification call failed, attempting direct verification with Google API:', backendErr);
+    }
+
+    // 2. Direct browser verification fallback against Google API (handles when backend server is starting or network hiccup)
+    try {
+      if (!cleanedKey.startsWith('AIzaSy')) {
+        setKeyTestFeedback({
+          valid: false,
+          message: 'Invalid key format. Google Gemini API keys typically start with "AIzaSy...". Please verify you copied the full key.'
+        });
+        showToast('Invalid key format. Must start with AIzaSy...', 'error');
+        return;
+      }
+
+      // Check models list
+      const directRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${cleanedKey}`);
+      if (directRes.ok) {
+        setKeyTestFeedback({
+          valid: true,
+          message: '✓ Gemini API key is verified and operational with Google! Click "Save & Activate Key" to store.'
+        });
+        showToast('✓ Gemini API key is verified with Google!', 'success');
+        return;
+      }
+
+      // If models.list wasn't ok, test direct minimal generation call
+      try {
+        const genRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${cleanedKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: 'hi' }] }] })
+        });
+        if (genRes.ok) {
+          setKeyTestFeedback({
+            valid: true,
+            message: '✓ Gemini API key is verified and operational with gemini-1.5-flash! Click "Save & Activate Key" to store.'
+          });
+          showToast('✓ Gemini API key is verified with Google!', 'success');
+          return;
+        }
+      } catch {
+        // Ignore fallback error and continue to parse original error
+      }
+
+      const errData: any = await directRes.json().catch(() => ({}));
+      const errMsg = errData?.error?.message || `HTTP ${directRes.status}`;
+
+      if (directRes.status === 403 && errMsg.toLowerCase().includes('leaked')) {
+        setKeyTestFeedback({
+          valid: false,
+          message: 'Your Google Gemini API key was reported as leaked/revoked. Please generate a new key at Google AI Studio.'
+        });
+        showToast('API key is revoked by Google (reported as leaked)', 'error');
+      } else {
+        setKeyTestFeedback({
+          valid: false,
+          message: `Google API rejected the key: ${errMsg}`
+        });
+        showToast(errMsg, 'error');
+      }
+    } catch (clientErr: any) {
+      setKeyTestFeedback({
+        valid: false,
+        message: `Network error verifying key: ${clientErr.message}. Please check your internet connection.`
+      });
+      showToast(clientErr.message, 'error');
     } finally {
       setIsTestingKey(false);
     }
   };
 
   const handleSaveGeminiKey = async () => {
+    const cleanedKey = inputGeminiKey.trim().replace(/^["'`]|["'`]$/g, '');
     setIsSavingKey(true);
     try {
       const res = await apiRequest<any>('/blog/admin/gemini-config', {
         method: 'POST',
         body: JSON.stringify({
-          apiKey: inputGeminiKey.trim(),
+          apiKey: cleanedKey,
           model: inputGeminiModel
         })
       });
