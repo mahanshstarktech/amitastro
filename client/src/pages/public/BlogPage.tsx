@@ -12,10 +12,12 @@ import {
   Star, 
   Users, 
   BookOpen, 
-  Orbit 
+  Orbit,
+  Globe
 } from 'lucide-react';
 import { apiRequest } from '../../utils/api';
 import { useHeaderActions } from '../../context/HeaderActionsContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface BlogPageProps {
   categorySlug?: string;
@@ -28,6 +30,9 @@ export const BlogPage: React.FC<BlogPageProps> = ({
   onNavigate,
   onOpenBooking
 }) => {
+  const { language, setLanguage } = useLanguage();
+  const [langFilter, setLangFilter] = useState<'all' | 'en' | 'hi'>('all');
+
   const [posts, setPosts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedCat, setSelectedCat] = useState<string>(categorySlug || 'all');
@@ -99,6 +104,16 @@ export const BlogPage: React.FC<BlogPageProps> = ({
     };
   }, [selectedCat, search]);
 
+  const filteredPosts = posts.filter((post) => {
+    if (langFilter === 'hi') {
+      return Boolean(post.title_hi && post.content_markdown_hi);
+    }
+    if (langFilter === 'en') {
+      return Boolean(post.title && post.content_markdown);
+    }
+    return true;
+  });
+
   return (
     <div style={{ minHeight: '100vh', paddingBottom: 96, backgroundColor: '#FAFAFC' }}>
       {/* Blog Hero Header */}
@@ -141,6 +156,61 @@ export const BlogPage: React.FC<BlogPageProps> = ({
                 <X size={16} />
               </button>
             )}
+          </div>
+
+          {/* Bilingual Language Switcher Pills */}
+          <div style={{ display: 'inline-flex', padding: 3, backgroundColor: '#FFFFFF', borderRadius: 12, border: '1px solid #E5E5EA', marginTop: 18, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+            <button
+              type="button"
+              onClick={() => setLangFilter('all')}
+              style={{
+                padding: '5px 14px',
+                fontSize: 12.5,
+                fontWeight: langFilter === 'all' ? 600 : 500,
+                backgroundColor: langFilter === 'all' ? '#3A3A6E' : 'transparent',
+                color: langFilter === 'all' ? '#FFFFFF' : '#6E6E73',
+                borderRadius: 9,
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              🌐 All Editions ({posts.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setLangFilter('en')}
+              style={{
+                padding: '5px 14px',
+                fontSize: 12.5,
+                fontWeight: langFilter === 'en' ? 600 : 500,
+                backgroundColor: langFilter === 'en' ? '#3A3A6E' : 'transparent',
+                color: langFilter === 'en' ? '#FFFFFF' : '#6E6E73',
+                borderRadius: 9,
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              🇬🇧 English
+            </button>
+            <button
+              type="button"
+              onClick={() => setLangFilter('hi')}
+              style={{
+                padding: '5px 14px',
+                fontSize: 12.5,
+                fontWeight: langFilter === 'hi' ? 600 : 500,
+                backgroundColor: langFilter === 'hi' ? '#3A3A6E' : 'transparent',
+                color: langFilter === 'hi' ? '#FFFFFF' : '#6E6E73',
+                borderRadius: 9,
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              🇮🇳 हिंदी (Hindi)
+            </button>
           </div>
         </div>
       </section>
@@ -231,11 +301,16 @@ export const BlogPage: React.FC<BlogPageProps> = ({
               <div style={{ fontSize: 14, color: '#6E6E73' }}>
                 Showing articles for <strong style={{ color: '#1D1D1F' }}>{activeCategory.name}</strong>
                 {search && <> matching "<strong style={{ color: '#1D1D1F' }}>{search}</strong>"</>}
+                {langFilter !== 'all' && (
+                  <span style={{ marginLeft: 8, fontSize: 12, padding: '2px 8px', borderRadius: 6, backgroundColor: '#F0F0F5', color: '#3A3A6E', fontWeight: 600 }}>
+                    {langFilter === 'hi' ? '🇮🇳 Hindi Only' : '🇬🇧 English Only'}
+                  </span>
+                )}
               </div>
 
               {!isLoading && (
                 <div style={{ fontSize: 13, color: '#86868B' }}>
-                  {posts.length} {posts.length === 1 ? 'article' : 'articles'}
+                  {filteredPosts.length} {filteredPosts.length === 1 ? 'article' : 'articles'}
                 </div>
               )}
             </div>
@@ -251,7 +326,7 @@ export const BlogPage: React.FC<BlogPageProps> = ({
                   </div>
                 ))}
               </div>
-            ) : posts.length === 0 ? (
+            ) : filteredPosts.length === 0 ? (
               <div 
                 className="apple-card"
                 style={{ textAlign: 'center', padding: '80px 24px', backgroundColor: '#FFFFFF' }}
@@ -259,63 +334,81 @@ export const BlogPage: React.FC<BlogPageProps> = ({
                 <div style={{ width: 48, height: 48, borderRadius: '50%', backgroundColor: '#F5F5F7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', color: '#86868B' }}>
                   <Search size={22} />
                 </div>
-                <h3 style={{ fontSize: 20, color: '#1D1D1F', marginBottom: 8 }}>No articles found</h3>
+                <h3 style={{ fontSize: 20, color: '#1D1D1F', marginBottom: 8 }}>
+                  {language === 'hi' ? 'कोई आलेख नहीं मिला' : 'No articles found'}
+                </h3>
                 <p style={{ color: '#6E6E73', fontSize: 15, maxWidth: 440, margin: '0 auto 20px' }}>
-                  Try clearing your search query or selecting another astrological discipline from the categories menu.
+                  {language === 'hi'
+                    ? 'कृपया खोज शब्द बदलें अथवा अन्य विषय चुनें।'
+                    : 'Try clearing your search query or selecting another astrological discipline from the categories menu.'}
                 </p>
-                {(search || selectedCat !== 'all') && (
+                {(search || selectedCat !== 'all' || langFilter !== 'all') && (
                   <button
-                    onClick={() => { setSearch(''); setSelectedCat('all'); }}
+                    onClick={() => { setSearch(''); setSelectedCat('all'); setLangFilter('all'); }}
                     className="apple-btn-secondary"
                     style={{ fontSize: 13.5 }}
                   >
-                    View All Articles
+                    {language === 'hi' ? 'सभी आलेख देखें' : 'View All Articles'}
                   </button>
                 )}
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24 }}>
-                {posts.map((post) => (
-                  <div
-                    key={post.id}
-                    className="apple-card"
-                    style={{ overflow: 'hidden', cursor: 'pointer', display: 'flex', flexDirection: 'column', backgroundColor: '#FFFFFF' }}
-                    onClick={() => onNavigate(`/blog/post/${post.slug}`)}
-                  >
-                    <img
-                      src={post.hero_image_url}
-                      alt={post.title}
-                      style={{ width: '100%', height: 210, objectFit: 'cover' }}
-                    />
-                    <div style={{ padding: '24px 22px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                      <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                          <span className="apple-badge-gold" style={{ fontSize: 11.5 }}>
-                            {post.category_name}
-                          </span>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#86868B' }}>
-                            <Clock size={13} /> {post.reading_time_min} min read
-                          </div>
-                        </div>
-                        <h2 style={{ fontSize: 19, fontWeight: 600, color: '#1D1D1F', marginBottom: 10, lineHeight: 1.35 }}>
-                          {post.title}
-                        </h2>
-                        <p style={{ fontSize: 14, color: '#6E6E73', lineHeight: 1.5, marginBottom: 16 }}>
-                          {post.excerpt}
-                        </p>
-                      </div>
+                {filteredPosts.map((post) => {
+                  const isHiMode = (language === 'hi' || langFilter === 'hi') && Boolean(post.title_hi);
+                  const cardTitle = isHiMode ? post.title_hi : post.title;
+                  const cardExcerpt = isHiMode ? (post.excerpt_hi || post.excerpt) : post.excerpt;
+                  const hasBothLangs = Boolean(post.title_hi && post.title);
 
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #E5E5EA', paddingTop: 14, marginTop: 8 }}>
-                        <div style={{ fontSize: 12.5, color: '#1D1D1F', fontWeight: 500 }}>
-                          By Amit
+                  return (
+                    <div
+                      key={post.id}
+                      className="apple-card"
+                      style={{ overflow: 'hidden', cursor: 'pointer', display: 'flex', flexDirection: 'column', backgroundColor: '#FFFFFF', transition: 'transform 0.2s ease, box-shadow 0.2s ease' }}
+                      onClick={() => onNavigate(`/blog/post/${post.slug}`)}
+                    >
+                      <img
+                        src={post.hero_image_url}
+                        alt={cardTitle}
+                        style={{ width: '100%', height: 210, objectFit: 'cover' }}
+                      />
+                      <div style={{ padding: '24px 22px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 6 }}>
+                            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                              <span className="apple-badge-gold" style={{ fontSize: 11.5 }}>
+                                {post.category_name}
+                              </span>
+                              {hasBothLangs && (
+                                <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 6, backgroundColor: '#FFF7E6', color: '#D48806', border: '1px solid #FFE58F', fontWeight: 600 }}>
+                                  🌐 हिंदी + EN
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#86868B' }}>
+                              <Clock size={13} /> {post.reading_time_min} {isHiMode ? 'मिनट पठन' : 'min read'}
+                            </div>
+                          </div>
+                          <h2 style={{ fontSize: 19, fontWeight: 600, color: '#1D1D1F', marginBottom: 10, lineHeight: 1.35 }}>
+                            {cardTitle}
+                          </h2>
+                          <p style={{ fontSize: 14, color: '#6E6E73', lineHeight: 1.5, marginBottom: 16 }}>
+                            {cardExcerpt}
+                          </p>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#3A3A6E', fontSize: 13, fontWeight: 600 }}>
-                          Read Article <ArrowRight size={14} />
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #E5E5EA', paddingTop: 14, marginTop: 8 }}>
+                          <div style={{ fontSize: 12.5, color: '#1D1D1F', fontWeight: 500 }}>
+                            {isHiMode ? 'अमित द्वारा' : 'By Amit'}
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#3A3A6E', fontSize: 13, fontWeight: 600 }}>
+                            {isHiMode ? 'आलेख पढ़ें' : 'Read Article'} <ArrowRight size={14} />
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </main>

@@ -99,6 +99,9 @@ router.delete('/blog/admin/posts/:id', authenticateToken, requireAdmin, blogCtrl
 router.post('/blog/admin/generate-ai-article', authenticateToken, requireAdmin, blogCtrl.adminGenerateAiArticle);
 router.post('/blog/admin/translate', authenticateToken, requireAdmin, blogCtrl.adminTranslateArticle);
 router.post('/blog/admin/generate-image', authenticateToken, requireAdmin, blogCtrl.adminGenerateArticleImage);
+router.get('/blog/admin/gemini-config', authenticateToken, requireAdmin, blogCtrl.getGeminiConfig);
+router.post('/blog/admin/gemini-config', authenticateToken, requireAdmin, blogCtrl.updateGeminiConfig);
+router.post('/blog/admin/test-gemini-key', authenticateToken, requireAdmin, blogCtrl.testGeminiKey);
 
 // 9. Admin Operations
 router.get('/admin/dashboard', authenticateToken, requireAdmin, adminCtrl.getDashboardStats);

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Calendar, Share2, MessageCircle, Copy, Check, ArrowLeft, ArrowRight, Sparkles, BookOpen } from 'lucide-react';
+import { Clock, Calendar, Share2, MessageCircle, Copy, Check, ArrowLeft, ArrowRight, Sparkles, BookOpen, Globe } from 'lucide-react';
 import { apiRequest } from '../../utils/api';
 import { useNotification } from '../../context/NotificationContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface BlogPostPageProps {
   slug: string;
@@ -15,36 +16,56 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({
   onOpenBooking
 }) => {
   const { showToast } = useNotification();
+  const { language } = useLanguage();
   const [data, setData] = useState<any>(null);
   const [copied, setCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [readLang, setReadLang] = useState<'en' | 'hi'>(language === 'hi' ? 'hi' : 'en');
+
 
   useEffect(() => {
     setIsLoading(true);
     apiRequest<{ post: any; author: any; related: any[] }>(`/blog/posts/${slug}`)
       .then((res) => {
         setData(res);
+        if (language === 'hi' && res?.post?.content_markdown_hi && res?.post?.title_hi) {
+          setReadLang('hi');
+        } else {
+          setReadLang('en');
+        }
       })
       .catch((err) => {
         showToast(err.message, 'error');
       })
       .finally(() => setIsLoading(false));
-  }, [slug, showToast]);
+  }, [slug, showToast, language]);
+
+  useEffect(() => {
+    if (data?.post) {
+      const hasHi = Boolean(data.post.content_markdown_hi && data.post.title_hi);
+      if (language === 'hi' && hasHi) {
+        setReadLang('hi');
+      } else if (language === 'en') {
+        setReadLang('en');
+      }
+    }
+  }, [language, data]);
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
     setCopied(true);
-    showToast('Article link copied to clipboard', 'success');
+    showToast(readLang === 'hi' ? 'आलेख लिंक क्लिपबोर्ड पर कॉपी हो गया' : 'Article link copied to clipboard', 'success');
     setTimeout(() => setCopied(false), 3000);
   };
 
   const handleShareWhatsApp = () => {
-    const url = encodeURIComponent(window.location.href);
-    const text = encodeURIComponent(`Thought you might appreciate this Vedic essay by Amit: "${data?.post?.title}"\n${window.location.href}`);
+    const titleToShare = readLang === 'hi' && data?.post?.title_hi ? data.post.title_hi : data?.post?.title;
+    const shareIntro = readLang === 'hi' 
+      ? `अमित जी द्वारा लिखित यह वैदिक ज्योतिषीय आलेख आपके लिए उपयोगी रहेगा: "${titleToShare}"`
+      : `Thought you might appreciate this Vedic essay by Amit: "${titleToShare}"`;
+    const text = encodeURIComponent(`${shareIntro}\n${window.location.href}`);
     window.open(`https://wa.me/?text=${text}`, '_blank');
   };
-
-  const [readLang, setReadLang] = useState<'en' | 'hi'>('en');
 
   if (isLoading) {
     return (
@@ -132,7 +153,7 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({
             onClick={() => onNavigate('/blog')}
             style={{ background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: 6, color: '#6E6E73', cursor: 'pointer', fontSize: 13.5 }}
           >
-            <ArrowLeft size={15} /> All Articles
+            <ArrowLeft size={15} /> {readLang === 'hi' ? 'सभी आलेख' : 'All Articles'}
           </button>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -148,7 +169,7 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({
               className="apple-btn-secondary"
               style={{ padding: '6px 12px', fontSize: 12.5 }}
             >
-              {copied ? <Check size={14} color="#2FA84F" /> : <Copy size={14} />} {copied ? 'Copied' : 'Copy'}
+              {copied ? <Check size={14} color="#2FA84F" /> : <Copy size={14} />} {copied ? (readLang === 'hi' ? 'कॉपी हुआ' : 'Copied') : (readLang === 'hi' ? 'लिंक कॉपी करें' : 'Copy Link')}
             </button>
           </div>
         </div>
@@ -160,19 +181,19 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <span className="apple-badge-gold">{post.category_name}</span>
             <span className="apple-badge-primary">
-              <Clock size={12} /> {post.reading_time_min} Min Read
+              <Clock size={12} /> {post.reading_time_min} {readLang === 'hi' ? 'मिनट पठन' : 'Min Read'}
             </span>
           </div>
 
           {/* Bilingual Switcher if Hindi is available */}
-          {hasHindi && (
+          {hasHindi ? (
             <div style={{ display: 'inline-flex', padding: 3, backgroundColor: '#F5F5F7', borderRadius: 10, border: '1px solid #E5E5EA' }}>
               <button
                 type="button"
                 onClick={() => setReadLang('en')}
                 style={{
-                  padding: '4px 12px',
-                  fontSize: 12,
+                  padding: '5px 14px',
+                  fontSize: 12.5,
                   fontWeight: readLang === 'en' ? 600 : 500,
                   backgroundColor: readLang === 'en' ? '#FFFFFF' : 'transparent',
                   color: readLang === 'en' ? '#1D1D1F' : '#6E6E73',
@@ -188,8 +209,8 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({
                 type="button"
                 onClick={() => setReadLang('hi')}
                 style={{
-                  padding: '4px 12px',
-                  fontSize: 12,
+                  padding: '5px 14px',
+                  fontSize: 12.5,
                   fontWeight: readLang === 'hi' ? 600 : 500,
                   backgroundColor: readLang === 'hi' ? '#FFFFFF' : 'transparent',
                   color: readLang === 'hi' ? '#1D1D1F' : '#6E6E73',
@@ -202,8 +223,26 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({
                 🇮🇳 हिंदी संस्करण
               </button>
             </div>
+          ) : (
+            <div style={{ fontSize: 12, color: '#8E8E93', display: 'flex', alignItems: 'center', gap: 5 }}>
+              <Globe size={13} /> {readLang === 'hi' ? 'अंग्रेजी संस्करण (हिंदी अनुवाद शीघ्र)' : 'English Edition'}
+            </div>
           )}
         </div>
+
+        {/* Notice if Hindi was requested globally but not yet available on this specific post */}
+        {readLang === 'hi' && !hasHindi && (
+          <div style={{ backgroundColor: '#FFF9E6', border: '1px solid #FFE58F', borderRadius: 12, padding: '12px 16px', marginBottom: 20, fontSize: 13.5, color: '#874D00', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>यह आलेख वर्तमान में केवल अंग्रेजी में उपलब्ध है। हिंदी अनुवाद शीघ्र ही प्रकाशित किया जाएगा।</span>
+            <button
+              onClick={() => setReadLang('en')}
+              className="apple-btn-secondary"
+              style={{ fontSize: 12, padding: '4px 10px' }}
+            >
+              Switch to English
+            </button>
+          </div>
+        )}
 
         <h1 className="text-display" style={{ fontSize: 38, marginBottom: 18, lineHeight: 1.2 }}>
           {activeTitle}
@@ -245,10 +284,12 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({
             </div>
             <div>
               <div style={{ fontWeight: 600, fontSize: 15, color: '#1D1D1F' }}>
-                {author.name}
+                {readLang === 'hi' ? 'अमित' : author.name}
               </div>
               <div style={{ fontSize: 12.5, color: '#6E6E73' }}>
-                {author.title} · {author.experience}
+                {readLang === 'hi' 
+                  ? 'वैदिक ज्योतिषाचार्य एवं वास्तु सलाहकार · 15+ वर्षों का अनुभव'
+                  : `${author.title} · ${author.experience}`}
               </div>
             </div>
           </div>
@@ -258,7 +299,7 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({
             className="apple-btn-primary"
             style={{ padding: '8px 16px', fontSize: 13 }}
           >
-            Book Consultation
+            {readLang === 'hi' ? 'परामर्श बुक करें' : 'Book Consultation'}
           </button>
         </div>
 
@@ -290,17 +331,19 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({
         >
           <Sparkles size={24} color="#C9A24B" style={{ marginBottom: 10 }} />
           <h3 style={{ fontSize: 22, fontWeight: 700, color: '#1D1D1F', marginBottom: 8 }}>
-            Need Personalized Astrological Clarity?
+            {readLang === 'hi' ? 'क्या आपको व्यक्तिगत ज्योतिषीय मार्गदर्शन चाहिए?' : 'Need Personalized Astrological Clarity?'}
           </h3>
           <p style={{ fontSize: 15, color: '#6E6E73', maxWidth: 540, margin: '0 auto 20px', lineHeight: 1.5 }}>
-            Every birth chart is as unique as a fingerprint. Discuss your specific Mahadasha and receive sattvic remedies directly from Amit.
+            {readLang === 'hi'
+              ? 'प्रत्येक जन्म कुंडली अंगूठे के निशान की भांति विशिष्ट होती है। अपनी महादशा, गोचर और प्रामाणिक वैदिक उपायों के लिए अमित जी से सीधे जुड़ें।'
+              : 'Every birth chart is as unique as a fingerprint. Discuss your specific Mahadasha and receive sattvic remedies directly from Amit.'}
           </p>
           <button
             onClick={onOpenBooking}
             className="apple-btn-gold"
             style={{ padding: '12px 28px', fontSize: 15 }}
           >
-            Book a 1-on-1 Consultation
+            {readLang === 'hi' ? '1-ऑन-1 व्यक्तिगत परामर्श बुक करें' : 'Book a 1-on-1 Consultation'}
           </button>
         </div>
 
@@ -308,29 +351,39 @@ export const BlogPostPage: React.FC<BlogPostPageProps> = ({
         {related && related.length > 0 && (
           <div style={{ marginTop: 64, borderTop: '1px solid #E5E5EA', paddingTop: 40 }}>
             <h3 style={{ fontSize: 22, fontWeight: 700, color: '#1D1D1F', marginBottom: 24 }}>
-              Related Vedic Articles
+              {readLang === 'hi' ? 'संबंधित वैदिक आलेख' : 'Related Vedic Articles'}
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20 }}>
-              {related.map((rel: any) => (
-                <div
-                  key={rel.id}
-                  className="apple-card"
-                  style={{ padding: 18, cursor: 'pointer' }}
-                  onClick={() => onNavigate(`/blog/post/${rel.slug}`)}
-                >
-                  <img
-                    src={rel.hero_image_url}
-                    alt={rel.title}
-                    style={{ width: '100%', height: 130, objectFit: 'cover', borderRadius: 10, marginBottom: 12 }}
-                  />
-                  <h4 style={{ fontSize: 15, fontWeight: 600, color: '#1D1D1F', marginBottom: 6, lineHeight: 1.3 }}>
-                    {rel.title}
-                  </h4>
-                  <div style={{ fontSize: 12, color: '#86868B' }}>
-                    {rel.reading_time_min} min read
+              {related.map((rel: any) => {
+                const relTitle = readLang === 'hi' && rel.title_hi ? rel.title_hi : rel.title;
+                const relExcerpt = readLang === 'hi' && rel.excerpt_hi ? rel.excerpt_hi : rel.excerpt;
+                return (
+                  <div
+                    key={rel.id}
+                    className="apple-card"
+                    style={{ padding: 18, cursor: 'pointer' }}
+                    onClick={() => onNavigate(`/blog/post/${rel.slug}`)}
+                  >
+                    <img
+                      src={rel.hero_image_url}
+                      alt={relTitle}
+                      style={{ width: '100%', height: 130, objectFit: 'cover', borderRadius: 10, marginBottom: 12 }}
+                    />
+                    <h4 style={{ fontSize: 15, fontWeight: 600, color: '#1D1D1F', marginBottom: 6, lineHeight: 1.3 }}>
+                      {relTitle}
+                    </h4>
+                    {relExcerpt && (
+                      <p style={{ fontSize: 12.5, color: '#6E6E73', lineHeight: 1.4, marginBottom: 8, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        {relExcerpt}
+                      </p>
+                    )}
+                    <div style={{ fontSize: 12, color: '#86868B', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>{rel.reading_time_min} {readLang === 'hi' ? 'मिनट पठन' : 'min read'}</span>
+                      {rel.title_hi && <span style={{ color: '#C9A24B', fontWeight: 600, fontSize: 11 }}>🌐 हिंदी + EN</span>}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

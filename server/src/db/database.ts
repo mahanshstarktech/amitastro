@@ -932,7 +932,9 @@ async function seedInitialData() {
         id: 'post-1',
         slug: 'understanding-mahadasha-and-antardasha',
         title: 'Demystifying Mahadasha & Antardasha: How Planetary Periods Shape Your Life',
+        title_hi: 'विंशोत्तरी महादशा और अंतर्दशा: जानिए ग्रहों का समय चक्र आपके जीवन को कैसे दिशा देता है',
         excerpt: 'Vedic astrology views human life through rhythmic planetary rulers known as Dashas. Discover how Mahadashas unveil your past karma and unfolding potentials.',
+        excerpt_hi: 'वैदिक ज्योतिष में मानव जीवन का संचालन नौ ग्रहों की दशाओं द्वारा होता है। जानिए महादशा और अंतर्दशा आपके पूर्वसंचित कर्मों और जीवन के अवसरों को कैसे उद्घाटित करती हैं।',
         category_id: 'cat-kundli',
         tags: JSON.stringify(['Kundli', 'Mahadasha', 'Vimshottari', 'Planetary Cycles']),
         hero_image_url: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1200&q=80',
@@ -957,13 +959,35 @@ A **Mahadasha** is a major planetary period spanning several years. Depending on
 While the Mahadasha sets the overall climatic condition of your life, the **Antardasha** (or *Bhukti*) determines the day-to-day weather. For instance, living in a supportive Jupiter Mahadasha with a temporary Mars Antardasha can induce sudden decisive career moves or energetic real estate investments.
 
 > "Astrology does not lock destiny into stone; it illuminates the terrain so you can navigate with grace, clarity, and timely preparation." — Amit
+        `,
+        content_hi: `
+# विंशोत्तरी महादशा और अंतर्दशा का रहस्य
+
+प्राचीन वैदिक ज्योतिष परम्परा में आपकी जन्म कुंडली (*जन्म पत्रिका*) कोई स्थिर अथवा अपरिवर्तनीय नियति नहीं है, अपितु यह आत्मा के क्रमिक विकास का एक जीवंत दिव्य मानचित्र है। इस मानचित्र के समय-चक्र को संचालित करने वाला प्रमुख तंत्र है — **विंशोत्तरी दशा प्रणाली**। यह 120 वर्षों का एक दिव्य चक्र है जो नवग्रहों में विभाजित होता है।
+
+## महादशा क्या है?
+
+**महादशा** एक दीर्घकालिक ग्रहीय कालखंड होता है जो कई वर्षों तक प्रभावी रहता है। जिस ग्रह की महादशा चल रही होती है, आपके जीवन, कार्यक्षेत्र, स्वास्थ्य और संबंधों के वही क्षेत्र सर्वाधिक सक्रिय होते हैं:
+
+- **गुरु (बृहस्पति) महादशा (16 वर्ष)**: ज्ञान का विस्तार, आत्मिक शांति, संतान सुख, धार्मिक अध्ययन, सात्विक समृद्धि और सद्बुद्धि।
+- **शनि महादशा (19 वर्ष)**: अनुशासन, कर्मफल की परीक्षा, कठिन परिश्रम, धैर्य, वैराग्य और आंतरिक परिपक्वता।
+- **बुध महादशा (17 वर्ष)**: तीक्ष्ण बुद्धि, व्यापारिक सफलता, सम्प्रेषण कला, विश्लेषणात्मक क्षमता और वाकपटुता।
+- **शुक्र महादशा (20 वर्ष)**: कला, सौन्दर्य, भौतिक सुख-साधन, वैवाहिक सामंजस्य और रचनात्मक उपलब्धियां।
+
+## अंतर्दशा (भुक्ति) का प्रभाव
+
+यदि महादशा आपके जीवन के समग्र मौसम को निर्धारित करती है, तो **अंतर्दशा** उस मौसम के दैनिक तापमान और परिस्थितियों को संचालित करती है। उदाहरणार्थ, अनुकूल गुरु की महादशा में मंगल की अंतर्दशा जातक को साहसिक निर्णय लेने अथवा भूमि-सम्पत्ति में त्वरित लाभ का अवसर प्रदान करती है।
+
+> "ज्योतिष मनुष्य को किसी भाग्य के बंधन में नहीं बांधता, अपितु यह जीवन के मार्ग को आलोकित करता है ताकि आप विवेक, धैर्य और पूर्व-तैयारी के साथ आगे बढ़ सकें।" — अमित
         `
       },
       {
         id: 'post-2',
         slug: 'home-vastu-essential-principles-for-peace',
         title: 'The Sacred Geometry of Home: 5 Vastu Principles for Prosperity & Harmony',
+        title_hi: 'घर की पवित्र ज्यामिति: सुख, शांति और समृद्धि हेतु वास्तु के 5 स्वर्णिम नियम',
         excerpt: 'Your physical living environment is an energetic amplifier. Learn the foundational Vastu directions that balance the five primordial elements (Pancha Bhoota).',
+        excerpt_hi: 'आपका निवास स्थान ऊर्जा का सबसे बड़ा संवर्धक है। जानिए पंचमहाभूतों के संतुलन पर आधारित वे बुनियादी वास्तु दिशाएं जो परिवार में सौहार्द और आर्थिक उन्नति लाती हैं।',
         category_id: 'cat-vastu-home',
         tags: JSON.stringify(['Vastu', 'Home Vastu', 'Energy Flow', 'Peace']),
         hero_image_url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80',
@@ -984,15 +1008,42 @@ The North-East direction corresponds to the element of Water (*Jal*) and the div
 ## 2. The Kitchen in the South-East (Agneya Kon)
 
 The South-East is governed by the Fire element (*Agni*). Placing your cooking area here enhances digestive fire (*Jatharagni*), metabolic health, and household cheerfulness.
+        `,
+        content_hi: `
+# घर की पवित्र ज्यामिति: वास्तु के स्वर्णिम सिद्धांत
+
+*वास्तु शास्त्र* दिक्-काल और स्थान के संतुलन का प्राचीन भारतीय विज्ञान है। जब आपका भवन चारों दिशाओं, सौर किरणों और पृथ्वी के चुम्बकीय प्रवाह के अनुकूल होता है, तब वहां रहने वालों को स्वाभाविक शांति, स्वास्थ्य और समृद्धि प्राप्त होती है।
+
+## 1. ईशान कोण का देवत्व (उत्तर-पूर्व दिशा)
+
+उत्तर-पूर्व दिशा जल तत्व (*आपः*) और शिव तत्व (दिव्य चेतना) से अधिष्ठित है।
+- **मूल नियम**: इस दिशा को सदैव अत्यंत स्वच्छ, हल्का और प्रकाशयुक्त रखें।
+- **सर्वोत्तम उपयोग**: ध्यान कक्ष, पूजा घर अथवा अध्ययन स्थल।
+- **सावधानी**: ईशान कोण में कभी भी भारी सीढ़ियां, शौचालय अथवा कबाड़ न रखें।
+
+## 2. आग्नेय कोण में रसोई (दक्षिण-पूर्व दिशा)
+
+दक्षिण-पूर्व दिशा अग्नि तत्व (*अग्नि देव*) द्वारा शासित है। यहां रसोई का निर्माण जाठराग्नि, स्वास्थ्य, उत्साह और आर्थिक स्थिरता को सुदृढ़ करता है।
+
+> "जिस प्रकार शरीर में प्राण का संतुलन स्वास्थ्य देता है, उसी प्रकार भवन में पंचतत्वों का संतुलन सुख-समृद्धि का वरदान देता है।" — अमित
         `
       }
     ];
 
     for (const post of blogPosts) {
       await runQuery(`
-        INSERT OR IGNORE INTO blog_posts (id, slug, title, excerpt, content_markdown, category_id, tags_json, hero_image_url, reading_time_min, is_featured, is_published, meta_title, meta_description)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
-      `, [post.id, post.slug, post.title, post.excerpt, post.content, post.category_id, post.tags, post.hero_image_url, post.reading_time, post.is_featured, post.title, post.excerpt]);
+        INSERT OR IGNORE INTO blog_posts (id, slug, title, title_hi, excerpt, excerpt_hi, content_markdown, content_markdown_hi, category_id, tags_json, hero_image_url, reading_time_min, is_featured, is_published, meta_title, meta_description)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+      `, [post.id, post.slug, post.title, post.title_hi, post.excerpt, post.excerpt_hi, post.content, post.content_hi, post.category_id, post.tags, post.hero_image_url, post.reading_time, post.is_featured, post.title, post.excerpt]);
+
+      // Backfill existing rows if they have empty Hindi content
+      await runQuery(`
+        UPDATE blog_posts SET
+          title_hi = COALESCE(NULLIF(title_hi, ''), ?),
+          excerpt_hi = COALESCE(NULLIF(excerpt_hi, ''), ?),
+          content_markdown_hi = COALESCE(NULLIF(content_markdown_hi, ''), ?)
+        WHERE id = ?
+      `, [post.title_hi, post.excerpt_hi, post.content_hi, post.id]);
     }
 
     // Availability rules

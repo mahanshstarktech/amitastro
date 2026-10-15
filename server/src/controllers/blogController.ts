@@ -2,7 +2,16 @@ import { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthRequest } from '../middleware/auth';
 import { getAll, getOne, runQuery } from '../db/database';
-import { generateBilingualArticle, translateArticleContent, generateArtworkUrl } from '../services/geminiService';
+import { 
+  generateBilingualArticle, 
+  translateArticleContent, 
+  generateArtworkUrl,
+  getGeminiStatus,
+  verifyGeminiKey,
+  setGeminiApiKey,
+  setGeminiModel,
+  SUPPORTED_MODELS
+} from '../services/geminiService';
 
 export const getCategories = async (req: Request, res: Response) => {
   try {
@@ -315,3 +324,69 @@ export const adminGenerateArticleImage = async (req: AuthRequest, res: Response)
     return res.status(500).json({ error: err.message });
   }
 };
+
+/**
+ * Get current Gemini AI & Vedic Synthesis Engine configuration status
+ */
+export const getGeminiConfig = async (req: AuthRequest, res: Response) => {
+  try {
+    const status = await getGeminiStatus();
+    return res.json({ success: true, ...status });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+/**
+ * Update and persist Gemini API key or model
+ */
+export const updateGeminiConfig = async (req: AuthRequest, res: Response) => {
+  try {
+    const { apiKey, model } = req.body;
+
+    if (model && SUPPORTED_MODELS.includes(model)) {
+      setGeminiModel(model);
+    }
+
+    if (apiKey !== undefined) {
+      const trimmedKey = String(apiKey).trim();
+      if (trimmedKey) {
+        // Test key live against Google Generative Language API
+        const testResult = await verifyGeminiKey(trimmedKey);
+        if (!testResult.valid) {
+          return res.status(400).json({
+            success: false,
+            error: testResult.message,
+            statusCode: testResult.statusCode
+          });
+        }
+        setGeminiApiKey(trimmedKey);
+      } else {
+        setGeminiApiKey('');
+      }
+    }
+
+    const updatedStatus = await getGeminiStatus();
+    return res.json({
+      success: true,
+      message: 'Gemini AI configuration updated successfully',
+      ...updatedStatus
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+/**
+ * Live test an arbitrary key without saving
+ */
+export const testGeminiKey = async (req: AuthRequest, res: Response) => {
+  try {
+    const { apiKey } = req.body;
+    const testResult = await verifyGeminiKey(apiKey);
+    return res.json({ success: true, ...testResult });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
