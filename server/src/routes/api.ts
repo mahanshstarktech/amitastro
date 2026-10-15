@@ -75,6 +75,11 @@ router.post('/admin/subscriptions/revoke/:userId', authenticateToken, requireAdm
 // 6. Chat
 router.get('/chat/conversation', authenticateToken, chatCtrl.getOrCreateConversation);
 router.post('/chat/message', authenticateToken, chatCtrl.sendMessage);
+router.post('/chat/message/react', authenticateToken, chatCtrl.reactMessage);
+router.post('/chat/message/star', authenticateToken, chatCtrl.starMessage);
+router.post('/chat/message/pin', authenticateToken, chatCtrl.pinMessage);
+router.post('/chat/message/delete', authenticateToken, chatCtrl.deleteMessage);
+router.post('/chat/messages/bulk-action', authenticateToken, chatCtrl.bulkActionMessages);
 router.get('/chat/admin/inbox', authenticateToken, requireAdmin, chatCtrl.getAdminInbox);
 router.get('/chat/admin/conversation/:conversationId', authenticateToken, requireAdmin, chatCtrl.getAdminConversationDetails);
 router.post('/chat/admin/start-conversation/:customerId', authenticateToken, requireAdmin, chatCtrl.adminStartCustomerConversation);

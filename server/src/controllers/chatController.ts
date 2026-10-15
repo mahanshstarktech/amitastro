@@ -51,7 +51,7 @@ export const getOrCreateConversation = async (req: AuthRequest, res: Response) =
 export const sendMessage = async (req: AuthRequest, res: Response) => {
   try {
     const sender = req.user!;
-    const { conversationId, content, messageType, attachmentUrl } = req.body;
+    const { conversationId, content, messageType, attachmentUrl, replyToId, replyToText, replyToSender } = req.body;
 
     if (!content && !attachmentUrl) {
       return res.status(400).json({ error: 'Message content or attachment is required' });
@@ -73,9 +73,9 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
     const senderType = sender.role === 'admin' ? 'admin' : 'customer';
 
     await runQuery(`
-      INSERT INTO chat_messages (id, conversation_id, sender_type, sender_id, message_type, content, attachment_url, is_read)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 0)
-    `, [msgId, conversationId, senderType, sender.id, messageType || 'text', content || '', attachmentUrl || null]);
+      INSERT INTO chat_messages (id, conversation_id, sender_type, sender_id, message_type, content, attachment_url, is_read, reply_to_id, reply_to_text, reply_to_sender)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
+    `, [msgId, conversationId, senderType, sender.id, messageType || 'text', content || '', attachmentUrl || null, replyToId || null, replyToText || null, replyToSender || null]);
 
     // Update conversation timestamp and unread counts
     if (senderType === 'customer') {
@@ -286,6 +286,153 @@ export const updateCustomerCrm = async (req: AuthRequest, res: Response) => {
     `, [customerId, notes || '', JSON.stringify(tags || []), notes || '', JSON.stringify(tags || [])]);
 
     return res.json({ success: true, message: 'CRM metadata updated' });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+export const reactMessage = async (req: AuthRequest, res: Response) => {
+  try {
+    const { messageId, emoji } = req.body;
+    const user = req.user!;
+    if (!messageId || !emoji) {
+      return res.status(400).json({ error: 'messageId and emoji are required' });
+    }
+
+    const message = await getOne<any>('SELECT * FROM chat_messages WHERE id = ?', [messageId]);
+    if (!message) return res.status(404).json({ error: 'Message not found' });
+
+    let reactions: Record<string, string[]> = {};
+    if (message.reactions) {
+      try {
+        reactions = typeof message.reactions === 'string' ? JSON.parse(message.reactions) : message.reactions;
+      } catch (_) {}
+    }
+
+    const userId = user.id;
+    // Find current reaction from this user if any
+    const existingEmoji = Object.keys(reactions).find((e) => reactions[e]?.includes(userId));
+
+    if (existingEmoji === emoji) {
+      // Toggle off / remove reaction
+      reactions[emoji] = reactions[emoji].filter((id) => id !== userId);
+      if (reactions[emoji].length === 0) delete reactions[emoji];
+    } else {
+      // Remove from previous emoji if any
+      if (existingEmoji) {
+        reactions[existingEmoji] = reactions[existingEmoji].filter((id) => id !== userId);
+        if (reactions[existingEmoji].length === 0) delete reactions[existingEmoji];
+      }
+      // Add new reaction
+      if (!reactions[emoji]) reactions[emoji] = [];
+      reactions[emoji].push(userId);
+    }
+
+    const reactionsStr = JSON.stringify(reactions);
+    await runQuery('UPDATE chat_messages SET reactions = ? WHERE id = ?', [reactionsStr, messageId]);
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(message.conversation_id).emit('message_reaction', {
+        messageId,
+        reactions: reactionsStr,
+        userId,
+        emoji
+      });
+    }
+
+    return res.json({ success: true, messageId, reactions: reactionsStr });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+export const starMessage = async (req: AuthRequest, res: Response) => {
+  try {
+    const { messageId } = req.body;
+    const message = await getOne<any>('SELECT * FROM chat_messages WHERE id = ?', [messageId]);
+    if (!message) return res.status(404).json({ error: 'Message not found' });
+
+    const newStar = message.is_starred ? 0 : 1;
+    await runQuery('UPDATE chat_messages SET is_starred = ? WHERE id = ?', [newStar, messageId]);
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(message.conversation_id).emit('message_starred', { messageId, is_starred: newStar });
+    }
+
+    return res.json({ success: true, messageId, is_starred: newStar });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+export const pinMessage = async (req: AuthRequest, res: Response) => {
+  try {
+    const { messageId } = req.body;
+    const message = await getOne<any>('SELECT * FROM chat_messages WHERE id = ?', [messageId]);
+    if (!message) return res.status(404).json({ error: 'Message not found' });
+
+    const newPin = message.is_pinned ? 0 : 1;
+    await runQuery('UPDATE chat_messages SET is_pinned = ? WHERE id = ?', [newPin, messageId]);
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(message.conversation_id).emit('message_pinned', { messageId, is_pinned: newPin });
+    }
+
+    return res.json({ success: true, messageId, is_pinned: newPin });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+export const deleteMessage = async (req: AuthRequest, res: Response) => {
+  try {
+    const { messageId, forEveryone } = req.body;
+    const message = await getOne<any>('SELECT * FROM chat_messages WHERE id = ?', [messageId]);
+    if (!message) return res.status(404).json({ error: 'Message not found' });
+
+    if (forEveryone) {
+      await runQuery('UPDATE chat_messages SET is_deleted = 1, content = "🚫 This message was deleted" WHERE id = ?', [messageId]);
+    } else {
+      await runQuery('DELETE FROM chat_messages WHERE id = ?', [messageId]);
+    }
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(message.conversation_id).emit('message_deleted', { messageId, forEveryone });
+    }
+
+    return res.json({ success: true, messageId });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+export const bulkActionMessages = async (req: AuthRequest, res: Response) => {
+  try {
+    const { messageIds, action, conversationId } = req.body; // action: 'delete' | 'star'
+    if (!Array.isArray(messageIds) || messageIds.length === 0) {
+      return res.status(400).json({ error: 'No message IDs provided' });
+    }
+
+    if (action === 'delete') {
+      for (const id of messageIds) {
+        await runQuery('DELETE FROM chat_messages WHERE id = ?', [id]);
+      }
+    } else if (action === 'star') {
+      for (const id of messageIds) {
+        await runQuery('UPDATE chat_messages SET is_starred = 1 WHERE id = ?', [id]);
+      }
+    }
+
+    const io = req.app.get('io');
+    if (io && conversationId) {
+      io.to(conversationId).emit('messages_bulk_action', { messageIds, action });
+    }
+
+    return res.json({ success: true, count: messageIds.length });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }

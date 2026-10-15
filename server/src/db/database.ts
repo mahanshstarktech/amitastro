@@ -156,7 +156,14 @@ export async function initDatabase() {
       'ALTER TABLE payments ADD COLUMN IF NOT EXISTS subscription_id VARCHAR(64);',
       'ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS title_hi TEXT;',
       'ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS excerpt_hi TEXT;',
-      'ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS content_markdown_hi TEXT;'
+      'ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS content_markdown_hi TEXT;',
+      'ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS reply_to_id VARCHAR(64);',
+      'ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS reply_to_text TEXT;',
+      'ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS reply_to_sender VARCHAR(64);',
+      'ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS reactions TEXT;',
+      'ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS is_starred INT DEFAULT 0;',
+      'ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS is_pinned INT DEFAULT 0;',
+      'ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS is_deleted INT DEFAULT 0;'
     ];
     for (const q of pgMigrations) {
       try { await pgPool.query(q); } catch (_) {}
@@ -177,7 +184,14 @@ export async function initDatabase() {
       'ALTER TABLE payments ADD COLUMN subscription_id TEXT;',
       'ALTER TABLE blog_posts ADD COLUMN title_hi TEXT;',
       'ALTER TABLE blog_posts ADD COLUMN excerpt_hi TEXT;',
-      'ALTER TABLE blog_posts ADD COLUMN content_markdown_hi TEXT;'
+      'ALTER TABLE blog_posts ADD COLUMN content_markdown_hi TEXT;',
+      'ALTER TABLE chat_messages ADD COLUMN reply_to_id TEXT;',
+      'ALTER TABLE chat_messages ADD COLUMN reply_to_text TEXT;',
+      'ALTER TABLE chat_messages ADD COLUMN reply_to_sender TEXT;',
+      'ALTER TABLE chat_messages ADD COLUMN reactions TEXT;',
+      'ALTER TABLE chat_messages ADD COLUMN is_starred INTEGER DEFAULT 0;',
+      'ALTER TABLE chat_messages ADD COLUMN is_pinned INTEGER DEFAULT 0;',
+      'ALTER TABLE chat_messages ADD COLUMN is_deleted INTEGER DEFAULT 0;'
     ];
     for (const q of sqliteMigrations) {
       try { await runQuery(q); } catch (_) {}
@@ -329,6 +343,13 @@ async function initPostgresSchema() {
       content TEXT NOT NULL,
       attachment_url TEXT,
       is_read INT DEFAULT 0,
+      reply_to_id VARCHAR(64),
+      reply_to_text TEXT,
+      reply_to_sender VARCHAR(64),
+      reactions TEXT,
+      is_starred INT DEFAULT 0,
+      is_pinned INT DEFAULT 0,
+      is_deleted INT DEFAULT 0,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -605,6 +626,13 @@ async function initSqliteSchema() {
           content TEXT NOT NULL,
           attachment_url TEXT,
           is_read INTEGER DEFAULT 0,
+          reply_to_id TEXT,
+          reply_to_text TEXT,
+          reply_to_sender TEXT,
+          reactions TEXT,
+          is_starred INTEGER DEFAULT 0,
+          is_pinned INTEGER DEFAULT 0,
+          is_deleted INTEGER DEFAULT 0,
           created_at TEXT DEFAULT (datetime('now')),
           FOREIGN KEY (conversation_id) REFERENCES chat_conversations(id)
         );

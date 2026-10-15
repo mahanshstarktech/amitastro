@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Send,
   Image as ImageIcon,
@@ -20,9 +20,25 @@ import {
   Pause,
   ShieldCheck,
   ChevronDown,
-  Trash2
+  Trash2,
+  Smile,
+  Star,
+  Pin,
+  Forward,
+  Copy,
+  Info,
+  CheckCircle2,
+  CornerUpLeft,
+  Check
 } from 'lucide-react';
 import { WhatsAppVoicePlayer } from './WhatsAppVoicePlayer';
+import { WhatsAppEmojiPicker } from './WhatsAppEmojiPicker';
+import { WhatsAppReactionPill } from './WhatsAppReactionPill';
+import { WhatsAppContextMenu } from './WhatsAppContextMenu';
+import { WhatsAppSwipeWrapper } from './WhatsAppSwipeWrapper';
+import { WhatsAppReplyPreviewBar, WhatsAppQuotedBubble } from './WhatsAppReplyPreview';
+import { WhatsAppMessageInfoModal } from './WhatsAppMessageInfoModal';
+import { WhatsAppForwardModal } from './WhatsAppForwardModal';
 import { apiRequest } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
@@ -45,6 +61,13 @@ export interface CustomerChatMessage {
   attachment_url?: string;
   is_read: number;
   created_at: string;
+  reply_to_id?: string;
+  reply_to_text?: string;
+  reply_to_sender?: string;
+  reactions?: any;
+  is_starred?: number;
+  is_pinned?: number;
+  is_deleted?: number;
 }
 
 interface AppleCustomerChatProps {
@@ -115,6 +138,22 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
   // Audio Playback in Chat Thread
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
 
+  // Authentic WhatsApp Interactions States
+  const [replyingToMessage, setReplyingToMessage] = useState<CustomerChatMessage | null>(null);
+  const [activeReactionMessageId, setActiveReactionMessageId] = useState<string | null>(null);
+  const [activeContextMenuMessageId, setActiveContextMenuMessageId] = useState<string | null>(null);
+  const [showComposerEmojiPicker, setShowComposerEmojiPicker] = useState(false);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
+  const [infoModalMessage, setInfoModalMessage] = useState<CustomerChatMessage | null>(null);
+  const [forwardModalMessage, setForwardModalMessage] = useState<CustomerChatMessage | null>(null);
+  const [deleteConfirmMessage, setDeleteConfirmMessage] = useState<CustomerChatMessage | null>(null);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
+
+  const pinnedMessage = useMemo(() => {
+    return messages.find((m) => m.is_pinned === 1);
+  }, [messages]);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatCanvasRef = useRef<HTMLDivElement>(null);
 
@@ -127,6 +166,18 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
         });
       }
     }, 60);
+  };
+
+  const scrollToMessage = (msgId?: string) => {
+    if (!msgId) return;
+    const el = document.getElementById(`msg-${msgId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setHighlightedMessageId(msgId);
+      setTimeout(() => {
+        setHighlightedMessageId(null);
+      }, 1800);
+    }
   };
 
   useEffect(() => {
@@ -204,8 +255,69 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
       }
     };
 
+    // Real-time reaction updates
+    const handleReaction = (data: { messageId: string; reactions: any }) => {
+      setMessages((prev) =>
+        prev.map((m) => (m.id === data.messageId ? { ...m, reactions: data.reactions } : m))
+      );
+    };
+
+    // Real-time star updates
+    const handleStarred = (data: { messageId: string; is_starred: number }) => {
+      setMessages((prev) =>
+        prev.map((m) => (m.id === data.messageId ? { ...m, is_starred: data.is_starred } : m))
+      );
+    };
+
+    // Real-time pin updates
+    const handlePinned = (data: { messageId: string; is_pinned: number }) => {
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (m.id === data.messageId) {
+            return { ...m, is_pinned: data.is_pinned };
+          }
+          return data.is_pinned ? { ...m, is_pinned: 0 } : m;
+        })
+      );
+    };
+
+    // Real-time delete updates
+    const handleDeleted = (data: { messageId: string; forEveryone: boolean }) => {
+      if (data.forEveryone) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === data.messageId
+              ? { ...m, is_deleted: 1, content: 'This message was deleted' }
+              : m
+          )
+        );
+      } else {
+        setMessages((prev) => prev.filter((m) => m.id !== data.messageId));
+      }
+    };
+
+    // Real-time bulk actions
+    const handleBulkActionSocket = (data: { messageIds: string[]; action: string }) => {
+      if (data.action === 'delete') {
+        setMessages((prev) => prev.filter((m) => !data.messageIds.includes(m.id)));
+      } else if (data.action === 'star') {
+        setMessages((prev) =>
+          prev.map((m) => (data.messageIds.includes(m.id) ? { ...m, is_starred: 1 } : m))
+        );
+      } else if (data.action === 'unstar') {
+        setMessages((prev) =>
+          prev.map((m) => (data.messageIds.includes(m.id) ? { ...m, is_starred: 0 } : m))
+        );
+      }
+    };
+
     socket.on('receive_message', handleReceive);
     socket.on('customer_new_message', handleCustomerNew);
+    socket.on('message_reaction', handleReaction);
+    socket.on('message_starred', handleStarred);
+    socket.on('message_pinned', handlePinned);
+    socket.on('message_deleted', handleDeleted);
+    socket.on('messages_bulk_action', handleBulkActionSocket);
 
     // Keep gentle fallback poll every 20 seconds
     const interval = setInterval(() => {
@@ -215,9 +327,135 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
     return () => {
       socket.off('receive_message', handleReceive);
       socket.off('customer_new_message', handleCustomerNew);
+      socket.off('message_reaction', handleReaction);
+      socket.off('message_starred', handleStarred);
+      socket.off('message_pinned', handlePinned);
+      socket.off('message_deleted', handleDeleted);
+      socket.off('messages_bulk_action', handleBulkActionSocket);
       clearInterval(interval);
     };
   }, [user?.id, soundEnabled]);
+
+  // WhatsApp Message Action Handlers
+  const handleSelectReaction = async (messageId: string, emoji: string) => {
+    try {
+      setActiveReactionMessageId(null);
+      const res = await apiRequest<{ success: boolean; reactions: any }>('/chat/message/react', {
+        method: 'POST',
+        body: JSON.stringify({
+          messageId,
+          emoji,
+          conversationId: conversation?.id
+        })
+      });
+      if (res.reactions) {
+        setMessages((prev) =>
+          prev.map((item) =>
+            item.id === messageId ? { ...item, reactions: res.reactions } : item
+          )
+        );
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update reaction', 'error');
+    }
+  };
+
+  const handleToggleStar = async (msg: CustomerChatMessage) => {
+    try {
+      setActiveContextMenuMessageId(null);
+      const nextStar = msg.is_starred ? 0 : 1;
+      setMessages((prev) =>
+        prev.map((m) => (m.id === msg.id ? { ...m, is_starred: nextStar } : m))
+      );
+      await apiRequest('/chat/message/star', {
+        method: 'POST',
+        body: JSON.stringify({ messageId: msg.id })
+      });
+      showToast(nextStar ? 'Message starred' : 'Message unstarred', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update star', 'error');
+    }
+  };
+
+  const handleTogglePin = async (msg: CustomerChatMessage) => {
+    try {
+      setActiveContextMenuMessageId(null);
+      const nextPin = msg.is_pinned ? 0 : 1;
+      setMessages((prev) =>
+        prev.map((m) => (m.id === msg.id ? { ...m, is_pinned: nextPin } : (nextPin ? { ...m, is_pinned: 0 } : m)))
+      );
+      await apiRequest('/chat/message/pin', {
+        method: 'POST',
+        body: JSON.stringify({ messageId: msg.id })
+      });
+      showToast(nextPin ? 'Message pinned' : 'Message unpinned', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update pin', 'error');
+    }
+  };
+
+  const handleDeleteMessage = async (messageId: string, forEveryone: boolean) => {
+    try {
+      setDeleteConfirmMessage(null);
+      if (forEveryone) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === messageId ? { ...m, is_deleted: 1, content: 'This message was deleted' } : m
+          )
+        );
+      } else {
+        setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      }
+      await apiRequest('/chat/message/delete', {
+        method: 'POST',
+        body: JSON.stringify({
+          messageId,
+          forEveryone
+        })
+      });
+      showToast('Message deleted', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to delete message', 'error');
+    }
+  };
+
+  const handleBulkAction = async (action: 'delete' | 'star' | 'unstar') => {
+    if (selectedMessageIds.length === 0) return;
+    try {
+      const ids = [...selectedMessageIds];
+      if (action === 'delete') {
+        setMessages((prev) => prev.filter((m) => !ids.includes(m.id)));
+      } else if (action === 'star') {
+        setMessages((prev) =>
+          prev.map((m) => (ids.includes(m.id) ? { ...m, is_starred: 1 } : m))
+        );
+      } else if (action === 'unstar') {
+        setMessages((prev) =>
+          prev.map((m) => (ids.includes(m.id) ? { ...m, is_starred: 0 } : m))
+        );
+      }
+      setIsSelectionMode(false);
+      setSelectedMessageIds([]);
+
+      await apiRequest('/chat/messages/bulk-action', {
+        method: 'POST',
+        body: JSON.stringify({
+          messageIds: ids,
+          action,
+          conversationId: conversation?.id
+        })
+      });
+      showToast(`Messages ${action === 'delete' ? 'deleted' : action === 'star' ? 'starred' : 'unstarred'}`, 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Bulk action failed', 'error');
+    }
+  };
+
+  const toggleMessageSelection = (messageId: string) => {
+    setSelectedMessageIds((prev) =>
+      prev.includes(messageId) ? prev.filter((id) => id !== messageId) : [...prev, messageId]
+    );
+  };
 
   // Join active conversation room for zero latency
   useEffect(() => {
@@ -506,13 +744,20 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
       try {
         if (soundEnabled) playAppleSendChime();
         const durationFormatted = recordedSec < 60 ? `${recordedSec}s` : `${Math.floor(recordedSec / 60)}:${(recordedSec % 60).toString().padStart(2, '0')}`;
+        const replyPayload = replyingToMessage ? {
+          replyToId: replyingToMessage.id,
+          replyToText: replyingToMessage.content,
+          replyToSender: replyingToMessage.sender_type === 'customer' ? (user?.name || 'Customer') : 'Amit Astro'
+        } : {};
+        setReplyingToMessage(null);
         const res = await apiRequest<{ message: CustomerChatMessage }>('/chat/message', {
           method: 'POST',
           body: JSON.stringify({
             conversationId: conversation.id,
             content: `Voice note (${durationFormatted})`,
             messageType: 'voice',
-            attachmentUrl: dataUrl || undefined
+            attachmentUrl: dataUrl || undefined,
+            ...replyPayload
           })
         });
         if (res.message) {
@@ -558,9 +803,16 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
     const textToSend = inputText.trim();
     const imageToSend = attachmentPreview;
     const msgType = imageToSend ? 'image' : 'text';
+    const replyPayload = replyingToMessage ? {
+      replyToId: replyingToMessage.id,
+      replyToText: replyingToMessage.content,
+      replyToSender: replyingToMessage.sender_type === 'customer' ? (user?.name || 'Customer') : 'Amit Astro'
+    } : {};
 
     setInputText('');
     setAttachmentPreview(null);
+    setReplyingToMessage(null);
+    setShowComposerEmojiPicker(false);
     setIsSending(true);
 
     if (soundEnabled) playAppleSendChime();
@@ -572,7 +824,8 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
           conversationId: conversation.id,
           content: textToSend || (imageToSend ? 'Sent an attachment' : ''),
           messageType: msgType,
-          attachmentUrl: imageToSend || undefined
+          attachmentUrl: imageToSend || undefined,
+          ...replyPayload
         })
       });
 
@@ -674,97 +927,214 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
       {/* ======================================================== */}
       {/* 1. TOP HEADER: APPLE + WHATSAPP HYBRID BAR               */}
       {/* ======================================================== */}
-      <div
-        style={{
-          height: 60,
-          padding: '0 16px',
-          backgroundColor: 'rgba(255, 255, 255, 0.96)',
-          backdropFilter: 'blur(20px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-          borderBottom: '1px solid #E5E5EA',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexShrink: 0,
-          zIndex: 20
-        }}
-      >
-        {/* Left Contact Info */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ position: 'relative' }}>
-            <div
+      {isSelectionMode ? (
+        <div
+          style={{
+            height: 60,
+            padding: '0 16px',
+            backgroundColor: '#00A884',
+            color: '#FFFFFF',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexShrink: 0,
+            zIndex: 20
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <button
+              type="button"
+              onClick={() => {
+                setIsSelectionMode(false);
+                setSelectedMessageIds([]);
+              }}
               style={{
-                width: 40,
-                height: 40,
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, #FAF8F5, #EDE6D8)',
-                border: '1.5px solid #D6B97A',
+                background: 'none',
+                border: 'none',
+                color: '#FFFFFF',
+                cursor: 'pointer',
+                padding: 4,
+                display: 'flex',
+                alignItems: 'center'
+              }}
+              title="Cancel selection"
+            >
+              <X size={20} />
+            </button>
+            <span style={{ fontSize: 16, fontWeight: 600 }}>
+              {selectedMessageIds.length} selected
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <button
+              type="button"
+              onClick={() => handleBulkAction('star')}
+              disabled={selectedMessageIds.length === 0}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#FFFFFF',
+                cursor: 'pointer',
+                padding: 6,
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                padding: 4,
-                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)'
+                opacity: selectedMessageIds.length === 0 ? 0.5 : 1
               }}
+              title="Star selected"
             >
-              <img
-                src="/icons/logo-mark.png"
-                alt="Amit"
-                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-              />
-            </div>
-          </div>
-
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div
+              <Star size={19} />
+            </button>
+            <button
+              type="button"
+              onClick={() => handleBulkAction('delete')}
+              disabled={selectedMessageIds.length === 0}
               style={{
-                fontWeight: 700,
-                fontSize: 16,
-                color: '#111B21',
-                letterSpacing: '-0.01em',
-                lineHeight: 1.2,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis'
+                background: 'none',
+                border: 'none',
+                color: '#FFFFFF',
+                cursor: 'pointer',
+                padding: 6,
+                display: 'flex',
+                alignItems: 'center',
+                opacity: selectedMessageIds.length === 0 ? 0.5 : 1
               }}
+              title="Delete selected"
             >
-              Amit Astro
-            </div>
-            <div
-              style={{
-                fontSize: 12,
-                color: '#667781',
-                marginTop: 2,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis'
-              }}
-            >
-              Vedic Astrologer
-            </div>
+              <Trash2 size={19} />
+            </button>
           </div>
         </div>
+      ) : (
+        <div
+          style={{
+            height: 60,
+            padding: '0 16px',
+            backgroundColor: 'rgba(255, 255, 255, 0.96)',
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+            borderBottom: '1px solid #E5E5EA',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexShrink: 0,
+            zIndex: 20
+          }}
+        >
+          {/* Left Contact Info */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ position: 'relative' }}>
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #FAF8F5, #EDE6D8)',
+                  border: '1.5px solid #D6B97A',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 4,
+                  boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)'
+                }}
+              >
+                <img
+                  src="/icons/logo-mark.png"
+                  alt="Amit"
+                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                />
+              </div>
+            </div>
 
-        {/* Right Action: Clean Consultation Booking Button */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div
+                style={{
+                  fontWeight: 700,
+                  fontSize: 16,
+                  color: '#111B21',
+                  letterSpacing: '-0.01em',
+                  lineHeight: 1.2,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}
+              >
+                Amit Astro
+              </div>
+              <div
+                style={{
+                  fontSize: 12,
+                  color: '#667781',
+                  marginTop: 2,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}
+              >
+                Vedic Astrologer
+              </div>
+            </div>
+          </div>
+
+          {/* Right Action: Clean Consultation Booking Button */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            <button
+              type="button"
+              onClick={onOpenBooking}
+              className="apple-btn-primary"
+              style={{
+                padding: '6px 14px',
+                fontSize: 12.5,
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                borderRadius: 20
+              }}
+            >
+              <Calendar size={13} />
+              <span>Consultation</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Pinned Message Banner */}
+      {pinnedMessage && (
+        <div
+          className="whatsapp-pinned-banner"
+          onClick={() => scrollToMessage(pinnedMessage.id)}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
+            <Pin size={15} color="#00A884" style={{ flexShrink: 0, transform: 'rotate(45deg)' }} />
+            <div style={{ minWidth: 0, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <strong style={{ color: '#00A884', marginRight: 4 }}>Pinned Message:</strong>
+              <span style={{ color: '#54656F' }}>
+                {pinnedMessage.content || (pinnedMessage.message_type === 'voice' ? 'Voice note' : 'Attachment')}
+              </span>
+            </div>
+          </div>
           <button
             type="button"
-            onClick={onOpenBooking}
-            className="apple-btn-primary"
-            style={{
-              padding: '6px 14px',
-              fontSize: 12.5,
-              fontWeight: 600,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 5,
-              borderRadius: 20
+            onClick={(e) => {
+              e.stopPropagation();
+              handleTogglePin(pinnedMessage);
             }}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#8696A0',
+              cursor: 'pointer',
+              padding: 4,
+              display: 'flex',
+              alignItems: 'center'
+            }}
+            title="Unpin message"
           >
-            <Calendar size={13} />
-            <span>Consultation</span>
+            <X size={15} />
           </button>
         </div>
-      </div>
+      )}
 
       {/* ======================================================== */}
       {/* 2. TRIAL OR CONSULTATION STATUS BANNER                   */}
@@ -869,6 +1239,28 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
 
             const timeStr = new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+            // Parse message reactions
+            let reactionsList: { emoji: string; count: number }[] = [];
+            if (m.reactions) {
+              let rObj = m.reactions;
+              if (typeof rObj === 'string') {
+                try { rObj = JSON.parse(rObj); } catch (_) { rObj = {}; }
+              }
+              if (rObj && typeof rObj === 'object') {
+                for (const [key, val] of Object.entries(rObj)) {
+                  if (Array.isArray(val) && val.length > 0) {
+                    reactionsList.push({ emoji: key, count: val.length });
+                  } else if (typeof val === 'string') {
+                    const ex = reactionsList.find((x) => x.emoji === val);
+                    if (ex) ex.count += 1;
+                    else reactionsList.push({ emoji: val, count: 1 });
+                  }
+                }
+              }
+            }
+            const totalReactionCount = reactionsList.reduce((acc, curr) => acc + curr.count, 0);
+            const reactionEmojis = reactionsList.map((r) => r.emoji).slice(0, 3).join('');
+
             return (
               <React.Fragment key={m.id ? `${m.id}-${idx}` : idx}>
                 {showTimestamp && (
@@ -881,141 +1273,333 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
                   </div>
                 )}
 
-                <div
-                  style={{
-                    alignSelf: isMe ? 'flex-end' : 'flex-start',
-                    maxWidth: '85%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: isMe ? 'flex-end' : 'flex-start'
+                <WhatsAppSwipeWrapper
+                  onReply={() => setReplyingToMessage(m)}
+                  onLongPress={() => {
+                    setActiveContextMenuMessageId(m.id);
+                    setActiveReactionMessageId(null);
                   }}
+                  disabled={isSelectionMode}
                 >
-                  {/* Message Type 1: Astrological Remedy Card */}
-                  {m.message_type === 'astrological_remedy' ? (
+                  <div
+                    id={`msg-${m.id}`}
+                    className={`chat-message-row ${highlightedMessageId === m.id ? 'msg-highlight-pulse' : ''}`}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: isMe ? 'flex-end' : 'flex-start',
+                      position: 'relative',
+                      width: '100%',
+                      padding: '2px 0'
+                    }}
+                  >
+                    {/* Selection Checkbox */}
+                    {isSelectionMode && (
+                      <div
+                        className={`whatsapp-select-checkbox ${selectedMessageIds.includes(m.id) ? 'selected' : ''}`}
+                        onClick={() => toggleMessageSelection(m.id)}
+                      >
+                        {selectedMessageIds.includes(m.id) && <Check size={13} color="#FFF" />}
+                      </div>
+                    )}
+
+                    {/* Outgoing Message: Hover Smiley button on LEFT */}
+                    {isMe && !isSelectionMode && m.is_deleted !== 1 && (
+                      <button
+                        type="button"
+                        className="hybrid-bubble-react-btn"
+                        style={{ marginRight: 8 }}
+                        title="React"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveReactionMessageId(activeReactionMessageId === m.id ? null : m.id);
+                          setActiveContextMenuMessageId(null);
+                        }}
+                      >
+                        <Smile size={17} />
+                      </button>
+                    )}
+
+                    {/* Bubble Container */}
                     <div
+                      className="hybrid-bubble-container"
                       style={{
-                        backgroundColor: '#FFFDF9',
-                        border: '1.5px solid #E8D3A7',
-                        borderRadius: 14,
-                        padding: '14px 16px',
-                        maxWidth: 420,
-                        boxShadow: '0 2px 8px rgba(201, 162, 75, 0.12)'
+                        position: 'relative',
+                        maxWidth: m.message_type === 'voice' ? '360px' : '82%'
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                        <span style={{ fontSize: 18 }}>🕉️</span>
-                        <div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: '#875C0C' }}>
-                            Prescribed Vedic Remedy
-                          </div>
-                          <div style={{ fontSize: 10.5, color: '#A07829' }}>Astrologer Recommendation</div>
-                        </div>
-                      </div>
-                      <div style={{ fontSize: 'var(--chat-font-bubble)', color: '#2C200C', lineHeight: 1.45 }}>
-                        {m.content}
-                      </div>
-                      <div className="hybrid-bubble-time" style={{ float: 'right', marginTop: 6 }}>
-                        {timeStr}
-                      </div>
-                    </div>
-                  ) : m.message_type === 'voice' ? (
-                    /* Message Type 2: Authentic WhatsApp Voice Note Player */
-                    <WhatsAppVoicePlayer
-                      id={m.id}
-                      audioUrl={m.attachment_url}
-                      durationSeconds={parseVoiceDuration(m.content)}
-                      isMe={isMe}
-                      senderName={isMe ? (user?.name || 'You') : 'Amit Astro'}
-                      senderPhoto={isMe ? user?.photoURL : '/icons/logo-mark.png'}
-                      timestamp={timeStr}
-                      isPlaying={playingVoiceId === m.id}
-                      onTogglePlay={() => setPlayingVoiceId(playingVoiceId === m.id ? null : m.id)}
-                    />
-                  ) : m.message_type === 'image' || m.attachment_url ? (
-                    /* Message Type 3: Image Attachment */
-                    <div
-                      className={`hybrid-bubble ${isMe ? 'hybrid-bubble-out' : 'hybrid-bubble-in'}`}
-                      style={{ padding: 4 }}
-                    >
-                      {m.attachment_url && (
+                      {/* Quoted reply box if replied to another message */}
+                      {m.reply_to_text && (
+                        <WhatsAppQuotedBubble
+                          senderName={m.reply_to_sender || (isMe ? 'Amit Astro' : 'You')}
+                          content={m.reply_to_text}
+                          accentColor={isMe ? '#00A884' : '#128C7E'}
+                          onClick={() => scrollToMessage(m.reply_to_id)}
+                        />
+                      )}
+
+                      {/* Deleted message indicator */}
+                      {m.is_deleted === 1 ? (
                         <div
-                          onClick={() => setZoomedImage(m.attachment_url || null)}
+                          className={`hybrid-bubble ${isMe ? 'hybrid-bubble-out' : 'hybrid-bubble-in'}`}
+                          style={{ fontStyle: 'italic', color: '#8696A0' }}
+                        >
+                          <span>🚫 {isMe ? 'You deleted this message' : 'This message was deleted'}</span>
+                          <span className="hybrid-bubble-meta">
+                            <span className="hybrid-bubble-time">{timeStr}</span>
+                          </span>
+                        </div>
+                      ) : m.message_type === 'astrological_remedy' ? (
+                        /* Message Type 1: Astrological Remedy Card */
+                        <div
                           style={{
-                            cursor: 'pointer',
-                            borderRadius: 12,
-                            overflow: 'hidden',
+                            backgroundColor: '#FFFDF9',
+                            border: '1.5px solid #E8D3A7',
+                            borderRadius: 14,
+                            padding: '14px 16px',
+                            maxWidth: 420,
+                            boxShadow: '0 2px 8px rgba(201, 162, 75, 0.12)',
                             position: 'relative'
                           }}
                         >
-                          <img
-                            src={m.attachment_url}
-                            alt="Attachment"
-                            style={{
-                              maxWidth: 300,
-                              maxHeight: 260,
-                              width: '100%',
-                              objectFit: 'cover',
-                              display: 'block',
-                              borderRadius: 12
-                            }}
-                          />
-                          <div
-                            style={{
-                              position: 'absolute',
-                              bottom: 6,
-                              right: 6,
-                              backgroundColor: 'rgba(0, 0, 0, 0.65)',
-                              borderRadius: 6,
-                              padding: '2px 6px',
-                              color: '#FFF',
-                              fontSize: 10,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 3
-                            }}
-                          >
-                            <ImageIcon size={10} /> Zoom
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                            <span style={{ fontSize: 18 }}>🕉️</span>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: '#875C0C' }}>
+                                Prescribed Vedic Remedy
+                              </div>
+                              <div style={{ fontSize: 10.5, color: '#A07829' }}>Astrologer Recommendation</div>
+                            </div>
+                          </div>
+                          <div style={{ fontSize: 'var(--chat-font-bubble)', color: '#2C200C', lineHeight: 1.45 }}>
+                            {m.content}
+                          </div>
+                          <div className="hybrid-bubble-time" style={{ float: 'right', marginTop: 6 }}>
+                            {m.is_pinned === 1 && <span title="Pinned" style={{ fontSize: 11, marginRight: 2 }}>📌</span>}
+                            {m.is_starred === 1 && <span title="Starred" style={{ fontSize: 11, marginRight: 2, color: '#F59E0B' }}>★</span>}
+                            {timeStr}
                           </div>
                         </div>
-                      )}
-                      {m.content && m.content !== 'Sent an attachment' && (
+                      ) : m.message_type === 'voice' ? (
+                        /* Message Type 2: Authentic WhatsApp Voice Note Player */
+                        <WhatsAppVoicePlayer
+                          id={m.id}
+                          audioUrl={m.attachment_url}
+                          durationSeconds={parseVoiceDuration(m.content)}
+                          isMe={isMe}
+                          senderName={isMe ? (user?.name || 'You') : 'Amit Astro'}
+                          senderPhoto={isMe ? user?.photoURL : '/icons/logo-mark.png'}
+                          timestamp={timeStr}
+                          isPlaying={playingVoiceId === m.id}
+                          onTogglePlay={() => setPlayingVoiceId(playingVoiceId === m.id ? null : m.id)}
+                        />
+                      ) : m.message_type === 'image' || m.attachment_url ? (
+                        /* Message Type 3: Image Attachment */
                         <div
-                          style={{
-                            padding: '6px 8px 2px 8px',
-                            fontSize: 'var(--chat-font-bubble)',
-                            color: '#111B21',
-                            lineHeight: 1.4
-                          }}
+                          className={`hybrid-bubble ${isMe ? 'hybrid-bubble-out' : 'hybrid-bubble-in'}`}
+                          style={{ padding: 4 }}
                         >
-                          {m.content}
+                          {m.attachment_url && (
+                            <div
+                              onClick={() => setZoomedImage(m.attachment_url || null)}
+                              style={{
+                                cursor: 'pointer',
+                                borderRadius: 12,
+                                overflow: 'hidden',
+                                position: 'relative'
+                              }}
+                            >
+                              <img
+                                src={m.attachment_url}
+                                alt="Attachment"
+                                style={{
+                                  maxWidth: 300,
+                                  maxHeight: 260,
+                                  width: '100%',
+                                  objectFit: 'cover',
+                                  display: 'block',
+                                  borderRadius: 12
+                                }}
+                              />
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  bottom: 6,
+                                  right: 6,
+                                  backgroundColor: 'rgba(0, 0, 0, 0.65)',
+                                  borderRadius: 6,
+                                  padding: '2px 6px',
+                                  color: '#FFF',
+                                  fontSize: 10,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 3
+                                }}
+                              >
+                                <ImageIcon size={10} /> Zoom
+                              </div>
+                            </div>
+                          )}
+                          {m.content && m.content !== 'Sent an attachment' && (
+                            <div
+                              style={{
+                                padding: '6px 8px 2px 8px',
+                                fontSize: 'var(--chat-font-bubble)',
+                                color: '#111B21',
+                                lineHeight: 1.4
+                              }}
+                            >
+                              {m.content}
+                            </div>
+                          )}
+                          <span className="hybrid-bubble-meta" style={{ padding: '0 6px 4px 0' }}>
+                            {m.is_pinned === 1 && <span title="Pinned" style={{ fontSize: 11, marginRight: 2 }}>📌</span>}
+                            {m.is_starred === 1 && <span title="Starred" style={{ fontSize: 11, marginRight: 2, color: '#F59E0B' }}>★</span>}
+                            <span className="hybrid-bubble-time">{timeStr}</span>
+                            {isMe && (
+                              <span className="hybrid-read-ticks">
+                                <CheckCheck size={14} color="#53BDEB" />
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                      ) : (
+                        /* Message Type 4: Text Message Bubble */
+                        <div
+                          className={`hybrid-bubble ${isMe ? 'hybrid-bubble-out' : 'hybrid-bubble-in'}`}
+                        >
+                          <span className="hybrid-message-text">{m.content}</span>
+                          <span className="hybrid-bubble-meta">
+                            {m.is_pinned === 1 && <span title="Pinned" style={{ fontSize: 11, marginRight: 2 }}>📌</span>}
+                            {m.is_starred === 1 && <span title="Starred" style={{ fontSize: 11, marginRight: 2, color: '#F59E0B' }}>★</span>}
+                            <span className="hybrid-bubble-time">{timeStr}</span>
+                            {isMe && (
+                              <span className="hybrid-read-ticks">
+                                <CheckCheck size={14} color="#53BDEB" />
+                              </span>
+                            )}
+                          </span>
                         </div>
                       )}
-                      <span className="hybrid-bubble-meta" style={{ padding: '0 6px 4px 0' }}>
-                        <span className="hybrid-bubble-time">{timeStr}</span>
-                        {isMe && (
-                          <span className="hybrid-read-ticks">
-                            <CheckCheck size={14} color="#53BDEB" />
-                          </span>
-                        )}
-                      </span>
+
+                      {/* Top-Right Dropdown Arrow Button */}
+                      {!isSelectionMode && m.is_deleted !== 1 && (
+                        <button
+                          type="button"
+                          className="hybrid-bubble-dropdown-btn"
+                          style={{
+                            position: 'absolute',
+                            top: 4,
+                            right: 6,
+                            zIndex: 10
+                          }}
+                          title="Message options"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveContextMenuMessageId(activeContextMenuMessageId === m.id ? null : m.id);
+                            setActiveReactionMessageId(null);
+                          }}
+                        >
+                          <ChevronDown size={14} />
+                        </button>
+                      )}
+
+                      {/* WhatsApp Reactions Badge */}
+                      {reactionsList.length > 0 && (
+                        <div
+                          className="whatsapp-reaction-badge"
+                          style={{
+                            [isMe ? 'right' : 'left']: 8
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveReactionMessageId(m.id);
+                          }}
+                          title="View reactions"
+                        >
+                          <span>{reactionEmojis}</span>
+                          {totalReactionCount > 1 && (
+                            <span style={{ fontSize: 10, color: '#667781', fontWeight: 600 }}>
+                              {totalReactionCount}
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* WhatsApp Reaction Pill Popover */}
+                      {activeReactionMessageId === m.id && (
+                        <WhatsAppReactionPill
+                          onSelectEmoji={(emoji) => handleSelectReaction(m.id, emoji)}
+                          onClose={() => setActiveReactionMessageId(null)}
+                          position="top"
+                          align={isMe ? 'right' : 'left'}
+                        />
+                      )}
+
+                      {/* WhatsApp Context Menu Popover */}
+                      {activeContextMenuMessageId === m.id && (
+                        <WhatsAppContextMenu
+                          isStarred={m.is_starred === 1}
+                          isPinned={m.is_pinned === 1}
+                          onReply={() => {
+                            setReplyingToMessage(m);
+                            setActiveContextMenuMessageId(null);
+                          }}
+                          onReact={() => {
+                            setActiveContextMenuMessageId(null);
+                            setActiveReactionMessageId(m.id);
+                          }}
+                          onStar={() => handleToggleStar(m)}
+                          onPin={() => handleTogglePin(m)}
+                          onForward={() => {
+                            setForwardModalMessage(m);
+                            setActiveContextMenuMessageId(null);
+                          }}
+                          onCopy={() => {
+                            if (m.content) {
+                              navigator.clipboard.writeText(m.content);
+                              showToast('Message copied to clipboard', 'success');
+                            }
+                            setActiveContextMenuMessageId(null);
+                          }}
+                          onInfo={() => {
+                            setInfoModalMessage(m);
+                            setActiveContextMenuMessageId(null);
+                          }}
+                          onDelete={() => {
+                            setDeleteConfirmMessage(m);
+                            setActiveContextMenuMessageId(null);
+                          }}
+                          onSelectMessages={() => {
+                            setIsSelectionMode(true);
+                            setSelectedMessageIds([m.id]);
+                            setActiveContextMenuMessageId(null);
+                          }}
+                          onClose={() => setActiveContextMenuMessageId(null)}
+                          position="bottom"
+                          align={isMe ? 'right' : 'left'}
+                        />
+                      )}
                     </div>
-                  ) : (
-                    /* Message Type 4: Text Message Bubble */
-                    <div
-                      className={`hybrid-bubble ${isMe ? 'hybrid-bubble-out' : 'hybrid-bubble-in'}`}
-                    >
-                      <span className="hybrid-message-text">{m.content}</span>
-                      <span className="hybrid-bubble-meta">
-                        <span className="hybrid-bubble-time">{timeStr}</span>
-                        {isMe && (
-                          <span className="hybrid-read-ticks">
-                            <CheckCheck size={14} color="#53BDEB" />
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                  )}
-                </div>
+
+                    {/* Incoming Message: Hover Smiley button on RIGHT */}
+                    {!isMe && !isSelectionMode && m.is_deleted !== 1 && (
+                      <button
+                        type="button"
+                        className="hybrid-bubble-react-btn"
+                        style={{ marginLeft: 8 }}
+                        title="React"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveReactionMessageId(activeReactionMessageId === m.id ? null : m.id);
+                          setActiveContextMenuMessageId(null);
+                        }}
+                      >
+                        <Smile size={17} />
+                      </button>
+                    )}
+                  </div>
+                </WhatsAppSwipeWrapper>
               </React.Fragment>
             );
           })
@@ -1191,6 +1775,15 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
         )}
       </div>
 
+      {/* WhatsApp Reply Preview Bar */}
+      {replyingToMessage && (
+        <WhatsAppReplyPreviewBar
+          senderName={replyingToMessage.sender_type === 'customer' ? (user?.name || 'You') : 'Amit Astro'}
+          content={replyingToMessage.content}
+          onCancel={() => setReplyingToMessage(null)}
+        />
+      )}
+
       {/* ======================================================== */}
       {/* 6. APPLE + WHATSAPP HYBRID COMPOSER BAR                  */}
       {/* ======================================================== */}
@@ -1204,16 +1797,44 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
           style={{ display: 'none' }}
         />
 
-        {/* Attach Photo Button (hidden during voice recording) */}
+        {/* Attach Photo Button & Emoji Trigger (hidden during voice recording) */}
         {voiceRecordState === 'idle' && (
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="hybrid-action-icon-btn"
-            title="Attach Kundli / Palm photo"
-          >
-            <Paperclip size={20} />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="hybrid-action-icon-btn"
+              title="Attach Kundli / Palm photo"
+            >
+              <Paperclip size={20} />
+            </button>
+
+            {/* WhatsApp Emoji Picker Trigger */}
+            <div style={{ position: 'relative' }}>
+              <button
+                type="button"
+                onClick={() => setShowComposerEmojiPicker(!showComposerEmojiPicker)}
+                className="hybrid-action-icon-btn"
+                title="Choose emoji"
+                style={{
+                  color: showComposerEmojiPicker ? '#00A884' : '#54656F'
+                }}
+              >
+                <Smile size={21} />
+              </button>
+
+              {showComposerEmojiPicker && (
+                <WhatsAppEmojiPicker
+                  onSelectEmoji={(emoji) => {
+                    setInputText((prev) => prev + emoji);
+                  }}
+                  onClose={() => setShowComposerEmojiPicker(false)}
+                  position="top"
+                  align="left"
+                />
+              )}
+            </div>
+          </div>
         )}
 
         {/* Input Pill or WhatsApp Voice Recording Bar */}
@@ -1621,6 +2242,118 @@ export const AppleCustomerChat: React.FC<AppleCustomerChatProps> = ({ onOpenBook
             }}
             onClick={(e) => e.stopPropagation()}
           />
+        </div>
+      )}
+
+      {/* WhatsApp Message Info Modal */}
+      {infoModalMessage && (
+        <WhatsAppMessageInfoModal
+          message={infoModalMessage}
+          onClose={() => setInfoModalMessage(null)}
+        />
+      )}
+
+      {/* WhatsApp Forward Modal */}
+      {forwardModalMessage && (
+        <WhatsAppForwardModal
+          content={forwardModalMessage.content}
+          onForward={(target) => {
+            showToast(`Message forwarded to ${target}`, 'success');
+            setForwardModalMessage(null);
+          }}
+          onClose={() => setForwardModalMessage(null)}
+        />
+      )}
+
+      {/* WhatsApp Delete Confirmation Modal */}
+      {deleteConfirmMessage && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.45)',
+            backdropFilter: 'blur(6px)',
+            zIndex: 999999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16
+          }}
+          onClick={() => setDeleteConfirmMessage(null)}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: 360,
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              padding: '20px 20px 16px 20px',
+              boxShadow: '0 16px 40px rgba(0, 0, 0, 0.18)',
+              animation: 'whatsappPopoverPop 0.18s ease'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#111B21', marginBottom: 8 }}>
+              Delete message?
+            </div>
+            <div style={{ fontSize: 13, color: '#667781', lineHeight: 1.45, marginBottom: 18 }}>
+              You can delete this message for everyone or delete it just for yourself.
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {deleteConfirmMessage.sender_type === 'customer' && (
+                <button
+                  type="button"
+                  onClick={() => handleDeleteMessage(deleteConfirmMessage.id, true)}
+                  style={{
+                    backgroundColor: '#FFEAEA',
+                    color: '#FF3B30',
+                    border: 'none',
+                    borderRadius: 10,
+                    padding: '10px 14px',
+                    fontWeight: 600,
+                    fontSize: 13.5,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Delete for everyone
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => handleDeleteMessage(deleteConfirmMessage.id, false)}
+                style={{
+                  backgroundColor: '#F0F2F5',
+                  color: '#111B21',
+                  border: 'none',
+                  borderRadius: 10,
+                  padding: '10px 14px',
+                  fontWeight: 600,
+                  fontSize: 13.5,
+                  cursor: 'pointer'
+                }}
+              >
+                Delete for me
+              </button>
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmMessage(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#667781',
+                  padding: '8px 14px',
+                  fontSize: 13,
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Search,
   Send,
@@ -26,9 +26,21 @@ import {
   ShieldCheck,
   Smile,
   Volume2,
-  VolumeX
+  VolumeX,
+  Star,
+  Pin,
+  Forward,
+  CheckCircle2,
+  CornerUpLeft
 } from 'lucide-react';
 import { WhatsAppVoicePlayer } from './WhatsAppVoicePlayer';
+import { WhatsAppEmojiPicker } from './WhatsAppEmojiPicker';
+import { WhatsAppReactionPill } from './WhatsAppReactionPill';
+import { WhatsAppContextMenu } from './WhatsAppContextMenu';
+import { WhatsAppSwipeWrapper } from './WhatsAppSwipeWrapper';
+import { WhatsAppReplyPreviewBar, WhatsAppQuotedBubble } from './WhatsAppReplyPreview';
+import { WhatsAppMessageInfoModal } from './WhatsAppMessageInfoModal';
+import { WhatsAppForwardModal } from './WhatsAppForwardModal';
 import { apiRequest } from '../../utils/api';
 import { useNotification } from '../../context/NotificationContext';
 import {
@@ -71,6 +83,13 @@ export interface ChatMessageItem {
   attachment_url?: string;
   is_read: number;
   created_at: string;
+  reply_to_id?: string;
+  reply_to_text?: string;
+  reply_to_sender?: string;
+  reactions?: any;
+  is_starred?: number;
+  is_pinned?: number;
+  is_deleted?: number;
 }
 
 interface AppleAdminChatProps {
@@ -133,6 +152,32 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
 
   // Audio Playback simulation
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
+
+  // Authentic WhatsApp Interactions States
+  const [replyingToMessage, setReplyingToMessage] = useState<ChatMessageItem | null>(null);
+  const [activeReactionMessageId, setActiveReactionMessageId] = useState<string | null>(null);
+  const [activeContextMenuMessageId, setActiveContextMenuMessageId] = useState<string | null>(null);
+  const [showComposerEmojiPicker, setShowComposerEmojiPicker] = useState(false);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
+  const [infoModalMessage, setInfoModalMessage] = useState<ChatMessageItem | null>(null);
+  const [forwardModalMessage, setForwardModalMessage] = useState<ChatMessageItem | null>(null);
+  const [deleteConfirmMessage, setDeleteConfirmMessage] = useState<ChatMessageItem | null>(null);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
+
+  const pinnedMessage = useMemo(() => {
+    return chatMessages.find((m) => m.is_pinned === 1);
+  }, [chatMessages]);
+
+  const scrollToMessage = (msgId?: string) => {
+    if (!msgId) return;
+    const el = document.getElementById(`admin-msg-${msgId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setHighlightedMessageId(msgId);
+      setTimeout(() => setHighlightedMessageId(null), 1800);
+    }
+  };
 
   // Delete Customer Modal
   const [customerToDelete, setCustomerToDelete] = useState<{ id: string; name: string } | null>(null);
@@ -203,8 +248,7 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
       }
     };
 
-    socket.on('admin_new_message', handleAdminNewMessage);
-    socket.on('receive_message', (msg: ChatMessageItem) => {
+    const handleReceive = (msg: ChatMessageItem) => {
       if (selectedConvRef.current?.id === msg.conversation_id) {
         setChatMessages((prev) => {
           if (prev.some((m) => m.id === msg.id)) return prev;
@@ -212,12 +256,198 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
         });
         scrollToBottom('smooth');
       }
-    });
+    };
+
+    const handleReaction = (data: { messageId: string; reactions: any }) => {
+      setChatMessages((prev) =>
+        prev.map((m) => (m.id === data.messageId ? { ...m, reactions: data.reactions } : m))
+      );
+    };
+
+    const handleStarred = (data: { messageId: string; is_starred: number }) => {
+      setChatMessages((prev) =>
+        prev.map((m) => (m.id === data.messageId ? { ...m, is_starred: data.is_starred } : m))
+      );
+    };
+
+    const handlePinned = (data: { messageId: string; is_pinned: number }) => {
+      setChatMessages((prev) =>
+        prev.map((m) => {
+          if (m.id === data.messageId) {
+            return { ...m, is_pinned: data.is_pinned };
+          }
+          return data.is_pinned ? { ...m, is_pinned: 0 } : m;
+        })
+      );
+    };
+
+    const handleDeleted = (data: { messageId: string; forEveryone: boolean }) => {
+      if (data.forEveryone) {
+        setChatMessages((prev) =>
+          prev.map((m) =>
+            m.id === data.messageId
+              ? { ...m, is_deleted: 1, content: 'This message was deleted' }
+              : m
+          )
+        );
+      } else {
+        setChatMessages((prev) => prev.filter((m) => m.id !== data.messageId));
+      }
+    };
+
+    const handleBulkActionSocket = (data: { messageIds: string[]; action: string }) => {
+      if (data.action === 'delete') {
+        setChatMessages((prev) => prev.filter((m) => !data.messageIds.includes(m.id)));
+      } else if (data.action === 'star') {
+        setChatMessages((prev) =>
+          prev.map((m) => (data.messageIds.includes(m.id) ? { ...m, is_starred: 1 } : m))
+        );
+      } else if (data.action === 'unstar') {
+        setChatMessages((prev) =>
+          prev.map((m) => (data.messageIds.includes(m.id) ? { ...m, is_starred: 0 } : m))
+        );
+      }
+    };
+
+    socket.on('admin_new_message', handleAdminNewMessage);
+    socket.on('receive_message', handleReceive);
+    socket.on('message_reaction', handleReaction);
+    socket.on('message_starred', handleStarred);
+    socket.on('message_pinned', handlePinned);
+    socket.on('message_deleted', handleDeleted);
+    socket.on('messages_bulk_action', handleBulkActionSocket);
 
     return () => {
       socket.off('admin_new_message', handleAdminNewMessage);
+      socket.off('receive_message', handleReceive);
+      socket.off('message_reaction', handleReaction);
+      socket.off('message_starred', handleStarred);
+      socket.off('message_pinned', handlePinned);
+      socket.off('message_deleted', handleDeleted);
+      socket.off('messages_bulk_action', handleBulkActionSocket);
     };
   }, [soundEnabled]);
+
+  // WhatsApp Message Action Handlers
+  const handleSelectReaction = async (messageId: string, emoji: string) => {
+    try {
+      setActiveReactionMessageId(null);
+      const res = await apiRequest<{ success: boolean; reactions: any }>('/chat/message/react', {
+        method: 'POST',
+        body: JSON.stringify({
+          messageId,
+          emoji,
+          conversationId: selectedConv?.id
+        })
+      });
+      if (res.reactions) {
+        setChatMessages((prev) =>
+          prev.map((item) =>
+            item.id === messageId ? { ...item, reactions: res.reactions } : item
+          )
+        );
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update reaction', 'error');
+    }
+  };
+
+  const handleToggleStar = async (msg: ChatMessageItem) => {
+    try {
+      setActiveContextMenuMessageId(null);
+      const nextStar = msg.is_starred ? 0 : 1;
+      setChatMessages((prev) =>
+        prev.map((m) => (m.id === msg.id ? { ...m, is_starred: nextStar } : m))
+      );
+      await apiRequest('/chat/message/star', {
+        method: 'POST',
+        body: JSON.stringify({ messageId: msg.id })
+      });
+      showToast(nextStar ? 'Message starred' : 'Message unstarred', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update star', 'error');
+    }
+  };
+
+  const handleTogglePin = async (msg: ChatMessageItem) => {
+    try {
+      setActiveContextMenuMessageId(null);
+      const nextPin = msg.is_pinned ? 0 : 1;
+      setChatMessages((prev) =>
+        prev.map((m) => (m.id === msg.id ? { ...m, is_pinned: nextPin } : (nextPin ? { ...m, is_pinned: 0 } : m)))
+      );
+      await apiRequest('/chat/message/pin', {
+        method: 'POST',
+        body: JSON.stringify({ messageId: msg.id })
+      });
+      showToast(nextPin ? 'Message pinned' : 'Message unpinned', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update pin', 'error');
+    }
+  };
+
+  const handleDeleteMessage = async (messageId: string, forEveryone: boolean) => {
+    try {
+      setDeleteConfirmMessage(null);
+      if (forEveryone) {
+        setChatMessages((prev) =>
+          prev.map((m) =>
+            m.id === messageId ? { ...m, is_deleted: 1, content: 'This message was deleted' } : m
+          )
+        );
+      } else {
+        setChatMessages((prev) => prev.filter((m) => m.id !== messageId));
+      }
+      await apiRequest('/chat/message/delete', {
+        method: 'POST',
+        body: JSON.stringify({
+          messageId,
+          forEveryone
+        })
+      });
+      showToast('Message deleted', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to delete message', 'error');
+    }
+  };
+
+  const handleBulkAction = async (action: 'delete' | 'star' | 'unstar') => {
+    if (selectedMessageIds.length === 0) return;
+    try {
+      const ids = [...selectedMessageIds];
+      if (action === 'delete') {
+        setChatMessages((prev) => prev.filter((m) => !ids.includes(m.id)));
+      } else if (action === 'star') {
+        setChatMessages((prev) =>
+          prev.map((m) => (ids.includes(m.id) ? { ...m, is_starred: 1 } : m))
+        );
+      } else if (action === 'unstar') {
+        setChatMessages((prev) =>
+          prev.map((m) => (ids.includes(m.id) ? { ...m, is_starred: 0 } : m))
+        );
+      }
+      setIsSelectionMode(false);
+      setSelectedMessageIds([]);
+
+      await apiRequest('/chat/messages/bulk-action', {
+        method: 'POST',
+        body: JSON.stringify({
+          messageIds: ids,
+          action,
+          conversationId: selectedConv?.id
+        })
+      });
+      showToast(`Messages ${action === 'delete' ? 'deleted' : action === 'star' ? 'starred' : 'unstarred'}`, 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Bulk action failed', 'error');
+    }
+  };
+
+  const toggleMessageSelection = (messageId: string) => {
+    setSelectedMessageIds((prev) =>
+      prev.includes(messageId) ? prev.filter((id) => id !== messageId) : [...prev, messageId]
+    );
+  };
 
   // Join active conversation room for zero-latency direct messaging
   useEffect(() => {
@@ -313,15 +543,24 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
 
     if (!contentToSend && !attachmentUrlToSend) return;
 
+    const replyPayload = replyingToMessage ? {
+      replyToId: replyingToMessage.id,
+      replyToText: replyingToMessage.content,
+      replyToSender: replyingToMessage.sender_type === 'admin' ? 'Amit Astro' : selectedConv.customer_name
+    } : {};
+
+    setReplyingToMessage(null);
+    setShowComposerEmojiPicker(false);
     setIsSending(true);
     try {
-      const res = await apiRequest('/chat/message', {
+      const res = await apiRequest<{ message: ChatMessageItem }>('/chat/message', {
         method: 'POST',
         body: JSON.stringify({
           conversationId: selectedConv.id,
           content: contentToSend,
           messageType: typeToSend,
-          attachmentUrl: attachmentUrlToSend
+          attachmentUrl: attachmentUrlToSend,
+          ...replyPayload
         })
       });
 
@@ -827,144 +1066,243 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
       >
         {selectedConv ? (
           <>
-            {/* WhatsApp / Apple Clean Translucent Chat Header (60px fixed, no clutter, no Connected indicator) */}
-            <div
-              style={{
-                height: 60,
-                padding: '0 16px',
-                borderBottom: '1px solid #E5E5EA',
-                backgroundColor: 'rgba(255, 255, 255, 0.96)',
-                backdropFilter: 'blur(20px)',
-                WebkitBackdropFilter: 'blur(20px)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: 12,
-                flexShrink: 0,
-                zIndex: 10
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
-                {/* Mobile Back Button (WhatsApp iOS style: < [unseen count]) */}
-                <button
-                  type="button"
-                  onClick={() => setMobileView('list')}
-                  className="mobile-back-btn"
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#007AFF',
-                    fontSize: 15,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 3,
-                    padding: '4px 2px',
-                    marginRight: 4,
-                    flexShrink: 0,
-                    lineHeight: 1
-                  }}
-                  title="Back to conversation list"
-                  aria-label="Back to conversation list"
-                >
-                  <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
-                    <ChevronLeft size={24} color="#007AFF" strokeWidth={2.5} style={{ display: 'block' }} />
-                  </span>
-                  {(() => {
-                    const unreadCount = conversations.reduce(
-                      (acc, conv) => (conv.id !== selectedConv?.id ? acc + (conv.unread_admin_count || 0) : acc),
-                      0
-                    );
-                    if (unreadCount <= 0) return null;
-                    return (
-                      <span
-                        style={{
-                          backgroundColor: '#007AFF',
-                          color: '#FFFFFF',
-                          fontSize: 11,
-                          fontWeight: 700,
-                          height: 18,
-                          minWidth: 18,
-                          padding: '0 5px',
-                          borderRadius: 9999,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          lineHeight: 1,
-                          boxSizing: 'border-box'
-                        }}
-                      >
-                        {unreadCount > 99 ? '99+' : unreadCount}
-                      </span>
-                    );
-                  })()}
-                </button>
-
-                {selectedConv.customer_photo ? (
-                  <img
-                    src={selectedConv.customer_photo}
-                    alt={selectedConv.customer_name}
-                    style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
-                  />
-                ) : (
-                  <div
+            {/* WhatsApp / Apple Clean Translucent Chat Header (60px fixed) or Selection Topbar */}
+            {isSelectionMode ? (
+              <div
+                style={{
+                  height: 60,
+                  padding: '0 16px',
+                  backgroundColor: '#00A884',
+                  color: '#FFFFFF',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexShrink: 0,
+                  zIndex: 20
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsSelectionMode(false);
+                      setSelectedMessageIds([]);
+                    }}
                     style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: '50%',
-                      background: 'linear-gradient(135deg, #3A3A6E, #2A2A5E)',
-                      color: '#FFF',
+                      background: 'none',
+                      border: 'none',
+                      color: '#FFFFFF',
+                      cursor: 'pointer',
+                      padding: 4,
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                    title="Cancel selection"
+                  >
+                    <X size={20} />
+                  </button>
+                  <span style={{ fontSize: 16, fontWeight: 600 }}>
+                    {selectedMessageIds.length} selected
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <button
+                    type="button"
+                    onClick={() => handleBulkAction('star')}
+                    disabled={selectedMessageIds.length === 0}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#FFFFFF',
+                      cursor: 'pointer',
+                      padding: 6,
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      fontWeight: 700,
-                      fontSize: 16,
-                      flexShrink: 0
+                      opacity: selectedMessageIds.length === 0 ? 0.5 : 1
                     }}
+                    title="Star selected"
                   >
-                    {selectedConv.customer_name.charAt(0).toUpperCase()}
-                  </div>
-                )}
-
-                <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column' }}>
-                  <span
+                    <Star size={19} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleBulkAction('delete')}
+                    disabled={selectedMessageIds.length === 0}
                     style={{
-                      fontWeight: 700,
-                      fontSize: 16,
-                      color: '#111B21',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      letterSpacing: '-0.01em'
+                      background: 'none',
+                      border: 'none',
+                      color: '#FFFFFF',
+                      cursor: 'pointer',
+                      padding: 6,
+                      display: 'flex',
+                      alignItems: 'center',
+                      opacity: selectedMessageIds.length === 0 ? 0.5 : 1
                     }}
+                    title="Delete selected"
                   >
-                    {selectedConv.customer_name}
-                  </span>
-                  {selectedConv.customer_phone && (
-                    <span
-                      style={{
-                        fontSize: 12,
-                        color: '#667781',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis'
-                      }}
-                    >
-                      {selectedConv.customer_phone}
-                    </span>
-                  )}
+                    <Trash2 size={19} />
+                  </button>
                 </div>
               </div>
+            ) : (
+              <div
+                style={{
+                  height: 60,
+                  padding: '0 16px',
+                  borderBottom: '1px solid #E5E5EA',
+                  backgroundColor: 'rgba(255, 255, 255, 0.96)',
+                  backdropFilter: 'blur(20px)',
+                  WebkitBackdropFilter: 'blur(20px)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: 12,
+                  flexShrink: 0,
+                  zIndex: 10
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+                  {/* Mobile Back Button (WhatsApp iOS style: < [unseen count]) */}
+                  <button
+                    type="button"
+                    onClick={() => setMobileView('list')}
+                    className="mobile-back-btn"
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#007AFF',
+                      fontSize: 15,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 3,
+                      padding: '4px 2px',
+                      marginRight: 4,
+                      flexShrink: 0,
+                      lineHeight: 1
+                    }}
+                    title="Back to conversation list"
+                    aria-label="Back to conversation list"
+                  >
+                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
+                      <ChevronLeft size={24} color="#007AFF" strokeWidth={2.5} style={{ display: 'block' }} />
+                    </span>
+                    {(() => {
+                      const unreadCount = conversations.reduce(
+                        (acc, conv) => (conv.id !== selectedConv?.id ? acc + (conv.unread_admin_count || 0) : acc),
+                        0
+                      );
+                      if (unreadCount <= 0) return null;
+                      return (
+                        <span
+                          style={{
+                            backgroundColor: '#007AFF',
+                            color: '#FFFFFF',
+                            fontSize: 11,
+                            fontWeight: 700,
+                            height: 18,
+                            minWidth: 18,
+                            padding: '0 5px',
+                            borderRadius: 9999,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            lineHeight: 1,
+                            boxSizing: 'border-box'
+                          }}
+                        >
+                          {unreadCount > 99 ? '99+' : unreadCount}
+                        </span>
+                      );
+                    })()}
+                  </button>
 
-              {/* Action Toolbar: Clean Phone + Info icons (Delete customer is accessible via Kundli 360) */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                {selectedConv.customer_phone && (
-                  <a
-                    href={`tel:${selectedConv.customer_phone}`}
-                    className="chat-header-action-btn"
-                    title="Direct Phone Call"
+                  {selectedConv.customer_photo ? (
+                    <img
+                      src={selectedConv.customer_photo}
+                      alt={selectedConv.customer_name}
+                      style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: '50%',
+                        background: 'linear-gradient(135deg, #3A3A6E, #2A2A5E)',
+                        color: '#FFF',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 700,
+                        fontSize: 16,
+                        flexShrink: 0
+                      }}
+                    >
+                      {selectedConv.customer_name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+
+                  <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column' }}>
+                    <span
+                      style={{
+                        fontWeight: 700,
+                        fontSize: 16,
+                        color: '#111B21',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        letterSpacing: '-0.01em'
+                      }}
+                    >
+                      {selectedConv.customer_name}
+                    </span>
+                    {selectedConv.customer_phone && (
+                      <span
+                        style={{
+                          fontSize: 12,
+                          color: '#667781',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis'
+                        }}
+                      >
+                        {selectedConv.customer_phone}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Action Toolbar: Clean Phone + Info icons */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                  {selectedConv.customer_phone && (
+                    <a
+                      href={`tel:${selectedConv.customer_phone}`}
+                      className="chat-header-action-btn"
+                      title="Direct Phone Call"
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: '#F0F2F5',
+                        textDecoration: 'none'
+                      }}
+                    >
+                      <Phone size={17} color="#007AFF" />
+                    </a>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setShowInspector(!showInspector)}
+                    className={`chat-header-action-btn ${showInspector ? 'active' : ''}`}
+                    title="Toggle Kundli & Client 360"
                     style={{
                       width: 36,
                       height: 36,
@@ -972,37 +1310,55 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      backgroundColor: '#F0F2F5',
-                      textDecoration: 'none'
+                      backgroundColor: showInspector ? '#E8F2FF' : '#F0F2F5',
+                      border: 'none',
+                      cursor: 'pointer'
                     }}
                   >
-                    <Phone size={17} color="#007AFF" />
-                  </a>
-                )}
+                    <Info size={18} color={showInspector ? '#007AFF' : '#54656F'} />
+                  </button>
+                </div>
+              </div>
+            )}
 
+            {/* Pinned Message Banner */}
+            {pinnedMessage && (
+              <div
+                className="whatsapp-pinned-banner"
+                onClick={() => scrollToMessage(pinnedMessage.id)}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
+                  <Pin size={15} color="#00A884" style={{ flexShrink: 0, transform: 'rotate(45deg)' }} />
+                  <div style={{ minWidth: 0, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <strong style={{ color: '#00A884', marginRight: 4 }}>Pinned Message:</strong>
+                    <span style={{ color: '#54656F' }}>
+                      {pinnedMessage.content || (pinnedMessage.message_type === 'voice' ? 'Voice note' : 'Attachment')}
+                    </span>
+                  </div>
+                </div>
                 <button
                   type="button"
-                  onClick={() => setShowInspector(!showInspector)}
-                  className={`chat-header-action-btn ${showInspector ? 'active' : ''}`}
-                  title="Toggle Kundli & Client 360"
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: showInspector ? '#E8F2FF' : '#F0F2F5',
-                    border: 'none',
-                    cursor: 'pointer'
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleTogglePin(pinnedMessage);
                   }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#8696A0',
+                    cursor: 'pointer',
+                    padding: 4,
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                  title="Unpin message"
                 >
-                  <Info size={18} color={showInspector ? '#007AFF' : '#54656F'} />
+                  <X size={15} />
                 </button>
               </div>
-            </div>
+            )}
 
-            {/* Chat Messages Body: flex: 1 1 0% and min-height: 0 ensures full height scroll canvas */}
+            {/* Chat Messages Body */}
             <div
               ref={adminChatCanvasRef}
               className="hybrid-chat-canvas"
@@ -1042,6 +1398,28 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
 
                   const timeStr = new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+                  // Parse message reactions
+                  let reactionsList: { emoji: string; count: number }[] = [];
+                  if (m.reactions) {
+                    let rObj = m.reactions;
+                    if (typeof rObj === 'string') {
+                      try { rObj = JSON.parse(rObj); } catch (_) { rObj = {}; }
+                    }
+                    if (rObj && typeof rObj === 'object') {
+                      for (const [key, val] of Object.entries(rObj)) {
+                        if (Array.isArray(val) && val.length > 0) {
+                          reactionsList.push({ emoji: key, count: val.length });
+                        } else if (typeof val === 'string') {
+                          const ex = reactionsList.find((x) => x.emoji === val);
+                          if (ex) ex.count += 1;
+                          else reactionsList.push({ emoji: val, count: 1 });
+                        }
+                      }
+                    }
+                  }
+                  const totalReactionCount = reactionsList.reduce((acc, curr) => acc + curr.count, 0);
+                  const reactionEmojis = reactionsList.map((r) => r.emoji).slice(0, 3).join('');
+
                   return (
                     <React.Fragment key={m.id ? `${m.id}-${idx}` : idx}>
                       {showDateDivider && (
@@ -1050,63 +1428,249 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
                         </div>
                       )}
 
-                      <div
-                        style={{
-                          alignSelf: isMe ? 'flex-end' : 'flex-start',
-                          maxWidth: '82%',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: isMe ? 'flex-end' : 'flex-start'
+                      <WhatsAppSwipeWrapper
+                        onReply={() => setReplyingToMessage(m)}
+                        onLongPress={() => {
+                          setActiveContextMenuMessageId(m.id);
+                          setActiveReactionMessageId(null);
                         }}
+                        disabled={isSelectionMode}
                       >
-                        {/* Speech Bubble or WhatsApp Voice Player */}
-                        {m.message_type === 'voice' ? (
-                          <WhatsAppVoicePlayer
-                            id={m.id}
-                            audioUrl={m.attachment_url}
-                            durationSeconds={parseVoiceDuration(m.content)}
-                            isMe={isMe}
-                            senderName={isMe ? 'Amit Astro' : selectedConv.customer_name}
-                            senderPhoto={isMe ? '/icons/logo-mark.png' : selectedConv.customer_photo}
-                            timestamp={timeStr}
-                            isPlaying={playingVoiceId === m.id}
-                            onTogglePlay={() => setPlayingVoiceId(playingVoiceId === m.id ? null : m.id)}
-                          />
-                        ) : (
+                        <div
+                          id={`admin-msg-${m.id}`}
+                          className={`chat-message-row ${highlightedMessageId === m.id ? 'msg-highlight-pulse' : ''}`}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: isMe ? 'flex-end' : 'flex-start',
+                            position: 'relative',
+                            width: '100%',
+                            padding: '2px 0'
+                          }}
+                        >
+                          {/* Selection Checkbox */}
+                          {isSelectionMode && (
+                            <div
+                              className={`whatsapp-select-checkbox ${selectedMessageIds.includes(m.id) ? 'selected' : ''}`}
+                              onClick={() => toggleMessageSelection(m.id)}
+                            >
+                              {selectedMessageIds.includes(m.id) && <Check size={13} color="#FFF" />}
+                            </div>
+                          )}
+
+                          {/* Outgoing Message: Hover Smiley button on LEFT */}
+                          {isMe && !isSelectionMode && m.is_deleted !== 1 && (
+                            <button
+                              type="button"
+                              className="hybrid-bubble-react-btn"
+                              style={{ marginRight: 8 }}
+                              title="React"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveReactionMessageId(activeReactionMessageId === m.id ? null : m.id);
+                                setActiveContextMenuMessageId(null);
+                              }}
+                            >
+                              <Smile size={17} />
+                            </button>
+                          )}
+
+                          {/* Bubble Container */}
                           <div
-                            className={`hybrid-bubble ${isMe ? 'hybrid-bubble-out' : 'hybrid-bubble-in'}`}
+                            className="hybrid-bubble-container"
+                            style={{
+                              position: 'relative',
+                              maxWidth: m.message_type === 'voice' ? '360px' : '82%'
+                            }}
                           >
-                            {/* Attachment Image Preview if present */}
-                            {m.attachment_url && (
-                              <div style={{ marginBottom: 6 }}>
-                                <img
-                                  src={m.attachment_url}
-                                  alt="Attachment"
-                                  onClick={() => setZoomedImage(m.attachment_url!)}
-                                  style={{
-                                    maxWidth: '100%',
-                                    maxHeight: 240,
-                                    borderRadius: 12,
-                                    cursor: 'pointer',
-                                    display: 'block'
-                                  }}
-                                />
+                            {/* Quoted reply box if replied to another message */}
+                            {m.reply_to_text && (
+                              <WhatsAppQuotedBubble
+                                senderName={m.reply_to_sender || (isMe ? selectedConv.customer_name : 'Amit Astro')}
+                                content={m.reply_to_text}
+                                accentColor={isMe ? '#00A884' : '#128C7E'}
+                                onClick={() => scrollToMessage(m.reply_to_id)}
+                              />
+                            )}
+
+                            {/* Deleted message indicator */}
+                            {m.is_deleted === 1 ? (
+                              <div
+                                className={`hybrid-bubble ${isMe ? 'hybrid-bubble-out' : 'hybrid-bubble-in'}`}
+                                style={{ fontStyle: 'italic', color: '#8696A0' }}
+                              >
+                                <span>🚫 {isMe ? 'You deleted this message' : 'This message was deleted'}</span>
+                                <span className="hybrid-bubble-meta">
+                                  <span className="hybrid-bubble-time">{timeStr}</span>
+                                </span>
+                              </div>
+                            ) : m.message_type === 'voice' ? (
+                              <WhatsAppVoicePlayer
+                                id={m.id}
+                                audioUrl={m.attachment_url}
+                                durationSeconds={parseVoiceDuration(m.content)}
+                                isMe={isMe}
+                                senderName={isMe ? 'Amit Astro' : selectedConv.customer_name}
+                                senderPhoto={isMe ? '/icons/logo-mark.png' : selectedConv.customer_photo}
+                                timestamp={timeStr}
+                                isPlaying={playingVoiceId === m.id}
+                                onTogglePlay={() => setPlayingVoiceId(playingVoiceId === m.id ? null : m.id)}
+                              />
+                            ) : (
+                              <div
+                                className={`hybrid-bubble ${isMe ? 'hybrid-bubble-out' : 'hybrid-bubble-in'}`}
+                              >
+                                {/* Attachment Image Preview if present */}
+                                {m.attachment_url && (
+                                  <div style={{ marginBottom: 6 }}>
+                                    <img
+                                      src={m.attachment_url}
+                                      alt="Attachment"
+                                      onClick={() => setZoomedImage(m.attachment_url!)}
+                                      style={{
+                                        maxWidth: '100%',
+                                        maxHeight: 240,
+                                        borderRadius: 12,
+                                        cursor: 'pointer',
+                                        display: 'block'
+                                      }}
+                                    />
+                                  </div>
+                                )}
+
+                                <span className="hybrid-message-text">{m.content}</span>
+
+                                <span className="hybrid-bubble-meta">
+                                  {m.is_pinned === 1 && <span title="Pinned" style={{ fontSize: 11, marginRight: 2 }}>📌</span>}
+                                  {m.is_starred === 1 && <span title="Starred" style={{ fontSize: 11, marginRight: 2, color: '#F59E0B' }}>★</span>}
+                                  <span className="hybrid-bubble-time">{timeStr}</span>
+                                  {isMe && (
+                                    <span className="hybrid-read-ticks">
+                                      <CheckCheck size={14} color="#53BDEB" />
+                                    </span>
+                                  )}
+                                </span>
                               </div>
                             )}
 
-                            <span className="hybrid-message-text">{m.content}</span>
+                            {/* Top-Right Dropdown Arrow Button */}
+                            {!isSelectionMode && m.is_deleted !== 1 && (
+                              <button
+                                type="button"
+                                className="hybrid-bubble-dropdown-btn"
+                                style={{
+                                  position: 'absolute',
+                                  top: 4,
+                                  right: 6,
+                                  zIndex: 10
+                                }}
+                                title="Message options"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveContextMenuMessageId(activeContextMenuMessageId === m.id ? null : m.id);
+                                  setActiveReactionMessageId(null);
+                                }}
+                              >
+                                <ChevronDown size={14} />
+                              </button>
+                            )}
 
-                            <span className="hybrid-bubble-meta">
-                              <span className="hybrid-bubble-time">{timeStr}</span>
-                              {isMe && (
-                                <span className="hybrid-read-ticks">
-                                  <CheckCheck size={14} color="#53BDEB" />
-                                </span>
-                              )}
-                            </span>
+                            {/* WhatsApp Reactions Badge */}
+                            {reactionsList.length > 0 && (
+                              <div
+                                className="whatsapp-reaction-badge"
+                                style={{
+                                  [isMe ? 'right' : 'left']: 8
+                                }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveReactionMessageId(m.id);
+                                }}
+                                title="View reactions"
+                              >
+                                <span>{reactionEmojis}</span>
+                                {totalReactionCount > 1 && (
+                                  <span style={{ fontSize: 10, color: '#667781', fontWeight: 600 }}>
+                                    {totalReactionCount}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+
+                            {/* WhatsApp Reaction Pill Popover */}
+                            {activeReactionMessageId === m.id && (
+                              <WhatsAppReactionPill
+                                onSelectEmoji={(emoji) => handleSelectReaction(m.id, emoji)}
+                                onClose={() => setActiveReactionMessageId(null)}
+                                position="top"
+                                align={isMe ? 'right' : 'left'}
+                              />
+                            )}
+
+                            {/* WhatsApp Context Menu Popover */}
+                            {activeContextMenuMessageId === m.id && (
+                              <WhatsAppContextMenu
+                                isStarred={m.is_starred === 1}
+                                isPinned={m.is_pinned === 1}
+                                onReply={() => {
+                                  setReplyingToMessage(m);
+                                  setActiveContextMenuMessageId(null);
+                                }}
+                                onReact={() => {
+                                  setActiveContextMenuMessageId(null);
+                                  setActiveReactionMessageId(m.id);
+                                }}
+                                onStar={() => handleToggleStar(m)}
+                                onPin={() => handleTogglePin(m)}
+                                onForward={() => {
+                                  setForwardModalMessage(m);
+                                  setActiveContextMenuMessageId(null);
+                                }}
+                                onCopy={() => {
+                                  if (m.content) {
+                                    navigator.clipboard.writeText(m.content);
+                                    showToast('Message copied to clipboard', 'success');
+                                  }
+                                  setActiveContextMenuMessageId(null);
+                                }}
+                                onInfo={() => {
+                                  setInfoModalMessage(m);
+                                  setActiveContextMenuMessageId(null);
+                                }}
+                                onDelete={() => {
+                                  setDeleteConfirmMessage(m);
+                                  setActiveContextMenuMessageId(null);
+                                }}
+                                onSelectMessages={() => {
+                                  setIsSelectionMode(true);
+                                  setSelectedMessageIds([m.id]);
+                                  setActiveContextMenuMessageId(null);
+                                }}
+                                onClose={() => setActiveContextMenuMessageId(null)}
+                                position="bottom"
+                                align={isMe ? 'right' : 'left'}
+                              />
+                            )}
                           </div>
-                        )}
-                      </div>
+
+                          {/* Incoming Message: Hover Smiley button on RIGHT */}
+                          {!isMe && !isSelectionMode && m.is_deleted !== 1 && (
+                            <button
+                              type="button"
+                              className="hybrid-bubble-react-btn"
+                              style={{ marginLeft: 8 }}
+                              title="React"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveReactionMessageId(activeReactionMessageId === m.id ? null : m.id);
+                                setActiveContextMenuMessageId(null);
+                              }}
+                            >
+                              <Smile size={17} />
+                            </button>
+                          )}
+                        </div>
+                      </WhatsAppSwipeWrapper>
                     </React.Fragment>
                   );
                 })
@@ -1187,6 +1751,15 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
               </div>
             )}
 
+            {/* WhatsApp Reply Preview Bar */}
+            {replyingToMessage && (
+              <WhatsAppReplyPreviewBar
+                senderName={replyingToMessage.sender_type === 'admin' ? 'Amit Astro' : selectedConv.customer_name}
+                content={replyingToMessage.content}
+                onCancel={() => setReplyingToMessage(null)}
+              />
+            )}
+
             {/* Apple + WhatsApp Hybrid Input Bar */}
             <form
               onSubmit={(e) => handleSendMessage(e)}
@@ -1206,6 +1779,32 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
                 >
                   <Paperclip size={20} />
                 </button>
+
+                {/* WhatsApp Emoji Picker Trigger */}
+                <div style={{ position: 'relative' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowComposerEmojiPicker(!showComposerEmojiPicker)}
+                    className="hybrid-action-icon-btn"
+                    title="Choose emoji"
+                    style={{
+                      color: showComposerEmojiPicker ? '#00A884' : '#54656F'
+                    }}
+                  >
+                    <Smile size={21} />
+                  </button>
+
+                  {showComposerEmojiPicker && (
+                    <WhatsAppEmojiPicker
+                      onSelectEmoji={(emoji) => {
+                        setInputText((prev) => prev + emoji);
+                      }}
+                      onClose={() => setShowComposerEmojiPicker(false)}
+                      position="top"
+                      align="left"
+                    />
+                  )}
+                </div>
 
                 {/* Capsule Text Input */}
                 <div className="hybrid-input-capsule">
@@ -1608,6 +2207,118 @@ export const AppleAdminChat: React.FC<AppleAdminChatProps> = ({
                 }}
               >
                 {isDeletingCustomer ? 'Deleting...' : 'Delete Permanently'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* WhatsApp Message Info Modal */}
+      {infoModalMessage && (
+        <WhatsAppMessageInfoModal
+          message={infoModalMessage}
+          onClose={() => setInfoModalMessage(null)}
+        />
+      )}
+
+      {/* WhatsApp Forward Modal */}
+      {forwardModalMessage && (
+        <WhatsAppForwardModal
+          content={forwardModalMessage.content}
+          onForward={(target) => {
+            showToast(`Message forwarded to ${target}`, 'success');
+            setForwardModalMessage(null);
+          }}
+          onClose={() => setForwardModalMessage(null)}
+        />
+      )}
+
+      {/* WhatsApp Delete Confirmation Modal */}
+      {deleteConfirmMessage && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.45)',
+            backdropFilter: 'blur(6px)',
+            zIndex: 999999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16
+          }}
+          onClick={() => setDeleteConfirmMessage(null)}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: 360,
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              padding: '20px 20px 16px 20px',
+              boxShadow: '0 16px 40px rgba(0, 0, 0, 0.18)',
+              animation: 'whatsappPopoverPop 0.18s ease'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#111B21', marginBottom: 8 }}>
+              Delete message?
+            </div>
+            <div style={{ fontSize: 13, color: '#667781', lineHeight: 1.45, marginBottom: 18 }}>
+              You can delete this message for everyone or delete it just for yourself.
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {deleteConfirmMessage.sender_type === 'admin' && (
+                <button
+                  type="button"
+                  onClick={() => handleDeleteMessage(deleteConfirmMessage.id, true)}
+                  style={{
+                    backgroundColor: '#FFEAEA',
+                    color: '#FF3B30',
+                    border: 'none',
+                    borderRadius: 10,
+                    padding: '10px 14px',
+                    fontWeight: 600,
+                    fontSize: 13.5,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Delete for everyone
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => handleDeleteMessage(deleteConfirmMessage.id, false)}
+                style={{
+                  backgroundColor: '#F0F2F5',
+                  color: '#111B21',
+                  border: 'none',
+                  borderRadius: 10,
+                  padding: '10px 14px',
+                  fontWeight: 600,
+                  fontSize: 13.5,
+                  cursor: 'pointer'
+                }}
+              >
+                Delete for me
+              </button>
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmMessage(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#667781',
+                  padding: '8px 14px',
+                  fontSize: 13,
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
               </button>
             </div>
           </div>
