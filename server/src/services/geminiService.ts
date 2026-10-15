@@ -7,13 +7,16 @@ import fs from 'fs';
 import path from 'path';
 
 let inMemoryApiKey = process.env.GEMINI_API_KEY || '';
-let inMemoryModel = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+let inMemoryModel = process.env.GEMINI_MODEL || 'gemini-flash-latest';
 
 // Standard supported Gemini models
 export const SUPPORTED_MODELS = [
-  'gemini-1.5-flash',
+  'gemini-flash-latest',
+  'gemini-3.5-flash',
+  'gemini-3.5-flash-lite',
+  'gemini-2.5-flash',
   'gemini-2.0-flash',
-  'gemini-1.5-pro'
+  'gemini-1.5-flash'
 ];
 
 export function getGeminiApiKey(): string {
@@ -75,17 +78,10 @@ export async function verifyGeminiKey(keyToTest?: string): Promise<{
   availableModels?: string[];
 }> {
   const key = (keyToTest || getGeminiApiKey()).trim().replace(/^["'`]|["'`]$/g, '');
-  if (!key) {
+  if (!key || key.length < 15) {
     return {
       valid: false,
-      message: 'No API key provided. Please create an API key in Google AI Studio and enter it here.'
-    };
-  }
-
-  if (!key.startsWith('AIzaSy')) {
-    return {
-      valid: false,
-      message: 'Invalid key format. Google Gemini API keys typically start with "AIzaSy...". Please verify you copied the full key.'
+      message: 'No API key provided or key is too short. Please copy a valid Gemini API key from Google AI Studio.'
     };
   }
 
@@ -117,8 +113,8 @@ export async function verifyGeminiKey(keyToTest?: string): Promise<{
       };
     }
 
-    // 2. Fallback check: try a minimal generation call on gemini-1.5-flash
-    const genUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
+    // 2. Fallback check: try a minimal generation call on gemini-3.5-flash
+    const genUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${key}`;
     const genRes = await fetch(genUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -130,8 +126,8 @@ export async function verifyGeminiKey(keyToTest?: string): Promise<{
     if (genRes.ok) {
       return {
         valid: true,
-        message: '✓ Gemini API key is verified and operational with gemini-1.5-flash.',
-        availableModels: ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']
+        message: '✓ Gemini API key is verified and operational with gemini-3.5-flash.',
+        availableModels: SUPPORTED_MODELS
       };
     }
 
@@ -232,9 +228,12 @@ async function callGemini(prompt: string, systemInstruction?: string, temperatur
 
   const modelsToTry = [
     getGeminiModel(),
-    'gemini-1.5-flash',
+    'gemini-3.5-flash',
+    'gemini-3.5-flash-lite',
+    'gemini-flash-latest',
+    'gemini-2.5-flash',
     'gemini-2.0-flash',
-    'gemini-1.5-pro'
+    'gemini-1.5-flash'
   ].filter((m, idx, arr) => arr.indexOf(m) === idx);
 
   let lastError: any = null;
@@ -244,12 +243,18 @@ async function callGemini(prompt: string, systemInstruction?: string, temperatur
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
       const contents: any[] = [{ parts: [{ text: prompt }], role: 'user' }];
+      const isJsonRequest = prompt.toLowerCase().includes('json') || (systemInstruction && systemInstruction.toLowerCase().includes('json'));
+      const generationConfig: any = {
+        temperature,
+        maxOutputTokens: 8192
+      };
+      if (isJsonRequest) {
+        generationConfig.responseMimeType = 'application/json';
+      }
+
       const body: any = {
         contents,
-        generationConfig: {
-          temperature,
-          maxOutputTokens: 8192
-        }
+        generationConfig
       };
 
       if (systemInstruction) {
@@ -310,7 +315,22 @@ function extractJsonFromText<T>(text: string): T {
     const lastBrace = cleaned.lastIndexOf('}');
     if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
       const slice = cleaned.slice(firstBrace, lastBrace + 1);
-      return JSON.parse(slice) as T;
+      try {
+        return JSON.parse(slice) as T;
+      } catch {
+        // Fallback: replace raw unescaped newlines inside strings with escaped \n
+        try {
+          const sanitized = slice.replace(/[\u0000-\u001F]+/g, (match) => {
+            if (match === '\n') return '\\n';
+            if (match === '\r') return '\\r';
+            if (match === '\t') return '\\t';
+            return '';
+          });
+          return JSON.parse(sanitized) as T;
+        } catch {
+          // Continue to throw outer error
+        }
+      }
     }
     throw new Error('Could not parse structured JSON from AI response: ' + err);
   }
@@ -322,7 +342,7 @@ function extractJsonFromText<T>(text: string): T {
  * when Gemini API key is unavailable or down.
  */
 function synthesizeVedicBilingualFallback(params: GenerateArticleParams): GeneratedArticleResult {
-  const idea = params.idea.trim();
+  const idea = (params.idea || (params as any).prompt || 'Vedic Astrology Guidance').trim();
   const lower = idea.toLowerCase();
 
   // Detect dominant topic

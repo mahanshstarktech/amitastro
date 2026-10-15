@@ -550,12 +550,12 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
 
     // 2. Direct browser verification fallback against Google API (handles when backend server is starting or network hiccup)
     try {
-      if (!cleanedKey.startsWith('AIzaSy')) {
+      if (cleanedKey.length < 15) {
         setKeyTestFeedback({
           valid: false,
-          message: 'Invalid key format. Google Gemini API keys typically start with "AIzaSy...". Please verify you copied the full key.'
+          message: 'Key is too short. Please verify you copied the full key from Google AI Studio.'
         });
-        showToast('Invalid key format. Must start with AIzaSy...', 'error');
+        showToast('Invalid key format. Please paste full Gemini API key.', 'error');
         return;
       }
 
@@ -570,9 +570,9 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
         return;
       }
 
-      // If models.list wasn't ok, test direct minimal generation call
+      // If models.list wasn't ok, test direct minimal generation call on gemini-3.5-flash
       try {
-        const genRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${cleanedKey}`, {
+        const genRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${cleanedKey}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: 'hi' }] }] })
@@ -580,7 +580,7 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
         if (genRes.ok) {
           setKeyTestFeedback({
             valid: true,
-            message: '✓ Gemini API key is verified and operational with gemini-1.5-flash! Click "Save & Activate Key" to store.'
+            message: '✓ Gemini API key is verified and operational with gemini-3.5-flash! Click "Save & Activate Key" to store.'
           });
           showToast('✓ Gemini API key is verified with Google!', 'success');
           return;
@@ -2401,9 +2401,9 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
         {activeTab === 'blog' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             {/* Studio Header Card */}
-            <div className="apple-card" style={{ padding: '24px 28px', backgroundColor: '#FFF', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+            <div className="article-studio-card">
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+                <div className="article-studio-badge-row">
                   <span className="apple-badge-gold">
                     <Sparkles size={12} /> Editorial Studio
                   </span>
@@ -2420,39 +2420,39 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                     </span>
                   )}
                 </div>
-                <h2 className="text-h2" style={{ fontSize: 24, margin: '4px 0' }}>
+                <h2 className="article-studio-title">
                   Vedic Blog & Article Publishing
                 </h2>
-                <p style={{ fontSize: 13.5, color: '#6E6E73', margin: 0 }}>
+                <p className="article-studio-desc">
                   Craft authentic astrological wisdom essays with Gemini AI drafting, bidirectional translation, and cosmic image synthesis.
                 </p>
               </div>
 
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <div className="article-studio-actions">
                 <button
                   type="button"
                   onClick={() => setShowGeminiConfigModal(true)}
                   className="apple-btn-secondary"
-                  style={{ fontSize: 13, padding: '9px 14px', display: 'flex', alignItems: 'center', gap: 6 }}
+                  style={{ fontSize: 12.5, padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                   title="Configure Google Gemini API Key"
                 >
-                  <Key size={14} /> Gemini API Key
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowAiModal(true)}
-                  className="apple-btn-gold"
-                  style={{ fontSize: 13.5, padding: '10px 18px', display: 'flex', alignItems: 'center', gap: 7, boxShadow: '0 4px 14px rgba(201, 162, 75, 0.25)' }}
-                >
-                  <Wand2 size={16} /> Compose with AI
+                  <Key size={14} /> Gemini Key
                 </button>
                 <button
                   type="button"
                   onClick={handleStartNewPost}
-                  className="apple-btn-primary"
-                  style={{ fontSize: 13.5, padding: '10px 18px' }}
+                  className="apple-btn-secondary"
+                  style={{ fontSize: 12.5, padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}
                 >
-                  <Plus size={15} /> Compose Manually
+                  <Plus size={14} /> Manual Post
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAiModal(true)}
+                  className="apple-btn-gold btn-full-mobile"
+                  style={{ fontSize: 13, padding: '9px 18px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, boxShadow: '0 4px 14px rgba(201, 162, 75, 0.25)' }}
+                >
+                  <Wand2 size={15} /> Compose with AI
                 </button>
               </div>
             </div>
@@ -3184,7 +3184,7 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
             )}
 
             {/* Articles Directory & Filter Table */}
-            <div className="apple-card" style={{ padding: '24px 28px', backgroundColor: '#FFF' }}>
+            <div className="apple-card" style={{ padding: '24px 20px', backgroundColor: '#FFF' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 14, marginBottom: 18 }}>
                 <div>
                   <h3 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 2px' }}>
@@ -3195,9 +3195,9 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                   </p>
                 </div>
 
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', width: '100%', maxWidth: 580 }}>
                   {/* Search */}
-                  <div style={{ position: 'relative' }}>
+                  <div style={{ position: 'relative', flex: '1 1 180px' }}>
                     <Search size={14} color="#8E8E93" style={{ position: 'absolute', left: 10, top: 10 }} />
                     <input
                       type="text"
@@ -3205,25 +3205,28 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                       onChange={(e) => setBlogSearch(e.target.value)}
                       placeholder="Search title, category..."
                       className="apple-input"
-                      style={{ paddingLeft: 30, fontSize: 13, padding: '7px 12px 7px 30px', minWidth: 200 }}
+                      style={{ paddingLeft: 30, fontSize: 13, padding: '7px 12px 7px 30px', width: '100%' }}
                     />
                   </div>
 
                   {/* Category Filter */}
-                  <select
-                    value={blogCategoryFilter}
-                    onChange={(e) => setBlogCategoryFilter(e.target.value)}
-                    className="apple-input"
-                    style={{ fontSize: 12.5, padding: '6px 12px' }}
-                  >
-                    <option value="all">All Categories</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
+                  <div style={{ position: 'relative', minWidth: 140, flexShrink: 0 }}>
+                    <select
+                      value={blogCategoryFilter}
+                      onChange={(e) => setBlogCategoryFilter(e.target.value)}
+                      className="apple-input"
+                      style={{ fontSize: 12.5, padding: '7px 24px 7px 10px', width: '100%', appearance: 'none', WebkitAppearance: 'none', cursor: 'pointer', backgroundColor: '#FFF' }}
+                    >
+                      <option value="all">All Categories</option>
+                      {categories.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                    <ChevronDown size={13} color="#64748B" style={{ position: 'absolute', right: 8, top: 10, pointerEvents: 'none' }} />
+                  </div>
 
                   {/* Status Pills */}
-                  <div style={{ display: 'flex', gap: 4, backgroundColor: '#F5F5F7', padding: 3, borderRadius: 8 }}>
+                  <div style={{ display: 'flex', gap: 3, backgroundColor: '#F1F5F9', padding: 3, borderRadius: 10, overflowX: 'auto' }}>
                     {(['all', 'published', 'drafts', 'featured'] as const).map((st) => (
                       <button
                         key={st}
@@ -3232,13 +3235,14 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                         style={{
                           border: 'none',
                           padding: '5px 10px',
-                          borderRadius: 6,
+                          borderRadius: 7,
                           fontSize: 12,
                           fontWeight: blogStatusFilter === st ? 600 : 500,
                           backgroundColor: blogStatusFilter === st ? '#FFF' : 'transparent',
-                          color: blogStatusFilter === st ? '#1D1D1F' : '#6E6E73',
+                          color: blogStatusFilter === st ? '#0F172A' : '#64748B',
                           boxShadow: blogStatusFilter === st ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                          cursor: 'pointer'
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap'
                         }}
                       >
                         {st.charAt(0).toUpperCase() + st.slice(1)}
@@ -3251,118 +3255,110 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
               {/* Articles List */}
               {filteredBlogPosts.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '48px 20px', color: '#8E8E93' }}>
-                  No articles match the current filter. Click "Compose with Gemini AI" to create your first article!
+                  No articles match the current filter. Click "Compose with AI" to create your first article!
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {filteredBlogPosts.map((bp) => (
-                    <div
-                      key={bp.id}
-                      style={{
-                        border: '1px solid #E5E5EA',
-                        borderRadius: 14,
-                        padding: '16px 20px',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        flexWrap: 'wrap',
-                        gap: 16,
-                        backgroundColor: '#FFF'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, minWidth: 260 }}>
+                    <div key={bp.id} className="article-item-card">
+                      {/* Left: Thumbnail & Content */}
+                      <div className="article-item-main">
                         {/* Thumbnail */}
-                        <div style={{ width: 72, height: 50, borderRadius: 8, overflow: 'hidden', flexShrink: 0, backgroundColor: '#F5F5F7', border: '1px solid #E5E5EA' }}>
+                        <div className="article-item-thumb">
                           <img
                             src={bp.hero_image_url}
                             alt={bp.title}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                           />
                         </div>
 
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                            <span style={{ fontWeight: 600, fontSize: 15, color: '#1D1D1F' }}>
-                              {bp.title}
-                            </span>
-                            {bp.is_featured === 1 && (
-                              <span className="apple-badge-gold" style={{ fontSize: 10.5, padding: '2px 6px' }}>
-                                ⭐ Featured
-                              </span>
-                            )}
+                        {/* Text and Badges */}
+                        <div className="article-item-body">
+                          {/* Badges Row */}
+                          <div className="article-item-badges">
                             {bp.is_published === 0 ? (
-                              <span style={{ fontSize: 10.5, backgroundColor: '#F0F0F0', color: '#8E8E93', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>
+                              <span style={{ fontSize: 10.5, backgroundColor: '#F1F5F9', color: '#64748B', padding: '2px 7px', borderRadius: 4, fontWeight: 600 }}>
                                 Draft
                               </span>
                             ) : (
-                              <span className="apple-badge-success" style={{ fontSize: 10.5, padding: '2px 6px' }}>
+                              <span className="apple-badge-success" style={{ fontSize: 10.5, padding: '2px 7px' }}>
                                 Live
                               </span>
                             )}
+                            {bp.is_featured === 1 && (
+                              <span className="apple-badge-gold" style={{ fontSize: 10.5, padding: '2px 7px' }}>
+                                ⭐ Featured
+                              </span>
+                            )}
+                            <span style={{ fontSize: 11, fontWeight: 500, color: '#64748B', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', padding: '1px 6px', borderRadius: 4 }}>
+                              {bp.category_name}
+                            </span>
                           </div>
 
+                          {/* English Title */}
+                          <h4 className="article-item-title">
+                            {bp.title}
+                          </h4>
+
+                          {/* Hindi Subtitle */}
                           {bp.title_hi && (
-                            <div style={{ fontSize: 13, color: '#3A3A6E', marginBottom: 2 }}>
+                            <p className="article-item-title-hi">
                               🇮🇳 {bp.title_hi}
-                            </div>
+                            </p>
                           )}
 
-                          <div style={{ fontSize: 12.5, color: '#6E6E73' }}>
-                            {bp.category_name} · {bp.reading_time_min} min read
-                            {bp.content_markdown_hi && <span style={{ marginLeft: 8, color: '#2FA84F', fontWeight: 600 }}>● Bilingual Available</span>}
+                          {/* Meta: Read Time + Bilingual Status */}
+                          <div className="article-item-meta">
+                            <span>{bp.reading_time_min} min read</span>
+                            {bp.content_markdown_hi && (
+                              <span style={{ color: '#059669', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block' }} />
+                                Bilingual Available
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
 
-                      {/* Action buttons */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      {/* Right: Action Buttons Row */}
+                      <div className="article-item-actions">
                         <button
                           type="button"
                           onClick={() => handleTogglePostFeatured(bp)}
-                          style={{
-                            background: 'none',
-                            border: '1px solid #E5E5EA',
-                            borderRadius: 8,
-                            padding: '6px 10px',
-                            cursor: 'pointer',
-                            color: bp.is_featured === 1 ? '#D98E04' : '#8E8E93',
-                            fontSize: 12.5,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 4
-                          }}
+                          className={`article-btn-action ${bp.is_featured === 1 ? 'article-btn-star-active' : ''}`}
                           title="Toggle featured homepage placement"
                         >
-                          <Star size={13} fill={bp.is_featured === 1 ? '#D98E04' : 'none'} />
-                          {bp.is_featured === 1 ? 'Featured' : 'Feature'}
+                          <Star size={13} fill={bp.is_featured === 1 ? '#D97706' : 'none'} color={bp.is_featured === 1 ? '#D97706' : '#64748B'} />
+                          <span>{bp.is_featured === 1 ? 'Featured' : 'Feature'}</span>
                         </button>
 
                         <button
                           type="button"
                           onClick={() => handleEditPost(bp)}
-                          className="apple-btn-secondary"
-                          style={{ padding: '6px 12px', fontSize: 12.5, color: '#3A3A6E', borderColor: '#3A3A6E' }}
+                          className="article-btn-action article-btn-edit"
+                          title="Edit article"
                         >
-                          <Edit3 size={13} /> Edit
+                          <Edit3 size={13} />
+                          <span>Edit</span>
                         </button>
 
                         <a
                           href={`/blog/post/${bp.slug}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="apple-btn-secondary"
-                          style={{ padding: '6px 12px', fontSize: 12.5, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}
+                          className="article-btn-action"
+                          title="View live public article"
                         >
-                          <ExternalLink size={13} /> View Live
+                          <ExternalLink size={13} />
+                          <span>View</span>
                         </a>
 
                         <button
                           type="button"
                           onClick={() => handleDeletePost(bp.id, bp.title)}
-                          style={{ background: 'none', border: 'none', color: '#D64545', cursor: 'pointer', padding: 6 }}
+                          className="article-btn-delete"
                           title="Delete article"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={15} />
                         </button>
                       </div>
                     </div>
@@ -5199,7 +5195,7 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                       setInputGeminiKey(e.target.value);
                       setKeyTestFeedback(null);
                     }}
-                    placeholder={geminiConfig.maskedKey ? `Current: ${geminiConfig.maskedKey} (paste new key to update)` : 'Paste AIzaSy... key from Google AI Studio'}
+                    placeholder={geminiConfig.maskedKey ? `Current: ${geminiConfig.maskedKey} (paste new key to update)` : 'Paste Gemini API key from Google AI Studio'}
                     className="apple-input"
                     style={{ flex: 1, fontSize: 13.5, fontFamily: 'monospace' }}
                   />
@@ -5243,9 +5239,10 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                   className="apple-input"
                   style={{ width: '100%', fontSize: 13.5 }}
                 >
-                  <option value="gemini-1.5-flash">gemini-1.5-flash (Recommended: Free tier, high speed, bilingual)</option>
-                  <option value="gemini-2.0-flash">gemini-2.0-flash (Ultra fast generation)</option>
-                  <option value="gemini-1.5-pro">gemini-1.5-pro (Deep complex reasoning)</option>
+                  <option value="gemini-flash-latest">gemini-flash-latest (Recommended: High availability & speed)</option>
+                  <option value="gemini-3.5-flash">gemini-3.5-flash (State-of-the-art fast bilingual generation)</option>
+                  <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite (Ultra lightweight & economical)</option>
+                  <option value="gemini-2.5-flash">gemini-2.5-flash (Legacy flash model)</option>
                 </select>
                 <span style={{ fontSize: 11.5, color: '#8E8E93', marginTop: 4, display: 'block' }}>
                   If the primary model faces rate limits, Amit Astro automatically falls back sequentially across supported models and our Vedic Engine.
@@ -5278,11 +5275,11 @@ Place: ${profile.pob}${profile.notes ? `\nNotes: ${profile.notes}` : ''}`;
                   <li>Go to <strong>https://aistudio.google.com/app/apikey</strong> and sign in with any Google account.</li>
                   <li>Click the blue <strong>"Create API key"</strong> button.</li>
                   <li>Select an existing Google Cloud project or create a free project in 1 click.</li>
-                  <li>Copy your new key (starts with <code>AIzaSy...</code>) and paste it into the box above.</li>
+                  <li>Copy your new key (e.g. <code>AIzaSy...</code> or <code>AQ....</code>) and paste it into the box above.</li>
                   <li>Click <strong>"Test Key"</strong> to verify, then click <strong>"Save & Activate"</strong>.</li>
                 </ol>
                 <div style={{ marginTop: 10, fontSize: 11.5, color: '#2FA84F', fontWeight: 600 }}>
-                  ✓ Gemini 1.5 Flash provides a 100% free tier (up to 15 requests/minute and 1,500 requests/day).
+                  ✓ Google Gemini provides a generous free tier for high-speed bilingual Vedic article drafting & translation.
                 </div>
               </div>
             </div>
