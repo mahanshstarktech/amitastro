@@ -436,8 +436,8 @@ export class SubscriptionService {
     );
 
     await runQuery(
-      'UPDATE subscriptions SET autopay_enabled = ? WHERE user_id = ? AND status = "active"',
-      [autopay ? 1 : 0, userId]
+      'UPDATE subscriptions SET autopay_enabled = ? WHERE user_id = ? AND status = ?',
+      [autopay ? 1 : 0, userId, 'active']
     );
 
     logSecurityEvent(

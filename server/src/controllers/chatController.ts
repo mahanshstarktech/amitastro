@@ -398,7 +398,7 @@ export const deleteMessage = async (req: AuthRequest, res: Response) => {
     if (!message) return res.status(404).json({ error: 'Message not found' });
 
     if (forEveryone) {
-      await runQuery('UPDATE chat_messages SET is_deleted = 1, content = "🚫 This message was deleted" WHERE id = ?', [messageId]);
+      await runQuery('UPDATE chat_messages SET is_deleted = 1, content = ? WHERE id = ?', ['🚫 This message was deleted', messageId]);
     } else {
       await runQuery('DELETE FROM chat_messages WHERE id = ?', [messageId]);
     }

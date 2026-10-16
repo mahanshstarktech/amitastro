@@ -438,7 +438,7 @@ export const completeManualRegistration = async (req: Request, res: Response) =>
 
     // If birth details are provided, create default 'self' birth profile
     if (dob && dob.trim()) {
-      const existingProfile = await getOne<any>('SELECT * FROM birth_profiles WHERE user_id = ? AND relation = "self"', [userId]);
+      const existingProfile = await getOne<any>('SELECT * FROM birth_profiles WHERE user_id = ? AND relation = ?', [userId, 'self']);
       if (!existingProfile) {
         const profileId = `bp-${uuidv4().substring(0, 8)}`;
         await runQuery(`
@@ -516,7 +516,7 @@ export const googleAuth = async (req: Request, res: Response) => {
 
       // If birth details are provided, create default 'self' birth profile if not exists
       if (dob && dob.trim()) {
-        const existingProfile = await getOne<any>('SELECT * FROM birth_profiles WHERE user_id = ? AND relation = "self"', [user.id]);
+        const existingProfile = await getOne<any>('SELECT * FROM birth_profiles WHERE user_id = ? AND relation = ?', [user.id, 'self']);
         if (!existingProfile) {
           const profileId = `bp-${uuidv4().substring(0, 8)}`;
           await runQuery(`
