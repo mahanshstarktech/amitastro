@@ -17,8 +17,36 @@ export const CountryCodeSelector: React.FC<CountryCodeSelectorProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [placement, setPlacement] = useState<'bottom' | 'top'>('bottom');
+  const [maxMenuHeight, setMaxMenuHeight] = useState<number>(360);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Dynamic space detection: expand to top or bottom based on available space
+  const updatePlacement = () => {
+    if (!dropdownRef.current) return;
+    const rect = dropdownRef.current.getBoundingClientRect();
+
+    const scrollParent = dropdownRef.current.closest('.apple-card, [role="dialog"], .modal-content') as HTMLElement | null;
+    const boundaryBottom = scrollParent
+      ? Math.min(window.innerHeight, scrollParent.getBoundingClientRect().bottom)
+      : window.innerHeight;
+    const boundaryTop = scrollParent
+      ? Math.max(0, scrollParent.getBoundingClientRect().top)
+      : 0;
+
+    const spaceBelow = boundaryBottom - rect.bottom - 16;
+    const spaceAbove = rect.top - boundaryTop - 16;
+    const preferredHeight = 360;
+
+    if (spaceBelow < 240 && spaceAbove > spaceBelow) {
+      setPlacement('top');
+      setMaxMenuHeight(Math.max(140, Math.min(preferredHeight, spaceAbove - 10)));
+    } else {
+      setPlacement('bottom');
+      setMaxMenuHeight(Math.max(140, Math.min(preferredHeight, spaceBelow - 10)));
+    }
+  };
 
   // Find currently selected country info based on dialCode
   const selectedInfo = useMemo(() => {
@@ -65,6 +93,20 @@ export const CountryCodeSelector: React.FC<CountryCodeSelectorProps> = ({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
+  }, [isOpen]);
+
+  // Update placement dynamically on open, scroll or resize
+  useEffect(() => {
+    if (isOpen) {
+      updatePlacement();
+      const handleScrollOrResize = () => updatePlacement();
+      window.addEventListener('resize', handleScrollOrResize);
+      window.addEventListener('scroll', handleScrollOrResize, true);
+      return () => {
+        window.removeEventListener('resize', handleScrollOrResize);
+        window.removeEventListener('scroll', handleScrollOrResize, true);
+      };
+    }
   }, [isOpen]);
 
   // Handle escape key
@@ -130,21 +172,27 @@ export const CountryCodeSelector: React.FC<CountryCodeSelectorProps> = ({
         <div
           style={{
             position: 'absolute',
-            top: 'calc(100% + 6px)',
+            ...(placement === 'top'
+              ? { bottom: 'calc(100% + 6px)', top: 'auto' }
+              : { top: 'calc(100% + 6px)', bottom: 'auto' }),
             left: 0,
             zIndex: 9999,
             width: 310,
-            maxHeight: 360,
+            maxHeight: maxMenuHeight,
             backgroundColor: 'rgba(255, 255, 255, 0.98)',
             backdropFilter: 'blur(24px) saturate(180%)',
             WebkitBackdropFilter: 'blur(24px) saturate(180%)',
             border: '1px solid rgba(0, 0, 0, 0.12)',
             borderRadius: 16,
-            boxShadow: '0 16px 40px rgba(0, 0, 0, 0.16), 0 2px 6px rgba(0, 0, 0, 0.05)',
+            boxShadow: placement === 'top'
+              ? '0 -16px 40px rgba(0, 0, 0, 0.16), 0 -2px 6px rgba(0, 0, 0, 0.05)'
+              : '0 16px 40px rgba(0, 0, 0, 0.16), 0 2px 6px rgba(0, 0, 0, 0.05)',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
-            animation: 'appleDropdownFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1)'
+            animation: placement === 'top'
+              ? 'appleDropdownFadeInUp 0.18s cubic-bezier(0.16, 1, 0.3, 1)'
+              : 'appleDropdownFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1)'
           }}
         >
           {/* Search Box Header */}

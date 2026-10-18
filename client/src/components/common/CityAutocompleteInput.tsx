@@ -260,9 +260,37 @@ export const CityAutocompleteInput: React.FC<CityAutocompleteInputProps> = ({
   const [remoteSuggestions, setRemoteSuggestions] = useState<CitySuggestion[]>([]);
   const [isSearchingRemote, setIsSearchingRemote] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [placement, setPlacement] = useState<'bottom' | 'top'>('bottom');
+  const [maxMenuHeight, setMaxMenuHeight] = useState<number>(260);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Dynamic space detection: expand to top or bottom based on available space
+  const updatePlacement = () => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+
+    const scrollParent = containerRef.current.closest('.apple-card, [role="dialog"], .modal-content') as HTMLElement | null;
+    const boundaryBottom = scrollParent
+      ? Math.min(window.innerHeight, scrollParent.getBoundingClientRect().bottom)
+      : window.innerHeight;
+    const boundaryTop = scrollParent
+      ? Math.max(0, scrollParent.getBoundingClientRect().top)
+      : 0;
+
+    const spaceBelow = boundaryBottom - rect.bottom - 16;
+    const spaceAbove = rect.top - boundaryTop - 16;
+    const preferredHeight = 260;
+
+    if (spaceBelow < 220 && spaceAbove > spaceBelow) {
+      setPlacement('top');
+      setMaxMenuHeight(Math.max(120, Math.min(preferredHeight, spaceAbove - 10)));
+    } else {
+      setPlacement('bottom');
+      setMaxMenuHeight(Math.max(120, Math.min(preferredHeight, spaceBelow - 10)));
+    }
+  };
 
   // 1. Instant 0ms local search
   const localSuggestions = useMemo(() => {
@@ -383,6 +411,20 @@ export const CityAutocompleteInput: React.FC<CityAutocompleteInputProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Update placement dynamically whenever open or suggestions change
+  useEffect(() => {
+    if (isOpen) {
+      updatePlacement();
+      const handleScrollOrResize = () => updatePlacement();
+      window.addEventListener('resize', handleScrollOrResize);
+      window.addEventListener('scroll', handleScrollOrResize, true);
+      return () => {
+        window.removeEventListener('resize', handleScrollOrResize);
+        window.removeEventListener('scroll', handleScrollOrResize, true);
+      };
+    }
+  }, [isOpen, combinedSuggestions.length]);
+
   const handleSelect = (suggestion: CitySuggestion) => {
     onChange(suggestion.formatted);
     setIsOpen(false);
@@ -490,7 +532,9 @@ export const CityAutocompleteInput: React.FC<CityAutocompleteInputProps> = ({
         <div
           style={{
             position: 'absolute',
-            top: 'calc(100% + 5px)',
+            ...(placement === 'top'
+              ? { bottom: 'calc(100% + 6px)', top: 'auto' }
+              : { top: 'calc(100% + 6px)', bottom: 'auto' }),
             left: 0,
             right: 0,
             zIndex: 9999,
@@ -499,11 +543,15 @@ export const CityAutocompleteInput: React.FC<CityAutocompleteInputProps> = ({
             WebkitBackdropFilter: 'blur(20px) saturate(180%)',
             border: '1px solid rgba(0, 0, 0, 0.12)',
             borderRadius: 14,
-            boxShadow: '0 14px 34px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04)',
+            boxShadow: placement === 'top'
+              ? '0 -14px 34px rgba(0, 0, 0, 0.14), 0 -2px 6px rgba(0, 0, 0, 0.04)'
+              : '0 14px 34px rgba(0, 0, 0, 0.14), 0 2px 6px rgba(0, 0, 0, 0.04)',
             overflow: 'hidden',
-            maxHeight: 280,
+            maxHeight: maxMenuHeight,
             overflowY: 'auto',
-            animation: 'appleDropdownFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1)'
+            animation: placement === 'top'
+              ? 'appleDropdownFadeInUp 0.15s cubic-bezier(0.16, 1, 0.3, 1)'
+              : 'appleDropdownFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1)'
           }}
         >
           <div
