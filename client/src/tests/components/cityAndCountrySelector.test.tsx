@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { describe, it, expect, vi } from 'vitest';
+import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { CityAutocompleteInput } from '../../components/common/CityAutocompleteInput';
 import { CountryCodeSelector } from '../../components/common/CountryCodeSelector';
