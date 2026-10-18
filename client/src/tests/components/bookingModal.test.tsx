@@ -78,7 +78,7 @@ describe('BookingModal Component Tests', () => {
     render(
       <CountryProvider>
         <NotificationProvider>
-          <BookingModal isOpen={true} onClose={vi.fn()} />
+          <BookingModal isOpen={true} onClose={vi.fn()} initialStep={3} />
         </NotificationProvider>
       </CountryProvider>
     );
@@ -95,7 +95,7 @@ describe('BookingModal Component Tests', () => {
     render(
       <CountryProvider>
         <NotificationProvider>
-          <BookingModal isOpen={true} onClose={vi.fn()} preselectedPackageId="pkg-quick" />
+          <BookingModal isOpen={true} onClose={vi.fn()} preselectedPackageId="pkg-quick" initialStep={2} />
         </NotificationProvider>
       </CountryProvider>
     );
@@ -150,7 +150,7 @@ describe('BookingModal Component Tests', () => {
     render(
       <CountryProvider>
         <NotificationProvider>
-          <BookingModal isOpen={true} onClose={vi.fn()} onOpenAuth={vi.fn()} />
+          <BookingModal isOpen={true} onClose={vi.fn()} onOpenAuth={vi.fn()} initialStep={2} />
         </NotificationProvider>
       </CountryProvider>
     );
@@ -164,5 +164,53 @@ describe('BookingModal Component Tests', () => {
 
     // Shows birth inputs (Full Name, Date of Birth, Time of Birth)
     expect(screen.getByPlaceholderText(/As per Kundli \/ Birth record/i)).toBeInTheDocument();
+  });
+
+  it('navigates through steps using Continue and returns via top-left Back button', async () => {
+    const user = userEvent.setup();
+    render(
+      <CountryProvider>
+        <NotificationProvider>
+          <BookingModal isOpen={true} onClose={vi.fn()} />
+        </NotificationProvider>
+      </CountryProvider>
+    );
+
+    // Initial state: Step 1
+    expect(screen.getByText(/Step 1 of 4 · Select Package/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Go to previous step/i)).toBeNull();
+
+    // Click Continue to Birth Profile
+    const nextBtn = screen.getByRole('button', { name: /Continue to Birth Profile/i });
+    await user.click(nextBtn);
+
+    // Reaches Step 2 and displays Back button
+    expect(screen.getByText(/Step 2 of 4 · Birth Profile Details/i)).toBeInTheDocument();
+    const backBtn = screen.getByLabelText(/Go to previous step/i);
+    expect(backBtn).toBeInTheDocument();
+
+    // Click Back button to return to Step 1
+    await user.click(backBtn);
+    expect(screen.getByText(/Step 1 of 4 · Select Package/i)).toBeInTheDocument();
+  });
+
+  it('allows jumping back to completed steps via step progress bar tabs', async () => {
+    const user = userEvent.setup();
+    render(
+      <CountryProvider>
+        <NotificationProvider>
+          <BookingModal isOpen={true} onClose={vi.fn()} initialStep={3} />
+        </NotificationProvider>
+      </CountryProvider>
+    );
+
+    expect(screen.getByText(/Step 3 of 4 · Schedule & Questions/i)).toBeInTheDocument();
+
+    // Step 1 tab is clickable since it is prior to current step
+    const step1Tab = screen.getByRole('tab', { name: /Step 1: Package/i });
+    expect(step1Tab).not.toBeDisabled();
+
+    await user.click(step1Tab);
+    expect(screen.getByText(/Step 1 of 4 · Select Package/i)).toBeInTheDocument();
   });
 });

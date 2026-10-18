@@ -6,6 +6,9 @@ import {
   User as UserIcon,
   CheckCircle2,
   ArrowRight,
+  ArrowLeft,
+  Sparkles,
+  ChevronRight,
   Plus,
   Crown,
   ChevronDown,
@@ -26,6 +29,7 @@ interface BookingModalProps {
   preselectedPackageId?: string;
   onNavigateToApp?: () => void;
   onOpenAuth?: () => void;
+  initialStep?: number;
 }
 
 const DEFAULT_PACKAGES = [
@@ -40,7 +44,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   onClose,
   preselectedPackageId,
   onNavigateToApp,
-  onOpenAuth
+  onOpenAuth,
+  initialStep = 1
 }) => {
   const { user, profiles, addProfile, isAuthenticated } = useAuth();
   const { showToast } = useNotification();
@@ -73,6 +78,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   })();
 
   const [step, setStep] = useState<'details' | 'payment' | 'success'>('details');
+  const [wizardStep, setWizardStep] = useState<number>(initialStep || 1);
   const [packages, setPackages] = useState<any[]>(DEFAULT_PACKAGES);
   const [selectedPkgId, setSelectedPkgId] = useState<string>(preselectedPackageId || 'pkg-premium');
   const [selectedProfileId, setSelectedProfileId] = useState<string>('');
@@ -106,6 +112,20 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [paymentConfig, setPaymentConfig] = useState<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Computed step number across wizard details (1-3) and payment (4)
+  const currentStepNumber = step === 'payment' ? 4 : wizardStep;
+
+  // Auto-scroll to top smoothly whenever step advances or changes
+  useEffect(() => {
+    if (scrollRef.current) {
+      if (typeof scrollRef.current.scrollTo === 'function') {
+        scrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        scrollRef.current.scrollTop = 0;
+      }
+    }
+  }, [wizardStep, step]);
+
   // Sync dial code if country changes
   useEffect(() => {
     if (!guestProfile.phone) {
@@ -117,6 +137,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     if (isOpen) {
       // Reset state
       setStep('details');
+      setWizardStep(initialStep || 1);
       setUtr('');
       setCreatedAppt(null);
       setShowAddProfile(false);
@@ -286,6 +307,107 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     window.open(waUrl, '_blank', 'noopener,noreferrer');
   };
 
+  const handleNextToStep2 = () => {
+    if (!currentPkg) {
+      showToast('Please select a consultation package to proceed', 'warning');
+      return;
+    }
+    setWizardStep(2);
+  };
+
+  const handleNextToStep3 = () => {
+    if (isAuthenticated) {
+      if (!selectedProfileId && (!profiles || profiles.length === 0)) {
+        showToast('Please add or select a birth profile for chart analysis', 'warning');
+        setShowAddProfile(true);
+        return;
+      }
+      setWizardStep(3);
+      return;
+    }
+
+    if (!guestProfile.fullName.trim()) {
+      showToast('Please enter your full name as per Kundli / birth record', 'warning');
+      return;
+    }
+    if (!guestProfile.dob) {
+      showToast('Please select your date of birth', 'warning');
+      return;
+    }
+    if (!guestProfile.pob.trim()) {
+      showToast('Please enter your place of birth (city, state, country)', 'warning');
+      return;
+    }
+    setWizardStep(3);
+  };
+
+  const handlePrevStep = () => {
+    if (step === 'payment') {
+      setStep('details');
+      setWizardStep(3);
+    } else if (wizardStep > 1) {
+      setWizardStep((prev) => prev - 1);
+    }
+  };
+
+  const renderWhatsAppButton = () => (
+    <button
+      type="button"
+      aria-label="Consult on WhatsApp (+91 9983353633)"
+      onClick={handleConsultOnWhatsApp}
+      style={{
+        padding: '13px 18px',
+        fontSize: 14.5,
+        fontWeight: 600,
+        width: '100%',
+        backgroundColor: '#25D366',
+        color: '#FFFFFF',
+        border: 'none',
+        borderRadius: 14,
+        boxShadow: '0 4px 14px rgba(37, 211, 102, 0.28)',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 9,
+        transition: 'all 0.15s ease'
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#20BA5A')}
+      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#25D366')}
+    >
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        style={{ flexShrink: 0 }}
+        aria-hidden="true"
+      >
+        <path
+          fillRule="evenodd"
+          clipRule="evenodd"
+          d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.63C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2ZM12.04 20.15C10.56 20.15 9.11 19.76 7.85 19.01L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 14.99 3.8 13.47 3.8 11.91C3.8 7.37 7.5 3.67 12.04 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.15 12.04 20.15ZM16.56 14.41C16.31 14.29 15.09 13.69 14.86 13.61C14.64 13.52 14.47 13.48 14.31 13.73C14.14 13.97 13.67 14.53 13.52 14.7C13.38 14.86 13.23 14.88 12.98 14.76C12.74 14.64 11.94 14.37 11 13.53C10.26 12.88 9.77 12.07 9.62 11.82C9.48 11.58 9.61 11.44 9.73 11.32C9.84 11.21 9.98 11.03 10.1 10.89C10.22 10.74 10.27 10.64 10.35 10.48C10.43 10.31 10.39 10.17 10.33 10.05C10.27 9.92 9.77 8.7 9.57 8.2C9.37 7.72 9.16 7.78 9.01 7.77C8.87 7.77 8.7 7.76 8.54 7.76C8.37 7.76 8.11 7.82 7.88 8.07C7.65 8.32 7.02 8.91 7.02 10.13C7.02 11.34 7.9 12.51 8.03 12.67C8.15 12.84 9.77 15.34 12.24 16.41C12.83 16.66 13.29 16.82 13.64 16.93C14.23 17.12 14.77 17.09 15.2 17.03C15.67 16.96 16.66 16.43 16.86 15.86C17.07 15.28 17.07 14.79 17.01 14.69C16.95 14.58 16.8 14.52 16.56 14.41Z"
+        fill="currentColor"
+      />
+    </svg>
+    <div
+      style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        justifyContent: 'center',
+        columnGap: 6,
+        rowGap: 2,
+        textAlign: 'center'
+      }}
+    >
+      <span style={{ whiteSpace: 'nowrap' }}>Consult on WhatsApp</span>
+      <span style={{ whiteSpace: 'nowrap' }}> (+91 9983353633)</span>
+    </div>
+  </button>
+  );
+
   const handleSubmitRequest = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -311,6 +433,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     if (isAuthenticated) {
       if (!selectedProfileId) {
         showToast('Please add or select a birth profile for chart analysis', 'error');
+        setWizardStep(2);
         setShowAddProfile(true);
         return;
       }
@@ -318,6 +441,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     } else {
       // Guest booking validation
       if (!guestProfile.fullName.trim() || !guestProfile.dob) {
+        setWizardStep(2);
         setIsGuestProfileExpanded(true);
         showToast('Please fill in your name and date of birth in your birth profile', 'error');
         return;
@@ -416,40 +540,139 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           overflowY: 'auto'
         }}
       >
-        <button
-          onClick={onClose}
-          aria-label="Close booking modal"
-          style={{
-            position: 'absolute',
-            top: 18,
-            right: 18,
-            background: '#F5F5F7',
-            border: 'none',
-            borderRadius: '50%',
-            width: 32,
-            height: 32,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            color: '#6E6E73',
-            zIndex: 10
-          }}
-        >
-          <X size={18} />
-        </button>
+        {/* Top Header Bar: Back Button (left), Centered Badge, Close Button (right) */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, minHeight: 34 }}>
+          <div style={{ width: 34 }}>
+            {currentStepNumber > 1 && step !== 'success' && (
+              <button
+                type="button"
+                onClick={handlePrevStep}
+                aria-label="Go to previous step"
+                style={{
+                  background: '#F5F5F7',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: 34,
+                  height: 34,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: '#1D1D1F',
+                  transition: 'all 0.15s cubic-bezier(0.16, 1, 0.3, 1)'
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#E5E5EA')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#F5F5F7')}
+              >
+                <ArrowLeft size={17} />
+              </button>
+            )}
+          </div>
 
-        {/* STEP 1: APPOINTMENT DETAILS */}
-        {step === 'details' && (
-          <div>
-            <div style={{ marginBottom: 18 }}>
-              <span className="apple-badge-primary" style={{ marginBottom: 6 }}>
-                Vedic Consultation Booking
+          <span className="apple-badge-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <Sparkles size={12} /> Vedic Consultation Booking
+          </span>
+
+          <div style={{ width: 34, display: 'flex', justifyContent: 'flex-end' }}>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close booking modal"
+              style={{
+                background: '#F5F5F7',
+                border: 'none',
+                borderRadius: '50%',
+                width: 34,
+                height: 34,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: '#6E6E73',
+                transition: 'all 0.15s cubic-bezier(0.16, 1, 0.3, 1)'
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#E5E5EA')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#F5F5F7')}
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+
+        {/* Apple-style Segmented Progress Bar */}
+        {step !== 'success' && (
+          <div style={{ marginBottom: 20 }}>
+            <div
+              role="tablist"
+              aria-label="Booking steps"
+              style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 10 }}
+            >
+              {[
+                { step: 1, label: 'Package' },
+                { step: 2, label: 'Profile' },
+                { step: 3, label: 'Schedule' },
+                { step: 4, label: 'Payment' }
+              ].map((s) => {
+                const isDone = currentStepNumber > s.step;
+                const isCurrent = currentStepNumber === s.step;
+                const canClick = s.step < currentStepNumber;
+
+                return (
+                  <button
+                    key={s.step}
+                    type="button"
+                    role="tab"
+                    aria-selected={isCurrent}
+                    aria-label={`Step ${s.step}: ${s.label}`}
+                    disabled={!canClick}
+                    onClick={() => {
+                      if (canClick) {
+                        if (step === 'payment') setStep('details');
+                        setWizardStep(s.step);
+                      }
+                    }}
+                    style={{
+                      flex: 1,
+                      height: 5,
+                      padding: 0,
+                      border: 'none',
+                      borderRadius: 9999,
+                      backgroundColor: isCurrent ? '#3A3A6E' : isDone ? '#505080' : '#E5E5EA',
+                      cursor: canClick ? 'pointer' : 'default',
+                      outline: 'none',
+                      transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+                    }}
+                    title={canClick ? `Return to Step ${s.step}: ${s.label}` : `Step ${s.step}: ${s.label}`}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Step Subheader & Current Package Status */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 20, gap: 10 }}>
+              <span style={{ fontSize: 11.5, fontWeight: 700, color: '#3A3A6E', textTransform: 'uppercase', letterSpacing: 0.6 }}>
+                {currentStepNumber === 1 && 'Step 1 of 4 · Select Package'}
+                {currentStepNumber === 2 && 'Step 2 of 4 · Birth Profile Details'}
+                {currentStepNumber === 3 && 'Step 3 of 4 · Schedule & Questions'}
+                {currentStepNumber === 4 && 'Step 4 of 4 · Payment Verification'}
               </span>
-              <h2 className="text-h2" style={{ fontSize: 23, marginTop: 4, marginBottom: 4 }}>
-                Reserve Your Session with Amit
+              {currentPkg && currentStepNumber < 4 && (
+                <span style={{ fontSize: 11.5, color: '#6E6E73', whiteSpace: 'nowrap' }}>
+                  Selected: <strong style={{ color: '#1D1D1F' }}>{currentPkg.name} ({getPackageFormattedPrice(currentPkg)})</strong>
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* STEP 1: SELECT CONSULTATION PACKAGE */}
+        {step === 'details' && wizardStep === 1 && (
+          <div className="fade-in">
+            <div style={{ marginBottom: 16 }}>
+              <h2 className="text-h2" style={{ fontSize: 22, marginTop: 0, marginBottom: 4 }}>
+                Select Consultation Package
               </h2>
-              <p className="text-body" style={{ fontSize: 13.5, color: '#6E6E73' }}>
+              <p className="text-body" style={{ fontSize: 13, color: '#6E6E73' }}>
                 Detected timezone: <strong>{userTimezone}</strong> (Internal schedule managed in IST).
               </p>
             </div>
@@ -461,7 +684,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   border: '1.5px solid rgba(201, 162, 75, 0.4)',
                   borderRadius: 14,
                   padding: '12px 16px',
-                  marginBottom: 18,
+                  marginBottom: 16,
                   display: 'flex',
                   alignItems: 'center',
                   gap: 12
@@ -488,15 +711,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               </div>
             )}
 
-            <form onSubmit={handleSubmitRequest} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-              {/* 1. SELECT CONSULTATION PACKAGE (4 Cards) */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: '#1D1D1F' }}>
-                    1. Select Consultation Package
-                  </label>
-                  <span style={{ fontSize: 11.5, color: '#86868B' }}>4 consultation options</span>
-                </div>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, color: '#1D1D1F' }}>
+                  1. Select Consultation Package
+                </label>
+                <span style={{ fontSize: 11.5, color: '#86868B' }}>4 consultation options</span>
+              </div>
 
                 <div
                   style={{
@@ -592,6 +813,50 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                       );
                     })}
                 </div>
+              </div>
+
+              {/* Step 1 Action Buttons */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 22 }}>
+                <button
+                  type="button"
+                  onClick={handleNextToStep2}
+                  className="apple-btn-primary"
+                  style={{
+                    padding: '14px',
+                    fontSize: 15,
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    borderRadius: 14
+                  }}
+                >
+                  <span>Continue to Birth Profile</span>
+                  <ChevronRight size={18} />
+                </button>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '2px 0' }}>
+                  <div style={{ flex: 1, height: 1, backgroundColor: '#E5E5EA' }} />
+                  <span style={{ fontSize: 11.5, color: '#86868B', textTransform: 'uppercase', letterSpacing: 0.5 }}>or</span>
+                  <div style={{ flex: 1, height: 1, backgroundColor: '#E5E5EA' }} />
+                </div>
+
+                {renderWhatsAppButton()}
+              </div>
+            </div>
+          )}
+
+          {/* STEP 2: BIRTH PROFILE DETAILS */}
+          {step === 'details' && wizardStep === 2 && (
+            <div className="fade-in">
+              <div style={{ marginBottom: 16 }}>
+                <h2 className="text-h2" style={{ fontSize: 22, marginTop: 0, marginBottom: 4 }}>
+                  Birth Profile Details
+                </h2>
+                <p className="text-body" style={{ fontSize: 13, color: '#6E6E73' }}>
+                  Provide exact birth details for Vedic planetary calculation and horoscope analysis.
+                </p>
               </div>
 
               {/* 2. BIRTH PROFILE TO ANALYZE */}
@@ -1045,6 +1310,50 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 )}
               </div>
 
+              {/* Step 2 Action Buttons */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 22 }}>
+                <button
+                  type="button"
+                  onClick={handleNextToStep3}
+                  className="apple-btn-primary"
+                  style={{
+                    padding: '14px',
+                    fontSize: 15,
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    borderRadius: 14
+                  }}
+                >
+                  <span>Continue to Schedule & Questions</span>
+                  <ChevronRight size={18} />
+                </button>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '2px 0' }}>
+                  <div style={{ flex: 1, height: 1, backgroundColor: '#E5E5EA' }} />
+                  <span style={{ fontSize: 11.5, color: '#86868B', textTransform: 'uppercase', letterSpacing: 0.5 }}>or</span>
+                  <div style={{ flex: 1, height: 1, backgroundColor: '#E5E5EA' }} />
+                </div>
+
+                {renderWhatsAppButton()}
+              </div>
+            </div>
+          )}
+
+          {/* STEP 3: SCHEDULE & QUESTIONS */}
+          {step === 'details' && wizardStep === 3 && (
+            <form onSubmit={handleSubmitRequest} className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+              <div>
+                <h2 className="text-h2" style={{ fontSize: 22, marginTop: 0, marginBottom: 4 }}>
+                  Choose Date & Time Window
+                </h2>
+                <p className="text-body" style={{ fontSize: 13, color: '#6E6E73' }}>
+                  Select your preferred consultation slot and share questions or topics for Amit.
+                </p>
+              </div>
+
               {/* 3. DATE & PREFERRED TIME WINDOW */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                 <div>
@@ -1154,71 +1463,16 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   <div style={{ flex: 1, height: 1, backgroundColor: '#E5E5EA' }} />
                 </div>
 
-                <button
-                  type="button"
-                  aria-label="Consult on WhatsApp (+91 9983353633)"
-                  onClick={handleConsultOnWhatsApp}
-                  style={{
-                    padding: '13px 18px',
-                    fontSize: 14.5,
-                    fontWeight: 600,
-                    width: '100%',
-                    backgroundColor: '#25D366',
-                    color: '#FFFFFF',
-                    border: 'none',
-                    borderRadius: 14,
-                    boxShadow: '0 4px 14px rgba(37, 211, 102, 0.28)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 9,
-                    transition: 'all 0.15s ease'
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#20BA5A')}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#25D366')}
-                >
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    style={{ flexShrink: 0 }}
-                    aria-hidden="true"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      clipRule="evenodd"
-                      d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.63C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2ZM12.04 20.15C10.56 20.15 9.11 19.76 7.85 19.01L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 14.99 3.8 13.47 3.8 11.91C3.8 7.37 7.5 3.67 12.04 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.15 12.04 20.15ZM16.56 14.41C16.31 14.29 15.09 13.69 14.86 13.61C14.64 13.52 14.47 13.48 14.31 13.73C14.14 13.97 13.67 14.53 13.52 14.7C13.38 14.86 13.23 14.88 12.98 14.76C12.74 14.64 11.94 14.37 11 13.53C10.26 12.88 9.77 12.07 9.62 11.82C9.48 11.58 9.61 11.44 9.73 11.32C9.84 11.21 9.98 11.03 10.1 10.89C10.22 10.74 10.27 10.64 10.35 10.48C10.43 10.31 10.39 10.17 10.33 10.05C10.27 9.92 9.77 8.7 9.57 8.2C9.37 7.72 9.16 7.78 9.01 7.77C8.87 7.77 8.7 7.76 8.54 7.76C8.37 7.76 8.11 7.82 7.88 8.07C7.65 8.32 7.02 8.91 7.02 10.13C7.02 11.34 7.9 12.51 8.03 12.67C8.15 12.84 9.77 15.34 12.24 16.41C12.83 16.66 13.29 16.82 13.64 16.93C14.23 17.12 14.77 17.09 15.2 17.03C15.67 16.96 16.66 16.43 16.86 15.86C17.07 15.28 17.07 14.79 17.01 14.69C16.95 14.58 16.8 14.52 16.56 14.41Z"
-                      fill="currentColor"
-                    />
-                  </svg>
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexWrap: 'wrap',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      columnGap: 6,
-                      rowGap: 2,
-                      textAlign: 'center'
-                    }}
-                  >
-                    <span style={{ whiteSpace: 'nowrap' }}>Consult on WhatsApp</span>
-                    <span style={{ whiteSpace: 'nowrap' }}> (+91 9983353633)</span>
-                  </div>
-                </button>
+                {renderWhatsAppButton()}
               </div>
             </form>
-          </div>
-        )}
+          )}
 
-        {/* STEP 2: MANUAL UPI PAYMENT */}
+        {/* STEP 4: MANUAL UPI PAYMENT */}
         {step === 'payment' && currentPkg && (
-          <div>
+          <div className="fade-in">
             <div style={{ textAlign: 'center', marginBottom: 20 }}>
-              <span className="apple-badge-gold">Step 2 of 2: Manual UPI Verification</span>
+              <span className="apple-badge-gold">Step 4 of 4: Manual UPI Verification</span>
               <h2 className="text-h2" style={{ fontSize: 22, marginTop: 6, marginBottom: 4 }}>
                 Complete Consultation Payment
               </h2>
