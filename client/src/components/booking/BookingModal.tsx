@@ -573,7 +573,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                             <div style={{ fontWeight: 600, fontSize: 12.5, color: '#1D1D1F', lineHeight: 1.25 }}>
                               {pkg.name}
                             </div>
-                            <div style={{ fontSize: 15, fontWeight: 700, color: '#3A3A6E', margin: '4px 0 2px' }}>
+                            <div style={{ fontSize: 15, fontWeight: 700, color: '#3A3A6E', margin: '4px 0 2px', whiteSpace: 'nowrap' }}>
                               {getPackageFormattedPrice(pkg)}
                             </div>
                           </div>
@@ -685,37 +685,71 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 ) : (
                   /* Case B: User is NOT Logged In (Guest Experience) */
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {/* Polite reminder banner that they are not logged in and can sign in */}
+                    {/* Apple-style clean notice banner that they are not signed in */}
                     <div
                       style={{
-                        padding: '10px 14px',
-                        backgroundColor: '#F5F5F7',
+                        padding: '11px 14px',
+                        backgroundColor: '#F8F8FA',
                         borderRadius: 14,
-                        border: '1px solid #E5E5EA',
+                        border: '1px solid #E8E8ED',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         gap: 12
                       }}
                     >
-                      <span style={{ fontSize: 12.5, color: '#6E6E73', lineHeight: 1.35 }}>
-                        You are currently not signed in. You can sign in to access your saved birth profiles, or enter your birth details below.
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
+                        <div
+                          style={{
+                            width: 30,
+                            height: 30,
+                            borderRadius: 8,
+                            backgroundColor: '#FFFFFF',
+                            border: '1px solid #E5E5EA',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#3A3A6E',
+                            flexShrink: 0,
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                          }}
+                        >
+                          <UserIcon size={15} />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 12.5, fontWeight: 600, color: '#1D1D1F', lineHeight: 1.25 }}>
+                            You are currently not signed in
+                          </div>
+                          <div style={{ fontSize: 11, color: '#86868B', lineHeight: 1.3, marginTop: 2 }}>
+                            Sign in to access your saved birth profiles, or enter your birth details below.
+                          </div>
+                        </div>
+                      </div>
                       {onOpenAuth && (
                         <button
                           type="button"
                           onClick={onOpenAuth}
                           style={{
-                            background: '#3A3A6E',
-                            color: '#FFFFFF',
-                            border: 'none',
-                            borderRadius: 10,
-                            padding: '6px 12px',
+                            background: '#FFFFFF',
+                            color: '#3A3A6E',
+                            border: '1px solid #D1D1D6',
+                            borderRadius: 20,
+                            padding: '6px 13px',
                             fontSize: 12,
                             fontWeight: 600,
                             cursor: 'pointer',
                             whiteSpace: 'nowrap',
-                            flexShrink: 0
+                            flexShrink: 0,
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                            transition: 'all 0.15s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#F2F2F7';
+                            e.currentTarget.style.borderColor = '#3A3A6E';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = '#FFFFFF';
+                            e.currentTarget.style.borderColor = '#D1D1D6';
                           }}
                         >
                           Sign In / Sign Up
@@ -735,10 +769,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
+                        gap: 10,
                         transition: 'all 0.15s ease'
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
                         <div
                           style={{
                             width: 32,
@@ -748,19 +783,22 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            color: '#3A3A6E'
+                            color: '#3A3A6E',
+                            flexShrink: 0
                           }}
                         >
                           <UserIcon size={16} />
                         </div>
-                        <div>
-                          <span style={{ fontSize: 13.5, fontWeight: 600, color: '#1D1D1F' }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{ fontSize: 13.5, fontWeight: 600, color: '#1D1D1F', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {guestProfile.fullName
                               ? `${guestProfile.fullName} ${guestProfile.dob ? `(Born ${guestProfile.dob})` : ''}`
                               : 'Add your birth profile'}
                           </span>
-                          <span style={{ fontSize: 11.5, color: '#86868B', display: 'block' }}>
-                            {guestProfile.fullName
+                          <span style={{ fontSize: 11.5, color: '#86868B', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {isGuestProfileExpanded
+                              ? 'Fill birth details below'
+                              : guestProfile.fullName
                               ? guestProfile.pob
                                 ? `Birth Place: ${guestProfile.pob}`
                                 : 'Click to expand / edit birth details'
@@ -768,7 +806,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                           </span>
                         </div>
                       </div>
-                      <div style={{ color: '#6E6E73', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <div style={{ color: '#6E6E73', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
                         <span style={{ fontSize: 12, fontWeight: 500 }}>
                           {isGuestProfileExpanded ? 'Hide' : 'Enter Details'}
                         </span>
@@ -789,27 +827,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                           gap: 12
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ fontSize: 12.5, fontWeight: 600, color: '#1D1D1F' }}>
-                            Birth Profile Details for Horoscope Analysis
-                          </span>
-                          {onOpenAuth && (
-                            <button
-                              type="button"
-                              onClick={onOpenAuth}
-                              style={{
-                                background: 'none',
-                                border: 'none',
-                                color: '#3A3A6E',
-                                fontSize: 12,
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                textDecoration: 'underline'
-                              }}
-                            >
-                              Log In / Sign Up
-                            </button>
-                          )}
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#1D1D1F' }}>
+                          Birth Profile Details for Horoscope Analysis
                         </div>
 
                         {/* Full Name */}
@@ -847,43 +866,48 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                         </div>
 
                         {/* Date & Time of Birth */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                          <div>
-                            <label style={{ fontSize: 12, fontWeight: 500, color: '#1D1D1F', display: 'block', marginBottom: 4 }}>
-                              Date of Birth *
-                            </label>
-                            <input
-                              type="date"
-                              required
-                              value={guestProfile.dob}
-                              onChange={(e) => setGuestProfile((p) => ({ ...p, dob: e.target.value }))}
-                              className="apple-input"
-                              style={{ fontSize: 13.5, padding: '9px 12px' }}
-                            />
-                          </div>
+                        <div>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                            <div>
+                              <label style={{ fontSize: 12, fontWeight: 500, color: '#1D1D1F', display: 'block', marginBottom: 4 }}>
+                                Date of Birth *
+                              </label>
+                              <input
+                                type="date"
+                                required
+                                value={guestProfile.dob}
+                                onChange={(e) => setGuestProfile((p) => ({ ...p, dob: e.target.value }))}
+                                className="apple-input"
+                                style={{ fontSize: 13.5, padding: '9px 12px', width: '100%' }}
+                              />
+                            </div>
 
-                          <div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                              <label style={{ fontSize: 12, fontWeight: 500, color: '#1D1D1F' }}>
+                            <div>
+                              <label style={{ fontSize: 12, fontWeight: 500, color: '#1D1D1F', display: 'block', marginBottom: 4 }}>
                                 Time of Birth
                               </label>
-                              <label style={{ fontSize: 11, color: '#6E6E73', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
-                                <input
-                                  type="checkbox"
-                                  checked={guestProfile.tobUncertain}
-                                  onChange={(e) => setGuestProfile((p) => ({ ...p, tobUncertain: e.target.checked }))}
-                                />
-                                Approximate
-                              </label>
+                              <input
+                                type="time"
+                                disabled={guestProfile.tobUncertain}
+                                value={guestProfile.tob}
+                                onChange={(e) => setGuestProfile((p) => ({ ...p, tob: e.target.value }))}
+                                className="apple-input"
+                                style={{ fontSize: 13.5, padding: '9px 12px', opacity: guestProfile.tobUncertain ? 0.5 : 1, width: '100%' }}
+                              />
                             </div>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
                             <input
-                              type="time"
-                              disabled={guestProfile.tobUncertain}
-                              value={guestProfile.tob}
-                              onChange={(e) => setGuestProfile((p) => ({ ...p, tob: e.target.value }))}
-                              className="apple-input"
-                              style={{ fontSize: 13.5, padding: '9px 12px', opacity: guestProfile.tobUncertain ? 0.5 : 1 }}
+                              type="checkbox"
+                              id="guestTobUncertain"
+                              checked={guestProfile.tobUncertain}
+                              onChange={(e) => setGuestProfile((p) => ({ ...p, tobUncertain: e.target.checked }))}
+                              style={{ width: 14, height: 14, accentColor: '#3A3A6E', cursor: 'pointer' }}
                             />
+                            <label htmlFor="guestTobUncertain" style={{ fontSize: 11.5, color: '#6E6E73', cursor: 'pointer', userSelect: 'none' }}>
+                              Time of birth is approximate / uncertain
+                            </label>
                           </div>
                         </div>
 
@@ -1088,19 +1112,20 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     padding: '12px 16px',
                     backgroundColor: 'rgba(58, 58, 110, 0.04)',
                     borderRadius: 14,
-                    border: '1px solid rgba(58, 58, 110, 0.12)'
+                    border: '1px solid rgba(58, 58, 110, 0.12)',
+                    gap: 12
                   }}
                 >
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 14, color: '#1D1D1F' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: 14, color: '#1D1D1F', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {currentPkg.name}
                     </div>
-                    <div style={{ fontSize: 12, color: '#6E6E73' }}>
+                    <div style={{ fontSize: 12, color: '#6E6E73', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {currentPkg.id === 'pkg-family-360' ? '1-Year Unlimited' : `${currentPkg.duration_minutes} min`}
                       {currentPkg.followupDays > 0 ? ` · ${currentPkg.followupDays === 365 ? '365-day' : `${currentPkg.followupDays}-day`} follow-up chat included` : ''}
                     </div>
                   </div>
-                  <div style={{ fontWeight: 700, fontSize: 18, color: '#3A3A6E' }}>
+                  <div style={{ fontWeight: 700, fontSize: 18, color: '#3A3A6E', flexShrink: 0, whiteSpace: 'nowrap', textAlign: 'right' }}>
                     {getPackageFormattedPrice(currentPkg)}
                   </div>
                 </div>
@@ -1131,6 +1156,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
                 <button
                   type="button"
+                  aria-label="Consult on WhatsApp (+91 9983353633)"
                   onClick={handleConsultOnWhatsApp}
                   style={{
                     padding: '13px 18px',
@@ -1152,13 +1178,36 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#20BA5A')}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#25D366')}
                 >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    style={{ flexShrink: 0 }}
+                    aria-hidden="true"
+                  >
                     <path
-                      d="M20.52 3.48A11.93 11.93 0 0012.06 0C5.46 0 .09 5.37.09 11.97c0 2.11.55 4.17 1.6 5.99L0 24l6.22-1.63a11.94 11.94 0 005.84 1.51h.01c6.6 0 11.97-5.37 11.97-11.97 0-3.2-.1.25-1.25-1.74-5.38-6.43zm-8.46 18.49h-.01a9.93 9.93 0 01-5.06-1.39l-.36-.22-3.76.99 1-3.66-.24-.38a9.92 9.92 0 01-1.52-5.26c0-5.49 4.47-9.96 9.97-9.96 2.66 0 5.16 1.04 7.04 2.92a9.9 9.9 0 012.92 7.04c0 5.5-4.47 9.96-9.98 9.96zm5.46-7.46c-.3-.15-1.77-.87-2.04-.97-.28-.1-.48-.15-.68.15-.2.3-.77.97-.94 1.17-.18.2-.35.22-.65.07-.3-.15-1.27-.47-2.42-1.49-.9-.8-1.5-1.78-1.68-2.08-.18-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.18.2-.3.3-.5.1-.2.05-.38-.02-.53-.08-.15-.68-1.64-.93-2.25-.25-.6-.5-.52-.68-.53h-.58c-.2 0-.53.08-.8.38-.28.3-1.07 1.05-1.07 2.55s1.1 2.96 1.25 3.16c.15.2 2.15 3.29 5.22 4.61.73.31 1.3.5 1.74.64.73.23 1.4.2 1.93.12.59-.09 1.77-.72 2.02-1.42.25-.7.25-1.3.18-1.42-.08-.12-.27-.2-.57-.35z"
+                      fillRule="evenodd"
+                      clipRule="evenodd"
+                      d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.63C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2ZM12.04 20.15C10.56 20.15 9.11 19.76 7.85 19.01L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 14.99 3.8 13.47 3.8 11.91C3.8 7.37 7.5 3.67 12.04 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.15 12.04 20.15ZM16.56 14.41C16.31 14.29 15.09 13.69 14.86 13.61C14.64 13.52 14.47 13.48 14.31 13.73C14.14 13.97 13.67 14.53 13.52 14.7C13.38 14.86 13.23 14.88 12.98 14.76C12.74 14.64 11.94 14.37 11 13.53C10.26 12.88 9.77 12.07 9.62 11.82C9.48 11.58 9.61 11.44 9.73 11.32C9.84 11.21 9.98 11.03 10.1 10.89C10.22 10.74 10.27 10.64 10.35 10.48C10.43 10.31 10.39 10.17 10.33 10.05C10.27 9.92 9.77 8.7 9.57 8.2C9.37 7.72 9.16 7.78 9.01 7.77C8.87 7.77 8.7 7.76 8.54 7.76C8.37 7.76 8.11 7.82 7.88 8.07C7.65 8.32 7.02 8.91 7.02 10.13C7.02 11.34 7.9 12.51 8.03 12.67C8.15 12.84 9.77 15.34 12.24 16.41C12.83 16.66 13.29 16.82 13.64 16.93C14.23 17.12 14.77 17.09 15.2 17.03C15.67 16.96 16.66 16.43 16.86 15.86C17.07 15.28 17.07 14.79 17.01 14.69C16.95 14.58 16.8 14.52 16.56 14.41Z"
                       fill="currentColor"
                     />
                   </svg>
-                  <span>Consult on WhatsApp (+91 9983353633)</span>
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      columnGap: 6,
+                      rowGap: 2,
+                      textAlign: 'center'
+                    }}
+                  >
+                    <span style={{ whiteSpace: 'nowrap' }}>Consult on WhatsApp</span>
+                    <span style={{ whiteSpace: 'nowrap' }}> (+91 9983353633)</span>
+                  </div>
                 </button>
               </div>
             </form>

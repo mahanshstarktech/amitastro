@@ -66,7 +66,7 @@ export const COUNTRIES: Record<string, CountryInfo> = {
       },
       family: {
         amount: 100000,
-        formatted: '₹1,00,000 / yr',
+        formatted: '₹1,00,000/yr',
         costPerMin: 'Unlimited',
         label: '1-Year Unlimited Family 360 Plan (Upto 4 Members)'
       }
@@ -101,7 +101,7 @@ export const COUNTRIES: Record<string, CountryInfo> = {
       },
       family: {
         amount: 1100,
-        formatted: '€1,100 / yr',
+        formatted: '€1,100/yr',
         costPerMin: 'Unlimited',
         label: '1-Year Unlimited Family 360 Plan (Upto 4 Members)'
       }
@@ -136,7 +136,7 @@ export const COUNTRIES: Record<string, CountryInfo> = {
       },
       family: {
         amount: 950,
-        formatted: '£950 / yr',
+        formatted: '£950/yr',
         costPerMin: 'Unlimited',
         label: '1-Year Unlimited Family 360 Plan (Upto 4 Members)'
       }
@@ -171,7 +171,7 @@ export const COUNTRIES: Record<string, CountryInfo> = {
       },
       family: {
         amount: 4400,
-        formatted: '4,400 AED / yr',
+        formatted: '4,400 AED/yr',
         costPerMin: 'Unlimited',
         label: '1-Year Unlimited Family 360 Plan (Upto 4 Members)'
       }
@@ -206,7 +206,7 @@ export const COUNTRIES: Record<string, CountryInfo> = {
       },
       family: {
         amount: 1200,
-        formatted: '$1,200 / yr',
+        formatted: '$1,200/yr',
         costPerMin: 'Unlimited',
         label: '1-Year Unlimited Family 360 Plan (Upto 4 Members)'
       }
@@ -241,7 +241,7 @@ export const COUNTRIES: Record<string, CountryInfo> = {
       },
       family: {
         amount: 1850,
-        formatted: 'A$1,850 / yr',
+        formatted: 'A$1,850/yr',
         costPerMin: 'Unlimited',
         label: '1-Year Unlimited Family 360 Plan (Upto 4 Members)'
       }
@@ -276,7 +276,7 @@ export const COUNTRIES: Record<string, CountryInfo> = {
       },
       family: {
         amount: 1650,
-        formatted: 'C$1,650 / yr',
+        formatted: 'C$1,650/yr',
         costPerMin: 'Unlimited',
         label: '1-Year Unlimited Family 360 Plan (Upto 4 Members)'
       }
@@ -311,7 +311,7 @@ export const COUNTRIES: Record<string, CountryInfo> = {
       },
       family: {
         amount: 1100,
-        formatted: '€1,100 / yr',
+        formatted: '€1,100/yr',
         costPerMin: 'Unlimited',
         label: '1-Year Unlimited Family 360 Plan (Upto 4 Members)'
       }
@@ -346,7 +346,7 @@ export const COUNTRIES: Record<string, CountryInfo> = {
       },
       family: {
         amount: 110000,
-        formatted: '₽1,10,000 / yr',
+        formatted: '₽1,10,000/yr',
         costPerMin: 'Unlimited',
         label: '1-Year Unlimited Family 360 Plan (Upto 4 Members)'
       }
