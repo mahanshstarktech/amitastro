@@ -57,9 +57,9 @@ export const getAvailability = async (req: any, res: Response) => {
 
 export const createAppointment = async (req: AuthRequest, res: Response) => {
   try {
-    const customerId = req.user!.id;
     const {
       birthProfileId,
+      guestProfile,
       packageId,
       consultationType,
       requestedDate,
@@ -68,14 +68,59 @@ export const createAppointment = async (req: AuthRequest, res: Response) => {
       customerNotes
     } = req.body;
 
-    if (!birthProfileId || !packageId || !requestedDate || !requestedTimeWindow) {
+    if (!packageId || !requestedDate || !requestedTimeWindow) {
       return res.status(400).json({ error: 'Missing required appointment parameters' });
     }
 
-    // Verify birth profile belongs to this customer
-    const profile = await getOne<any>('SELECT * FROM birth_profiles WHERE id = ? AND user_id = ?', [birthProfileId, customerId]);
-    if (!profile) {
-      return res.status(400).json({ error: 'Birth profile not found or does not belong to your account' });
+    let customerId = req.user?.id;
+    let effectiveProfileId = birthProfileId;
+    let profileName = '';
+
+    if (!customerId) {
+      // Guest booking
+      if (!guestProfile || !guestProfile.fullName || !guestProfile.dob) {
+        return res.status(400).json({ error: 'Please provide birth profile details to book' });
+      }
+
+      const cleanPhone = (guestProfile.phone || '').trim();
+      let existingUser = cleanPhone ? await getOne<any>('SELECT * FROM users WHERE phone = ?', [cleanPhone]) : null;
+      if (!existingUser) {
+        const newUserId = `usr-${uuidv4().substring(0, 8)}`;
+        const guestEmail = `guest_${Date.now()}_${Math.floor(Math.random() * 1000)}@amitastro.internal`;
+        await runQuery(`
+          INSERT INTO users (id, email, phone, name, role, is_active, is_new_customer)
+          VALUES (?, ?, ?, ?, 'customer', 1, 1)
+        `, [newUserId, guestEmail, cleanPhone || null, guestProfile.fullName.trim()]);
+        customerId = newUserId;
+      } else {
+        customerId = existingUser.id;
+      }
+
+      const profileId = `bp-${uuidv4().substring(0, 8)}`;
+      await runQuery(`
+        INSERT INTO birth_profiles (id, user_id, full_name, dob, tob, pob, relation, tob_uncertain)
+        VALUES (?, ?, ?, ?, ?, ?, 'self', ?)
+      `, [
+        profileId,
+        customerId,
+        guestProfile.fullName.trim(),
+        guestProfile.dob,
+        guestProfile.tob || '12:00',
+        guestProfile.pob || 'India',
+        guestProfile.tobUncertain ? 1 : 0
+      ]);
+      effectiveProfileId = profileId;
+      profileName = guestProfile.fullName.trim();
+    } else {
+      if (!birthProfileId) {
+        return res.status(400).json({ error: 'Missing required birth profile parameter' });
+      }
+      // Verify birth profile belongs to this customer
+      const profile = await getOne<any>('SELECT * FROM birth_profiles WHERE id = ? AND user_id = ?', [birthProfileId, customerId]);
+      if (!profile) {
+        return res.status(400).json({ error: 'Birth profile not found or does not belong to your account' });
+      }
+      profileName = profile.full_name;
     }
 
     // Verify package
@@ -96,7 +141,7 @@ export const createAppointment = async (req: AuthRequest, res: Response) => {
     }
 
     // Check if customer has an active Family 360 subscription (unlimited consultations)
-    const familySub = await subscriptionService.isUserFamilySubscribed(customerId);
+    const familySub = customerId ? await subscriptionService.isUserFamilySubscribed(customerId) : { isSubscribed: false };
     const isFamilySubscriber = familySub.isSubscribed;
 
     const followupDays = FOLLOWUP_DAYS_MAP[pkg.slug] || (isFamilySubscriber ? 365 : 0);
@@ -114,7 +159,7 @@ export const createAppointment = async (req: AuthRequest, res: Response) => {
     `, [
       apptId,
       customerId,
-      birthProfileId,
+      effectiveProfileId,
       packageId,
       consultationType || 'call',
       requestedDate,
@@ -150,7 +195,7 @@ export const createAppointment = async (req: AuthRequest, res: Response) => {
       `audit-${uuidv4().substring(0, 8)}`,
       apptId,
       isFamilySubscriber
-        ? `Family 360 subscriber booked consultation for ${profile.full_name} (${requestedDate})`
+        ? `Family 360 subscriber booked consultation for ${profileName} (${requestedDate})`
         : `Requested ${pkg.name} for date ${requestedDate}`
     ]);
 

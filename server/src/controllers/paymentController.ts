@@ -36,7 +36,6 @@ export const getPaymentConfig = (req: any, res: Response) => {
 
 export const submitPaymentProof = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user!.id;
     const { appointmentId, utrReference, screenshotUrl, amount, paymentMethod } = req.body;
 
     if (!utrReference) {
@@ -48,6 +47,8 @@ export const submitPaymentProof = async (req: AuthRequest, res: Response) => {
     if (!appt) {
       return res.status(404).json({ error: 'Linked appointment not found' });
     }
+
+    const userId = req.user?.id || appt.customer_id;
 
     // Check if payment record already exists
     let existingPayment = await getOne<any>('SELECT * FROM payments WHERE appointment_id = ?', [appointmentId]);

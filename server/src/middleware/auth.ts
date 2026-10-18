@@ -31,6 +31,24 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
   });
 };
 
+export const optionalAuthenticateToken = (req: AuthRequest, res: Response, next: NextFunction) => {
+  const authHeader = req.headers['authorization'];
+  const bearerToken = authHeader && authHeader.split(' ')[1];
+  const cookieToken = req.cookies && req.cookies['amitastro_session'];
+  const token = bearerToken || cookieToken;
+
+  if (!token) {
+    return next();
+  }
+
+  jwt.verify(token, getJwtSecret(), (err: any, user: any) => {
+    if (!err && user) {
+      req.user = user;
+    }
+    next();
+  });
+};
+
 export const requireAdmin = (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!req.user || req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Access denied: Administrator privileges required' });

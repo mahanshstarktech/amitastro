@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticateToken, requireAdmin } from '../middleware/auth';
+import { authenticateToken, optionalAuthenticateToken, requireAdmin } from '../middleware/auth';
 import { authRateLimiter } from '../middleware/security';
 import * as authCtrl from '../controllers/authController';
 import * as profileCtrl from '../controllers/birthProfileController';
@@ -44,7 +44,7 @@ router.get('/packages', apptCtrl.getPackages);
 router.get('/availability', apptCtrl.getAvailability);
 
 // 4. Appointments
-router.post('/appointments', authenticateToken, apptCtrl.createAppointment);
+router.post('/appointments', optionalAuthenticateToken, apptCtrl.createAppointment);
 router.get('/appointments/my', authenticateToken, apptCtrl.getMyAppointments);
 router.get('/appointments/all', authenticateToken, requireAdmin, apptCtrl.getAllAppointments);
 router.patch('/appointments/:id/status', authenticateToken, requireAdmin, apptCtrl.updateAppointmentStatus);
@@ -56,7 +56,7 @@ router.get('/appointments/admin/followups', authenticateToken, requireAdmin, app
 
 // 5. Payments
 router.get('/payments/config', payCtrl.getPaymentConfig);
-router.post('/payments/proof', authenticateToken, payCtrl.submitPaymentProof);
+router.post('/payments/proof', optionalAuthenticateToken, payCtrl.submitPaymentProof);
 router.get('/payments/pending', authenticateToken, requireAdmin, payCtrl.getPendingPayments);
 router.post('/payments/:id/verify', authenticateToken, requireAdmin, payCtrl.verifyPayment);
 router.post('/payments/:id/reject', authenticateToken, requireAdmin, payCtrl.rejectPayment);
