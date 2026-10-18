@@ -354,18 +354,8 @@ export const COUNTRIES: Record<string, CountryInfo> = {
   }
 };
 
-/**
- * Detect real country bypassing VPNs by inspecting device OS timezone & locale
- */
 export function detectRealCountry(): string {
-  // Check user manual override in localStorage first
-  if (typeof window !== 'undefined') {
-    const saved = localStorage.getItem('amit_country_override');
-    if (saved && COUNTRIES[saved]) {
-      return saved;
-    }
-  }
-
+  // 1. Primary: Device OS hardware timezone (resistant to network VPN proxies)
   try {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
     const lowerTz = tz.toLowerCase();

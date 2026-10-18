@@ -16,6 +16,10 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
+import { useCountry } from '../../context/CountryContext';
+import { getCountryDialInfo } from '../../utils/countryCodes';
+import { CountryCodeSelector } from '../common/CountryCodeSelector';
+import { CityAutocompleteInput } from '../common/CityAutocompleteInput';
 import { isFirebaseConfigured, signInWithFirebaseGoogle } from '../../services/firebase';
 
 interface AuthModalProps {
@@ -51,6 +55,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [phone, setPhone] = useState('');
+  const { country } = useCountry();
+  const [phoneCountryCode, setPhoneCountryCode] = useState(() => getCountryDialInfo(country).dialCode);
+
+  // Sync phone dial code with detected country if phone is still empty
+  useEffect(() => {
+    if (!phone) {
+      setPhoneCountryCode(getCountryDialInfo(country).dialCode);
+    }
+  }, [country]);
 
   // Email OTP inputs
   const [emailOtpCode, setEmailOtpCode] = useState('');
@@ -197,8 +210,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     e.preventDefault();
     if (!googleTempUser) return;
     const cleanPhone = phone.replace(/[^0-9]/g, '');
-    if (!cleanPhone || cleanPhone.length < 10) {
-      showToast('Please enter a valid 10-digit mobile phone number', 'error');
+    if (!cleanPhone || cleanPhone.length < 7) {
+      showToast('Please enter a valid mobile phone number', 'error');
       return;
     }
     if (!dob) {
@@ -206,7 +219,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
-    const fullPhone = '+91' + cleanPhone.slice(-10);
+    const fullPhone = `${phoneCountryCode}${cleanPhone}`;
     setIsLoading(true);
 
     try {
@@ -293,8 +306,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const handleCompleteManualRegistration = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanPhone = phone.replace(/[^0-9]/g, '');
-    if (!cleanPhone || cleanPhone.length < 10) {
-      showToast('Please enter a valid 10-digit mobile number', 'error');
+    if (!cleanPhone || cleanPhone.length < 7) {
+      showToast('Please enter a valid mobile phone number', 'error');
       return;
     }
     if (!dob) {
@@ -302,7 +315,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
-    const fullPhone = '+91' + cleanPhone.slice(-10);
+    const fullPhone = `${phoneCountryCode}${cleanPhone}`;
     setIsLoading(true);
 
     try {
@@ -980,28 +993,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   Mobile Phone Number <span style={{ color: '#E03131' }}>*</span>
                 </label>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      padding: '0 12px',
-                      backgroundColor: '#F5F5F7',
-                      borderRadius: 12,
-                      fontSize: 13.5,
-                      fontWeight: 600,
-                      color: '#1D1D1F',
-                      border: '1px solid #E5E5EA'
-                    }}
-                  >
-                    +91
-                  </div>
+                  <CountryCodeSelector
+                    value={phoneCountryCode}
+                    onChange={(dialCode) => setPhoneCountryCode(dialCode)}
+                  />
                   <input
                     type="tel"
                     required
-                    value={phone.replace('+91', '')}
+                    value={phone}
                     onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ''))}
                     placeholder="98765 43210"
-                    maxLength={10}
+                    maxLength={15}
                     className="apple-input"
                     style={{ flex: 1 }}
                     autoFocus
@@ -1049,29 +1051,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
 
               {/* Place of Birth */}
-              <div>
-                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 500, color: '#1D1D1F', marginBottom: 4 }}>
-                  Place of Birth (City / Town)
-                </label>
-                <input
-                  type="text"
-                  value={pob}
-                  onChange={(e) => setPob(e.target.value)}
-                  placeholder="e.g. Jaipur, Rajasthan"
-                  className="apple-input"
-                />
-              </div>
+              <CityAutocompleteInput
+                value={pob}
+                onChange={setPob}
+                label="Place of Birth (City / Town / Country)"
+                placeholder="e.g. Jaipur, Rajasthan, India"
+              />
 
               <button
                 type="submit"
-                disabled={isLoading || phone.replace(/[^0-9]/g, '').length < 10 || !dob}
+                disabled={isLoading || phone.replace(/[^0-9]/g, '').length < 7 || !dob}
                 className="apple-btn-primary"
                 style={{
                   marginTop: 6,
                   padding: 13,
                   width: '100%',
                   fontSize: 14.5,
-                  opacity: (phone.replace(/[^0-9]/g, '').length < 10 || !dob) ? 0.6 : 1
+                  opacity: (phone.replace(/[^0-9]/g, '').length < 7 || !dob) ? 0.6 : 1
                 }}
               >
                 {isLoading ? 'Activating Account...' : 'Complete Registration & Sign In →'}
@@ -1236,28 +1232,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   Mobile Phone Number <span style={{ color: '#E03131' }}>*</span>
                 </label>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      padding: '0 12px',
-                      backgroundColor: '#F5F5F7',
-                      borderRadius: 12,
-                      fontSize: 13.5,
-                      fontWeight: 600,
-                      color: '#1D1D1F',
-                      border: '1px solid #E5E5EA'
-                    }}
-                  >
-                    +91
-                  </div>
+                  <CountryCodeSelector
+                    value={phoneCountryCode}
+                    onChange={(dialCode) => setPhoneCountryCode(dialCode)}
+                  />
                   <input
                     type="tel"
                     required
-                    value={phone.replace('+91', '')}
+                    value={phone}
                     onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ''))}
                     placeholder="98765 43210"
-                    maxLength={10}
+                    maxLength={15}
                     className="apple-input"
                     style={{ flex: 1 }}
                     autoFocus
@@ -1305,29 +1290,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
 
               {/* Place of Birth */}
-              <div>
-                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 500, color: '#1D1D1F', marginBottom: 4 }}>
-                  Place of Birth (City / Town)
-                </label>
-                <input
-                  type="text"
-                  value={pob}
-                  onChange={(e) => setPob(e.target.value)}
-                  placeholder="e.g. Jaipur, Rajasthan"
-                  className="apple-input"
-                />
-              </div>
+              <CityAutocompleteInput
+                value={pob}
+                onChange={setPob}
+                label="Place of Birth (City / Town / Country)"
+                placeholder="e.g. Jaipur, Rajasthan, India"
+              />
 
               <button
                 type="submit"
-                disabled={isLoading || phone.replace(/[^0-9]/g, '').length < 10 || !dob}
+                disabled={isLoading || phone.replace(/[^0-9]/g, '').length < 7 || !dob}
                 className="apple-btn-primary"
                 style={{
                   marginTop: 6,
                   padding: 13,
                   width: '100%',
                   fontSize: 14.5,
-                  opacity: (phone.replace(/[^0-9]/g, '').length < 10 || !dob) ? 0.6 : 1
+                  opacity: (phone.replace(/[^0-9]/g, '').length < 7 || !dob) ? 0.6 : 1
                 }}
               >
                 {isLoading ? 'Creating Your Account...' : 'Complete Registration & Continue →'}
@@ -1422,19 +1401,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </label>
               </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 500, color: '#1D1D1F', marginBottom: 4 }}>
-                  Place of Birth (City, State)
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={pob}
-                  onChange={(e) => setPob(e.target.value)}
-                  placeholder="e.g. Jaipur, Rajasthan"
-                  className="apple-input"
-                />
-              </div>
+              <CityAutocompleteInput
+                value={pob}
+                onChange={setPob}
+                label="Place of Birth (City / Town / Country)"
+                placeholder="e.g. Jaipur, Rajasthan, India"
+                required
+              />
 
               <button
                 type="submit"

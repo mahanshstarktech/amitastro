@@ -164,20 +164,24 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
       <header
         className={`apple-header ${className}`}
         style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 1100,
-        height: 62,
-        transition: 'background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease',
-        display: 'flex',
-        alignItems: 'center',
-        backgroundColor: isScrolled ? 'rgba(255, 255, 255, 0.85)' : 'rgba(255, 255, 255, 0.74)',
-        backdropFilter: 'blur(20px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-        borderBottom: isScrolled ? '1px solid rgba(0, 0, 0, 0.08)' : '1px solid rgba(0, 0, 0, 0.05)',
-        boxShadow: isScrolled ? '0 4px 20px rgba(0, 0, 0, 0.03)' : '0 1px 0 rgba(0, 0, 0, 0.02)'
-      }}
-    >
+          position: 'sticky',
+          top: 0,
+          zIndex: 1100,
+          minHeight: 68,
+          height: 'auto',
+          paddingTop: 'max(env(safe-area-inset-top, 0px), 12px)',
+          paddingBottom: 12,
+          boxSizing: 'border-box',
+          transition: 'background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, padding 0.2s ease',
+          display: 'flex',
+          alignItems: 'center',
+          backgroundColor: isScrolled ? 'rgba(255, 255, 255, 0.85)' : 'rgba(255, 255, 255, 0.74)',
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          borderBottom: isScrolled ? '1px solid rgba(0, 0, 0, 0.08)' : '1px solid rgba(0, 0, 0, 0.05)',
+          boxShadow: isScrolled ? '0 4px 20px rgba(0, 0, 0, 0.03)' : '0 1px 0 rgba(0, 0, 0, 0.02)'
+        }}
+      >
       <div 
         style={{ 
           display: 'flex', 

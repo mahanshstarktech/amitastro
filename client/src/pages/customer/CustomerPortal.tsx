@@ -14,6 +14,7 @@ import { AppleCustomerChat } from '../../components/chat/AppleCustomerChat';
 import { PlanBadge } from '../../components/common/PlanBadge';
 import { FamilyUpgradeModal } from '../../components/subscription/FamilyUpgradeModal';
 import { SubscriptionManagementView } from '../../components/subscription/SubscriptionManagementView';
+import { CityAutocompleteInput } from '../../components/common/CityAutocompleteInput';
 import { getSocket, authenticateSocket, playReceiveChime, notifyNewMessage, setTabUnreadBadge, requestNotificationPermission } from '../../utils/socket';
 
 interface CustomerPortalProps {
@@ -1438,14 +1439,12 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                       </div>
 
                       <div>
-                        <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 4 }}>Place of Birth (City, State)</label>
-                        <input
-                          type="text"
+                        <CityAutocompleteInput
                           required
                           value={newProfileData.pob}
-                          onChange={(e) => setNewProfileData({ ...newProfileData, pob: e.target.value })}
-                          className="apple-input"
-                          placeholder="e.g. New Delhi, Delhi"
+                          onChange={(val) => setNewProfileData({ ...newProfileData, pob: val })}
+                          label="Place of Birth (City / Town / Country)"
+                          placeholder="e.g. Jaipur, Rajasthan, India"
                         />
                       </div>
 

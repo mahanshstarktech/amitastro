@@ -1,0 +1,1819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Amit Astro (Kundli) — Industrial Training Presentation (ITR)</title>
+  <style>
+    /* ==========================================================================
+       APPLE KEYNOTE LIGHT MODE DESIGN SYSTEM — KUNDLI ITR PRESENTATION
+       ========================================================================== */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    :root {
+      --bg-body: #f5f5f7;
+      --bg-surface: #ffffff;
+      --bg-surface-elevated: #fafafc;
+      --border-subtle: rgba(0, 0, 0, 0.08);
+      --border-bright: rgba(0, 0, 0, 0.15);
+      
+      --text-primary: #1d1d1f;
+      --text-secondary: #86868b;
+      --text-tertiary: #a1a1a6;
+      
+      /* Apple Light Mode Signature Accents */
+      --apple-blue: #0071e3;
+      --apple-blue-subtle: rgba(0, 113, 227, 0.08);
+      --apple-cyan: #0099cc;
+      --apple-green: #34c759;
+      --apple-green-subtle: rgba(52, 199, 89, 0.1);
+      --apple-amber: #f59e0b;
+      --apple-amber-subtle: rgba(245, 158, 11, 0.1);
+      --apple-saffron: #d97706;
+      --apple-red: #ff3b30;
+      --apple-purple: #af52de;
+      --apple-purple-subtle: rgba(175, 82, 222, 0.1);
+      
+      --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.03);
+      --shadow-hover: 0 10px 30px -4px rgba(0, 0, 0, 0.1), 0 4px 10px -2px rgba(0, 0, 0, 0.04);
+      --shadow-float: 0 20px 40px -10px rgba(0, 0, 0, 0.12);
+
+      --radius-sm: 12px;
+      --radius-md: 20px;
+      --radius-lg: 26px;
+      --radius-pill: 9999px;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg-body);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
+    }
+
+    /* FIXED 1920x1080 STAGE VIEWPORT */
+    #viewport {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 0%, rgba(0, 113, 227, 0.04) 0%, transparent 60%),
+                  radial-gradient(circle at 100% 100%, rgba(245, 158, 11, 0.03) 0%, transparent 40%),
+                  #f5f5f7;
+    }
+
+    #stage {
+      position: relative;
+      width: 1920px;
+      height: 1080px;
+      flex-shrink: 0;
+      transform-origin: center center;
+      overflow: hidden;
+      background: #ffffff;
+      box-shadow: 0 0 70px rgba(0, 0, 0, 0.08);
+      border-radius: 6px;
+    }
+
+    /* SLIDE BASE STYLES */
+    .slide {
+      position: absolute;
+      inset: 0;
+      width: 1920px;
+      height: 1080px;
+      padding: 70px 90px;
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transform: scale(0.985);
+      transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1), transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+      background: #ffffff;
+    }
+
+    .slide.active {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transform: scale(1);
+    }
+
+    /* TYPOGRAPHY */
+    .pill-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      background: var(--apple-blue-subtle);
+      border: 1px solid rgba(0, 113, 227, 0.16);
+      border-radius: var(--radius-pill);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--apple-blue);
+      margin-bottom: 18px;
+      width: fit-content;
+    }
+
+    .pill-tag.saffron {
+      background: var(--apple-amber-subtle);
+      border-color: rgba(245, 158, 11, 0.25);
+      color: var(--apple-saffron);
+    }
+
+    .pill-tag .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .slide-header {
+      margin-bottom: 38px;
+      flex-shrink: 0;
+    }
+
+    .slide-title {
+      font-size: 50px;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      line-height: 1.12;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+    }
+
+    .slide-subtitle {
+      font-size: 21px;
+      font-weight: 400;
+      color: var(--text-secondary);
+      letter-spacing: -0.01em;
+      max-width: 1200px;
+      line-height: 1.4;
+    }
+
+    /* BENTO GRIDS & LIGHT CARDS */
+    .bento-grid {
+      display: grid;
+      gap: 24px;
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+    }
+
+    .bento-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow-card);
+      transition: border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .bento-card:hover {
+      border-color: var(--border-bright);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-hover);
+    }
+
+    .bento-card.highlight-blue {
+      border-color: rgba(0, 113, 227, 0.25);
+      background: linear-gradient(180deg, #ffffff 60%, rgba(0, 113, 227, 0.02) 100%);
+    }
+
+    .bento-card.highlight-saffron {
+      border-color: rgba(245, 158, 11, 0.3);
+      background: linear-gradient(180deg, #ffffff 60%, rgba(245, 158, 11, 0.03) 100%);
+    }
+
+    .bento-card.highlight-green {
+      border-color: rgba(52, 199, 89, 0.3);
+      background: linear-gradient(180deg, #ffffff 60%, rgba(52, 199, 89, 0.02) 100%);
+    }
+
+    .bento-card.subtle-bg {
+      background: var(--bg-surface-elevated);
+    }
+
+    /* STATUS BADGES */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: var(--radius-pill);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      width: fit-content;
+    }
+
+    .status-done {
+      background: rgba(52, 199, 89, 0.12);
+      color: #248a3d;
+      border: 1px solid rgba(52, 199, 89, 0.3);
+    }
+
+    .status-next {
+      background: rgba(245, 158, 11, 0.12);
+      color: #b45309;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .status-planned {
+      background: rgba(0, 113, 227, 0.1);
+      color: #0071e3;
+      border: 1px solid rgba(0, 113, 227, 0.25);
+    }
+
+    /* MACOS LIGHT TERMINAL MOCKUP */
+    .terminal-window {
+      background: #fafafc;
+      border: 1px solid #d1d1d6;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      font-family: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+      font-size: 15px;
+      line-height: 1.6;
+      box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.08);
+    }
+
+    .terminal-bar {
+      background: #ebebef;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid #d1d1d6;
+    }
+
+    .traffic-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    .traffic-red { background: #ff5f56; }
+    .traffic-yellow { background: #ffbd2e; }
+    .traffic-green { background: #27c93f; }
+
+    .terminal-title {
+      margin-left: auto;
+      margin-right: auto;
+      font-size: 12px;
+      color: #636366;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+    }
+
+    .terminal-body {
+      padding: 24px;
+      color: #1d1d1f;
+      white-space: pre;
+      overflow-x: auto;
+    }
+
+    /* BIG STAT METRICS */
+    .stat-number {
+      font-size: 58px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .stat-label {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    /* FLOATING BOTTOM CONTROLS DOCK (APPLE LIGHT) */
+    #dock {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 16px;
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      border-radius: var(--radius-pill);
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      user-select: none;
+    }
+
+    .dock-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 12px;
+      border-radius: var(--radius-pill);
+      transition: all 0.2s ease;
+    }
+
+    .dock-btn:hover {
+      color: var(--text-primary);
+      background: rgba(0, 0, 0, 0.06);
+    }
+
+    .dock-counter {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--text-primary);
+      padding: 0 8px;
+    }
+
+    .dock-divider {
+      width: 1px;
+      height: 16px;
+      background: rgba(0, 0, 0, 0.12);
+    }
+
+    /* THUMBNAIL DRAWER MODAL */
+    #drawer {
+      position: fixed;
+      inset: 0;
+      background: rgba(245, 245, 247, 0.95);
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+      z-index: 2000;
+      display: none;
+      flex-direction: column;
+      padding: 60px 80px;
+    }
+
+    #drawer.open {
+      display: flex;
+    }
+
+    .drawer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+
+    .drawer-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .drawer-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 20px;
+      overflow-y: auto;
+      padding-bottom: 40px;
+    }
+
+    .thumb-card {
+      background: #ffffff;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      cursor: pointer;
+      box-shadow: var(--shadow-card);
+      transition: all 0.2s ease;
+    }
+
+    .thumb-card:hover, .thumb-card.active {
+      border-color: var(--apple-blue);
+      box-shadow: var(--shadow-hover);
+      transform: translateY(-2px);
+    }
+
+    .thumb-num {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--apple-blue);
+      letter-spacing: 0.1em;
+      margin-bottom: 6px;
+    }
+
+    .thumb-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.3;
+    }
+
+    /* EDITABLE HIGHLIGHTS */
+    [contenteditable="true"] {
+      outline: 1px dashed var(--apple-amber);
+      background: rgba(245, 158, 11, 0.08);
+      border-radius: 4px;
+      padding: 2px 4px;
+    }
+
+    /* PRINT / PDF STYLES */
+    @media print {
+      body, html {
+        overflow: visible !important;
+        background: #ffffff !important;
+      }
+      #viewport {
+        position: static !important;
+        display: block !important;
+        background: transparent !important;
+      }
+      #stage {
+        transform: none !important;
+        width: 100% !important;
+        height: auto !important;
+        box-shadow: none !important;
+      }
+      .slide {
+        position: relative !important;
+        width: 1920px !important;
+        height: 1080px !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        background: #ffffff !important;
+      }
+      #dock, #drawer {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div id="viewport">
+  <div id="stage">
+
+    <!-- =====================================================================
+         SLIDE 1: HERO TITLE SLIDE (APPLE LIGHT MODE)
+         ===================================================================== -->
+    <div class="slide active" data-index="1">
+      <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; max-width: 1500px;">
+        <div class="pill-tag saffron"><span class="dot"></span> Industrial Training Presentation (ITR) · 2026</div>
+        
+        <h1 style="font-size: 88px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.05; margin-bottom: 18px; color: var(--text-primary);">
+          Amit Astro
+        </h1>
+        <p style="font-size: 30px; font-weight: 400; color: var(--text-secondary); line-height: 1.35; letter-spacing: -0.015em; margin-bottom: 50px; max-width: 1200px;">
+          Intelligent Vedic Astrology & Real-Time Astrological Consultation Platform.
+        </p>
+
+        <!-- SUBMISSION CARDS -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; max-width: 1100px;">
+          <div class="bento-card highlight-blue" style="padding: 28px 36px;">
+            <div style="font-size: 13px; font-weight: 700; color: var(--apple-blue); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 12px;">Submitted By</div>
+            <div style="font-size: 26px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">Mahansh Gaur</div>
+            <div style="font-size: 16px; color: var(--text-secondary); display: flex; align-items: center; gap: 12px;">
+              <span>Roll No.: <strong style="color: var(--text-primary);" contenteditable="false">[Your Roll No.]</strong></span>
+              <span>·</span>
+              <span style="color: var(--apple-blue);">github.com/mahanshstarktech</span>
+            </div>
+          </div>
+
+          <div class="bento-card" style="padding: 28px 36px;">
+            <div style="font-size: 13px; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 12px;">Submitted To</div>
+            <div style="font-size: 26px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;" contenteditable="false">[Faculty Name]</div>
+            <div style="font-size: 16px; color: var(--text-secondary);" contenteditable="false">Department of Computer Science & Engineering</div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 14px; margin-top: 45px; align-items: center;">
+          <span style="font-size: 13px; color: var(--text-tertiary); letter-spacing: 0.06em; text-transform: uppercase; font-weight: 700;">Engine Specs:</span>
+          <span class="status-badge status-done">React 18 & TypeScript</span>
+          <span class="status-badge status-done">Node.js & Express</span>
+          <span class="status-badge status-done">PostgreSQL & SQLite</span>
+          <span class="status-badge status-done">Socket.IO Live Chat</span>
+          <span class="status-badge status-done">Gemini AI Vedic Engine</span>
+          <span class="status-badge status-done">Razorpay Billing</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         SLIDE 2: INDEX / AGENDA
+         ===================================================================== -->
+    <div class="slide" data-index="2">
+      <div class="slide-header">
+        <div class="pill-tag"><span class="dot"></span> Architecture & Index</div>
+        <h2 class="slide-title">Table of Contents</h2>
+        <p class="slide-subtitle">A comprehensive breakdown of the training internship, system engineering, and production delivery.</p>
+      </div>
+
+      <div class="bento-grid" style="grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(2, 1fr);">
+        <div class="bento-card">
+          <div style="font-size: 34px; font-weight: 800; color: var(--apple-blue); margin-bottom: 10px;">01</div>
+          <h3 style="font-size: 21px; font-weight: 700; margin-bottom: 8px;">Company Profile</h3>
+          <p style="font-size: 15px; color: var(--text-secondary); line-height: 1.45;">Internship host organization, tech domain focus, and operational footprint.</p>
+        </div>
+
+        <div class="bento-card">
+          <div style="font-size: 34px; font-weight: 800; color: var(--apple-cyan); margin-bottom: 10px;">02</div>
+          <h3 style="font-size: 21px; font-weight: 700; margin-bottom: 8px;">Certificate</h3>
+          <p style="font-size: 15px; color: var(--text-secondary); line-height: 1.45;">Official internship completion certification and evaluation proof.</p>
+        </div>
+
+        <div class="bento-card">
+          <div style="font-size: 34px; font-weight: 800; color: var(--apple-green); margin-bottom: 10px;">03</div>
+          <h3 style="font-size: 21px; font-weight: 700; margin-bottom: 8px;">Technology Stack</h3>
+          <p style="font-size: 15px; color: var(--text-secondary); line-height: 1.45;">React 18, TypeScript, Node.js, Express, Socket.IO, PostgreSQL, and Gemini AI.</p>
+        </div>
+
+        <div class="bento-card">
+          <div style="font-size: 34px; font-weight: 800; color: var(--apple-purple); margin-bottom: 10px;">04</div>
+          <h3 style="font-size: 21px; font-weight: 700; margin-bottom: 8px;">Goal of Training</h3>
+          <p style="font-size: 15px; color: var(--text-secondary); line-height: 1.45;">Five core engineering competencies targeted during the full-stack tenure.</p>
+        </div>
+
+        <div class="bento-card highlight-saffron">
+          <div style="font-size: 34px; font-weight: 800; color: var(--apple-saffron); margin-bottom: 10px;">05</div>
+          <h3 style="font-size: 21px; font-weight: 700; margin-bottom: 8px;">Project Overview</h3>
+          <p style="font-size: 15px; color: var(--text-secondary); line-height: 1.45;">Amit Astro vision: ephemeris mathematics, bilingual AI, and real-time consultation.</p>
+        </div>
+
+        <div class="bento-card highlight-blue">
+          <div style="font-size: 34px; font-weight: 800; color: var(--apple-blue); margin-bottom: 10px;">06</div>
+          <h3 style="font-size: 21px; font-weight: 700; margin-bottom: 8px;">Working Project</h3>
+          <p style="font-size: 15px; color: var(--text-secondary); line-height: 1.45;">Deep-dive into Kundli Charting, Dasha Engine, Gemini AI, and WebSockets.</p>
+        </div>
+
+        <div class="bento-card">
+          <div style="font-size: 34px; font-weight: 800; color: #5856d6; margin-bottom: 10px;">07</div>
+          <h3 style="font-size: 21px; font-weight: 700; margin-bottom: 8px;">Future Scope</h3>
+          <p style="font-size: 15px; color: var(--text-secondary); line-height: 1.45;">WebRTC video consultations, native mobile apps, and automated PDF books.</p>
+        </div>
+
+        <div class="bento-card">
+          <div style="font-size: 34px; font-weight: 800; color: var(--text-primary); margin-bottom: 10px;">08</div>
+          <h3 style="font-size: 21px; font-weight: 700; margin-bottom: 8px;">Q & A</h3>
+          <p style="font-size: 15px; color: var(--text-secondary); line-height: 1.45;">Technical architecture defense, algorithm review, and faculty evaluation.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         SLIDE 3: COMPANY INTRODUCTION
+         ===================================================================== -->
+    <div class="slide" data-index="3">
+      <div class="slide-header">
+        <div class="pill-tag"><span class="dot"></span> Organizational Profile</div>
+        <h2 class="slide-title">Company Introduction</h2>
+        <p class="slide-subtitle">Industry host organization supporting the full-stack software training tenure.</p>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1.3fr 0.7fr; gap: 32px; height: calc(100% - 170px);">
+        <div class="bento-card" style="justify-content: space-between;">
+          <div>
+            <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+              <span class="status-badge status-done">Established [Year]</span>
+              <span class="status-badge status-planned">HQ: [City, State, Country]</span>
+            </div>
+            <h3 style="font-size: 36px; font-weight: 700; margin-bottom: 16px;" contenteditable="false">[Organisation Name]</h3>
+            <p style="font-size: 19px; line-height: 1.6; color: var(--text-secondary); margin-bottom: 26px;">
+              <strong style="color: var(--text-primary);">[Organisation Name]</strong> is a modern software engineering and digital product innovation enterprise specializing in [domains / services, e.g. High-Scale Web Platforms, Distributed Event Streaming, and Applied AI Integrations].
+            </p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+              <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); padding: 20px; border-radius: var(--radius-md);">
+                <div style="font-size: 13px; font-weight: 700; color: var(--apple-blue); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px;">Core Domains</div>
+                <div style="font-size: 15px; color: var(--text-primary);">Full-Stack Cloud Architecture, Real-Time WebSockets & AI Systems</div>
+              </div>
+              <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); padding: 20px; border-radius: var(--radius-md);">
+                <div style="font-size: 13px; font-weight: 700; color: var(--apple-saffron); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px;">Client Industries</div>
+                <div style="font-size: 15px; color: var(--text-primary);">Serving consumer tech, real-time consulting, and astrological analytics</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="border-top: 1px solid var(--border-subtle); padding-top: 20px; font-size: 15px; color: var(--text-secondary);">
+            📍 <strong style="color: var(--text-primary);">Office Address:</strong> [Office address, Tech Park / Cyber City Hub]
+          </div>
+        </div>
+
+        <div class="bento-card highlight-blue" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border-style: dashed; background: #fafafc;">
+          <div style="width: 100px; height: 100px; border-radius: 50%; background: rgba(0, 113, 227, 0.08); border: 1px solid rgba(0, 113, 227, 0.2); display: flex; align-items: center; justify-content: center; font-size: 40px; margin-bottom: 20px;">
+            🏢
+          </div>
+          <div style="font-size: 20px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">Company Logo</div>
+          <div style="font-size: 14px; color: var(--text-secondary); max-width: 280px; line-height: 1.45;">
+            Paste or drag company logo here for formal presentation review
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         SLIDE 4: CERTIFICATE
+         ===================================================================== -->
+    <div class="slide" data-index="4">
+      <div class="slide-header">
+        <div class="pill-tag"><span class="dot"></span> Formal Validation</div>
+        <h2 class="slide-title">Training Certificate</h2>
+        <p class="slide-subtitle">Official validation of industrial internship completion and software engineering delivery.</p>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1.4fr 0.6fr; gap: 32px; height: calc(100% - 170px);">
+        <div class="bento-card" style="border-style: dashed; border-width: 2px; border-color: rgba(0, 113, 227, 0.3); align-items: center; justify-content: center; text-align: center; background: radial-gradient(circle at center, rgba(0, 113, 227, 0.03) 0%, transparent 70%), var(--bg-surface);">
+          <div style="width: 80px; height: 80px; border-radius: 50%; background: rgba(0, 113, 227, 0.08); border: 1px solid rgba(0, 113, 227, 0.25); display: flex; align-items: center; justify-content: center; font-size: 36px; margin-bottom: 18px;">
+            📜
+          </div>
+          <h3 style="font-size: 25px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px;">Paste Training / Internship Certificate Here</h3>
+          <p style="font-size: 15px; color: var(--text-secondary); max-width: 440px; line-height: 1.5;">
+            Embed high-resolution scanned copy of the official training completion certificate signed by the engineering mentor and authorized authority.
+          </p>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+          <div class="bento-card" style="flex: 1;">
+            <div style="font-size: 13px; font-weight: 700; color: var(--apple-green); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px;">Validation Criteria</div>
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="color: var(--apple-green); font-weight: 700;">✓</span>
+                <span style="font-size: 15px; color: var(--text-primary);">Tenure Hours Successfully Completed</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="color: var(--apple-green); font-weight: 700;">✓</span>
+                <span style="font-size: 15px; color: var(--text-primary);">Kundli & Real-Time Modules Deployed</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="color: var(--apple-green); font-weight: 700;">✓</span>
+                <span style="font-size: 15px; color: var(--text-primary);">GitHub Git Hygiene & Code Reviews</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="color: var(--apple-green); font-weight: 700;">✓</span>
+                <span style="font-size: 15px; color: var(--text-primary);">Faculty Assessment Ready</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bento-card highlight-blue" style="flex: 1;">
+            <div style="font-size: 13px; font-weight: 700; color: var(--apple-blue); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px;">Candidate Details</div>
+            <div style="font-size: 20px; font-weight: 700; color: var(--text-primary);">Mahansh Gaur</div>
+            <div style="font-size: 14px; color: var(--text-secondary); margin-top: 4px;">Project: Amit Astro (Kundli Platform)</div>
+            <div style="margin-top: 14px;">
+              <span class="status-badge status-done">Verified ITR Candidate</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         SLIDE 5: TECHNOLOGY STACK USED
+         ===================================================================== -->
+    <div class="slide" data-index="5">
+      <div class="slide-header">
+        <div class="pill-tag"><span class="dot"></span> Technical Ecosystem</div>
+        <h2 class="slide-title">Technology Stack Used</h2>
+        <p class="slide-subtitle">Modern, typed, and enterprise-ready technologies powering the frontend, backend, and real-time socket layer.</p>
+      </div>
+
+      <div class="bento-grid" style="grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(2, 1fr);">
+        <div class="bento-card">
+          <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 14px;">
+            <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(0, 113, 227, 0.08); display: flex; align-items: center; justify-content: center; font-size: 24px;">⚛️</div>
+            <h3 style="font-size: 20px; font-weight: 700;">React 18 & TS</h3>
+          </div>
+          <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.45;">
+            Declarative component hierarchy, strict TypeScript type checking, custom hooks, and Vite-powered compilation.
+          </p>
+        </div>
+
+        <div class="bento-card">
+          <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 14px;">
+            <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(52, 199, 89, 0.08); display: flex; align-items: center; justify-content: center; font-size: 24px;">🟢</div>
+            <h3 style="font-size: 20px; font-weight: 700;">Node & Express</h3>
+          </div>
+          <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.45;">
+            High-concurrency asynchronous REST backend handling business controllers, birth profiles, and secure routing.
+          </p>
+        </div>
+
+        <div class="bento-card">
+          <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 14px;">
+            <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(0, 113, 227, 0.08); display: flex; align-items: center; justify-content: center; font-size: 24px;">🐘</div>
+            <h3 style="font-size: 20px; font-weight: 700;">PostgreSQL & SQLite</h3>
+          </div>
+          <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.45;">
+            Dual-database abstraction with connection pooling for production Render deployments and local zero-setup dev.
+          </p>
+        </div>
+
+        <div class="bento-card">
+          <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 14px;">
+            <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(245, 158, 11, 0.08); display: flex; align-items: center; justify-content: center; font-size: 24px;">⚡</div>
+            <h3 style="font-size: 20px; font-weight: 700;">Socket.IO</h3>
+          </div>
+          <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.45;">
+            Full-duplex real-time WebSockets facilitating instant live astrologer consultation chat, typing states, and notifications.
+          </p>
+        </div>
+
+        <div class="bento-card">
+          <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 14px;">
+            <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(175, 82, 222, 0.08); display: flex; align-items: center; justify-content: center; font-size: 24px;">✨</div>
+            <h3 style="font-size: 20px; font-weight: 700;">Google Gemini AI</h3>
+          </div>
+          <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.45;">
+            Bilingual LLM pipeline grounded in classical Parashari shastras for horoscope interpretations and remedies.
+          </p>
+        </div>
+
+        <div class="bento-card">
+          <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 14px;">
+            <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(0, 113, 227, 0.08); display: flex; align-items: center; justify-content: center; font-size: 24px;">💳</div>
+            <h3 style="font-size: 20px; font-weight: 700;">Razorpay Gateway</h3>
+          </div>
+          <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.45;">
+            Payment intents, recurring subscription billing (Family 360), and HMAC-SHA256 verified webhook processing.
+          </p>
+        </div>
+
+        <div class="bento-card">
+          <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 14px;">
+            <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(0, 153, 204, 0.08); display: flex; align-items: center; justify-content: center; font-size: 24px;">🎨</div>
+            <h3 style="font-size: 20px; font-weight: 700;">Tailwind CSS</h3>
+          </div>
+          <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.45;">
+            Responsive design tokens, glassmorphic UI cards, Lucide icon system, and seamless light/dark layout structures.
+          </p>
+        </div>
+
+        <div class="bento-card">
+          <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 14px;">
+            <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(0, 0, 0, 0.06); display: flex; align-items: center; justify-content: center; font-size: 24px;">☁️</div>
+            <h3 style="font-size: 20px; font-weight: 700;">Cloudflare & Render</h3>
+          </div>
+          <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.45;">
+            Continuous integration and edge deployment: Cloudflare Pages for client and Render cloud services for backend.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         SLIDE 6: GOAL OF TRAINING
+         ===================================================================== -->
+    <div class="slide" data-index="6">
+      <div class="slide-header">
+        <div class="pill-tag"><span class="dot"></span> Learning Objectives</div>
+        <h2 class="slide-title">Goal of Industrial Training</h2>
+        <p class="slide-subtitle">Five core full-stack software and computational competencies targeted and mastered during the internship.</p>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 18px; height: calc(100% - 170px); justify-content: space-between;">
+        <div class="bento-card" style="padding: 22px 32px; display: flex; flex-direction: row; align-items: center; gap: 28px;">
+          <div style="font-size: 32px; font-weight: 800; color: var(--apple-blue); min-width: 50px;">01</div>
+          <div style="flex: 1;">
+            <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 4px;">Full-Stack Cloud Architecture</h3>
+            <p style="font-size: 15px; color: var(--text-secondary);">Architect an end-to-end distributed system: React client ↔ Express REST APIs ↔ WebSocket server ↔ PostgreSQL database.</p>
+          </div>
+          <span class="status-badge status-done">Mastered</span>
+        </div>
+
+        <div class="bento-card" style="padding: 22px 32px; display: flex; flex-direction: row; align-items: center; gap: 28px;">
+          <div style="font-size: 32px; font-weight: 800; color: var(--apple-saffron); min-width: 50px;">02</div>
+          <div style="flex: 1;">
+            <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 4px;">Computational Ephemeris & Kundli Algorithms</h3>
+            <p style="font-size: 15px; color: var(--text-secondary);">Translate astronomical ephemeris equations, Lahiri Ayanamsha, and house cusp algorithms into high-precision SVG chart generators.</p>
+          </div>
+          <span class="status-badge status-done">Mastered</span>
+        </div>
+
+        <div class="bento-card" style="padding: 22px 32px; display: flex; flex-direction: row; align-items: center; gap: 28px;">
+          <div style="font-size: 32px; font-weight: 800; color: var(--apple-purple); min-width: 50px;">03</div>
+          <div style="flex: 1;">
+            <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 4px;">Domain-Specific LLM Engineering</h3>
+            <p style="font-size: 15px; color: var(--text-secondary);">Ground Google Gemini AI prompts in Brihat Parashara Hora Shastra rules for accurate, bilingual (Hindi & English) horoscopes.</p>
+          </div>
+          <span class="status-badge status-done">Mastered</span>
+        </div>
+
+        <div class="bento-card" style="padding: 22px 32px; display: flex; flex-direction: row; align-items: center; gap: 28px;">
+          <div style="font-size: 32px; font-weight: 800; color: var(--apple-cyan); min-width: 50px;">04</div>
+          <div style="flex: 1;">
+            <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 4px;">Real-Time Bidirectional Event Streaming</h3>
+            <p style="font-size: 15px; color: var(--text-secondary);">Implement robust Socket.IO pipelines with typing indicators, presence tracking, message delivery acknowledgments, and stars.</p>
+          </div>
+          <span class="status-badge status-done">Mastered</span>
+        </div>
+
+        <div class="bento-card" style="padding: 22px 32px; display: flex; flex-direction: row; align-items: center; gap: 28px;">
+          <div style="font-size: 32px; font-weight: 800; color: var(--apple-green); min-width: 50px;">05</div>
+          <div style="flex: 1;">
+            <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 4px;">Security, Payments & Commercial Hygiene</h3>
+            <p style="font-size: 15px; color: var(--text-secondary);">Implement RSA encrypted payloads, CSRF double-cookie tokens, Razorpay subscriptions (Family 360), and Git CI/CD deployments.</p>
+          </div>
+          <span class="status-badge status-done">Mastered</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         SLIDE 7: PROJECT OVERVIEW
+         ===================================================================== -->
+    <div class="slide" data-index="7">
+      <div class="slide-header">
+        <div class="pill-tag saffron"><span class="dot"></span> Product Vision</div>
+        <h2 class="slide-title">Amit Astro (Kundli Engine) Overview</h2>
+        <p class="slide-subtitle">Bridging classical astronomical science with modern cloud engineering and artificial intelligence.</p>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 32px; height: calc(100% - 170px);">
+        <div class="bento-card highlight-saffron" style="padding: 38px;">
+          <div style="font-size: 30px; font-weight: 700; color: var(--text-primary); line-height: 1.4; margin-bottom: 18px;">
+            “Amit Astro turns birth coordinates and timestamps into <span style="color: var(--apple-saffron);">sub-second mathematical ephemeris calculations</span>, predictive dasha timelines, and <span style="color: var(--apple-blue);">real-time live consultations</span>.”
+          </div>
+          <p style="font-size: 18px; color: var(--text-secondary); line-height: 1.6; max-width: 1400px;">
+            The platform ingests exact birth date, time, and geographical coordinates, computes planetary sidereal longitudes with Lahiri Ayanamsha, renders North/South Indian Kundli charts (D1 to D60), calculates Vimshottari Dashas, and powers an interactive astrologer-seeker ecosystem with bilingual Gemini AI analysis and live Socket.IO messaging.
+          </p>
+        </div>
+
+        <!-- 3-STAGE PIPELINE -->
+        <div style="display: grid; grid-template-columns: 1fr 1.3fr 1fr; gap: 24px; flex: 1;">
+          <div class="bento-card" style="align-items: center; justify-content: center; text-align: center;">
+            <div style="font-size: 44px; margin-bottom: 12px;">📍</div>
+            <div style="font-size: 13px; font-weight: 700; color: var(--apple-blue); letter-spacing: 0.12em; text-transform: uppercase;">01 · INPUT</div>
+            <div style="font-size: 22px; font-weight: 700; margin: 8px 0;">Birth Coordinates</div>
+            <div style="font-size: 14px; color: var(--text-secondary);">Date of birth, exact time (UTC/IST), city geocoding, latitude & longitude</div>
+          </div>
+
+          <div class="bento-card highlight-blue" style="align-items: center; justify-content: center; text-align: center;">
+            <div style="font-size: 44px; margin-bottom: 12px;">⚙️</div>
+            <div style="font-size: 13px; font-weight: 700; color: var(--apple-cyan); letter-spacing: 0.12em; text-transform: uppercase;">02 · PROCESS</div>
+            <div style="font-size: 22px; font-weight: 700; margin: 8px 0;">Ephemeris → Chart → Dasha → AI</div>
+            <div style="font-size: 14px; color: var(--text-secondary);">Planetary longitudes, house cusps, 120-yr Vimshottari dasha, and Gemini AI synthesis</div>
+          </div>
+
+          <div class="bento-card" style="align-items: center; justify-content: center; text-align: center;">
+            <div style="font-size: 44px; margin-bottom: 12px;">🔮</div>
+            <div style="font-size: 13px; font-weight: 700; color: var(--apple-saffron); letter-spacing: 0.12em; text-transform: uppercase;">03 · OUTPUT</div>
+            <div style="font-size: 22px; font-weight: 700; margin: 8px 0;">Kundli Charts & Live Chat</div>
+            <div style="font-size: 14px; color: var(--text-secondary);">Dynamic SVG charts, Gochar transits, AI reports, and live consultations</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         SLIDE 8: PROBLEM STATEMENT & PROPOSED SOLUTION
+         ===================================================================== -->
+    <div class="slide" data-index="8">
+      <div class="slide-header">
+        <div class="pill-tag"><span class="dot"></span> Market Need & Innovation</div>
+        <h2 class="slide-title">Problem Statement & Proposed Solution</h2>
+        <p class="slide-subtitle">Modernizing astrological consultations by eliminating inaccurate ephemeris engines and unsecure chats.</p>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; height: calc(100% - 170px);">
+        <!-- THE PROBLEM -->
+        <div class="bento-card highlight-saffron" style="padding: 36px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h3 style="font-size: 25px; font-weight: 700; color: var(--text-primary);">The Legacy Problem</h3>
+            <span class="status-badge" style="background: rgba(245, 158, 11, 0.12); color: #b45309; border: 1px solid rgba(245, 158, 11, 0.3);">Friction Points</span>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 20px;">
+            <div style="display: flex; gap: 16px;">
+              <span style="font-size: 20px; color: var(--apple-saffron);">⚠️</span>
+              <div>
+                <div style="font-size: 17px; font-weight: 600; color: var(--text-primary);">Inaccurate Calculations & Lag</div>
+                <div style="font-size: 14px; color: var(--text-secondary); margin-top: 4px;">Legacy apps use slow web scrapers or approximate formulas that miscalculate Lagna and Bhav Chalit cusps.</div>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 16px;">
+              <span style="font-size: 20px; color: var(--apple-saffron);">⚠️</span>
+              <div>
+                <div style="font-size: 17px; font-weight: 600; color: var(--text-primary);">Fragmented Unsecure Consultations</div>
+                <div style="font-size: 14px; color: var(--text-secondary); margin-top: 4px;">Seekers and astrologers communicate via WhatsApp without birth chart context, audit records, or verified timings.</div>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 16px;">
+              <span style="font-size: 20px; color: var(--apple-saffron);">⚠️</span>
+              <div>
+                <div style="font-size: 17px; font-weight: 600; color: var(--text-primary);">Generic, Cookie-Cutter Horoscopes</div>
+                <div style="font-size: 14px; color: var(--text-secondary); margin-top: 4px;">Pre-written static paragraphs with no personalized Parashari shastra depth or bilingual remedies.</div>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 16px;">
+              <span style="font-size: 20px; color: var(--apple-saffron);">⚠️</span>
+              <div>
+                <div style="font-size: 17px; font-weight: 600; color: var(--text-primary);">Zero Multi-Profile Family Architecture</div>
+                <div style="font-size: 14px; color: var(--text-secondary); margin-top: 4px;">No ability to save multiple family charts under one account or conduct Gun Milan matching seamlessly.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- THE SOLUTION -->
+        <div class="bento-card highlight-green" style="padding: 36px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h3 style="font-size: 25px; font-weight: 700; color: var(--text-primary);">The Amit Astro Solution</h3>
+            <span class="status-badge status-done">Engineered Fix</span>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 20px;">
+            <div style="display: flex; gap: 16px;">
+              <span style="color: var(--apple-green); font-size: 20px; font-weight: 700;">✓</span>
+              <div>
+                <div style="font-size: 17px; font-weight: 600; color: var(--text-primary);">Sub-Second Mathematical Ephemeris</div>
+                <div style="font-size: 14px; color: var(--text-secondary); margin-top: 4px;">Precision astronomical calculation of planetary longitudes, retrogrades, combustions, and D1-D60 charts.</div>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 16px;">
+              <span style="color: var(--apple-green); font-size: 20px; font-weight: 700;">✓</span>
+              <div>
+                <div style="font-size: 17px; font-weight: 600; color: var(--text-primary);">Integrated Socket.IO Consultation</div>
+                <div style="font-size: 14px; color: var(--text-secondary); margin-top: 4px;">Real-time consultation chat with live birth-chart sidebar, 5-minute free trials, and verified timers.</div>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 16px;">
+              <span style="color: var(--apple-green); font-size: 20px; font-weight: 700;">✓</span>
+              <div>
+                <div style="font-size: 17px; font-weight: 600; color: var(--text-primary);">Bilingual Gemini AI Vedic Engine</div>
+                <div style="font-size: 14px; color: var(--text-secondary); margin-top: 4px;">Domain-grounded AI generates Hindi & English predictions, Raj Yogas, and classical Parashari remedies.</div>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 16px;">
+              <span style="color: var(--apple-green); font-size: 20px; font-weight: 700;">✓</span>
+              <div>
+                <div style="font-size: 17px; font-weight: 600; color: var(--text-primary);">Family 360 & Razorpay Subscriptions</div>
+                <div style="font-size: 14px; color: var(--text-secondary); margin-top: 4px;">Multi-profile vault (self, spouse, children, parents), instant Gun Milan matching, and automated billing.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         SLIDE 9: SYSTEM ARCHITECTURE
+         ===================================================================== -->
+    <div class="slide" data-index="9">
+      <div class="slide-header">
+        <div class="pill-tag"><span class="dot"></span> Technical Blueprint</div>
+        <h2 class="slide-title">System Architecture</h2>
+        <p class="slide-subtitle">A high-throughput, microservice-ready full stack connecting mathematical computation to live sockets.</p>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 28px; height: calc(100% - 170px);">
+        <!-- 7-STAGE PIPELINE -->
+        <div class="bento-card" style="padding: 24px 30px;">
+          <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 14px; align-items: center;">
+            <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); padding: 18px 12px; border-radius: var(--radius-md); text-align: center;">
+              <span class="status-badge status-done" style="margin-bottom: 8px;">Done</span>
+              <div style="font-size: 15px; font-weight: 700;">01 · Seeker UI</div>
+              <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">React 18 / Vite</div>
+            </div>
+
+            <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); padding: 18px 12px; border-radius: var(--radius-md); text-align: center;">
+              <span class="status-badge status-done" style="margin-bottom: 8px;">Done</span>
+              <div style="font-size: 15px; font-weight: 700;">02 · Ephemeris</div>
+              <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Lahiri Math</div>
+            </div>
+
+            <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); padding: 18px 12px; border-radius: var(--radius-md); text-align: center;">
+              <span class="status-badge status-done" style="margin-bottom: 8px;">Done</span>
+              <div style="font-size: 15px; font-weight: 700;">03 · Chart Engine</div>
+              <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">SVG D1-D60</div>
+            </div>
+
+            <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); padding: 18px 12px; border-radius: var(--radius-md); text-align: center;">
+              <span class="status-badge status-done" style="margin-bottom: 8px;">Done</span>
+              <div style="font-size: 15px; font-weight: 700;">04 · Dasha/Transit</div>
+              <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Vimshottari</div>
+            </div>
+
+            <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); padding: 18px 12px; border-radius: var(--radius-md); text-align: center;">
+              <span class="status-badge status-done" style="margin-bottom: 8px;">Done</span>
+              <div style="font-size: 15px; font-weight: 700;">05 · Gemini AI</div>
+              <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Vedic Insights</div>
+            </div>
+
+            <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); padding: 18px 12px; border-radius: var(--radius-md); text-align: center;">
+              <span class="status-badge status-done" style="margin-bottom: 8px;">Done</span>
+              <div style="font-size: 15px; font-weight: 700;">06 · Live Socket</div>
+              <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Socket.IO Chat</div>
+            </div>
+
+            <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); padding: 18px 12px; border-radius: var(--radius-md); text-align: center;">
+              <span class="status-badge status-done" style="margin-bottom: 8px;">Done</span>
+              <div style="font-size: 15px; font-weight: 700;">07 · CRM & Pay</div>
+              <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Razorpay & DB</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3 ARCHITECTURAL PILLARS -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; flex: 1;">
+          <div class="bento-card">
+            <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 12px;">
+              <div style="width: 38px; height: 38px; border-radius: 8px; background: rgba(0, 113, 227, 0.08); display: flex; align-items: center; justify-content: center; font-size: 20px;">📐</div>
+              <h3 style="font-size: 21px; font-weight: 700; color: var(--text-primary);">Mathematical Rigor</h3>
+            </div>
+            <p style="font-size: 15px; color: var(--text-secondary); line-height: 1.5;">
+              Sub-second astronomical ephemeris calculations ensure exact planetary degrees, retrograde states, combustion, and divisional vargas without third-party API dependencies.
+            </p>
+          </div>
+
+          <div class="bento-card">
+            <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 12px;">
+              <div style="width: 38px; height: 38px; border-radius: 8px; background: rgba(52, 199, 89, 0.08); display: flex; align-items: center; justify-content: center; font-size: 20px;">⚡</div>
+              <h3 style="font-size: 21px; font-weight: 700; color: var(--text-primary);">Sub-50ms Reactivity</h3>
+            </div>
+            <p style="font-size: 15px; color: var(--text-secondary); line-height: 1.5;">
+              Full-duplex WebSocket connections deliver instantaneous astrologer chat messages, typing events, read receipts, and consultation countdowns seamlessly.
+            </p>
+          </div>
+
+          <div class="bento-card">
+            <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 12px;">
+              <div style="width: 38px; height: 38px; border-radius: 8px; background: rgba(245, 158, 11, 0.08); display: flex; align-items: center; justify-content: center; font-size: 20px;">🛡️</div>
+              <h3 style="font-size: 21px; font-weight: 700; color: var(--text-primary);">Enterprise Security</h3>
+            </div>
+            <p style="font-size: 15px; color: var(--text-secondary); line-height: 1.5;">
+              Hardened with HTTP-only JWT cookies, CSRF protection tokens, RSA payload encryption, parameterized queries, and Razorpay webhook HMAC validation.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         SLIDE 10: CODE STRUCTURE
+         ===================================================================== -->
+    <div class="slide" data-index="10">
+      <div class="slide-header">
+        <div class="pill-tag"><span class="dot"></span> Codebase Layout</div>
+        <h2 class="slide-title">Working Project: Code Structure</h2>
+        <p class="slide-subtitle">Clean monorepo-style organization with strict separation of frontend UI, server controllers, and database services.</p>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; height: calc(100% - 170px);">
+        <!-- TERMINAL FINDER -->
+        <div class="terminal-window" style="display: flex; flex-direction: column;">
+          <div class="terminal-bar">
+            <span class="traffic-dot traffic-red"></span>
+            <span class="traffic-dot traffic-yellow"></span>
+            <span class="traffic-dot traffic-green"></span>
+            <span class="terminal-title">Kundli/ — monorepo tree</span>
+          </div>
+          <div class="terminal-body" style="flex: 1; font-size: 14px;">
+<span style="color: #0071e3; font-weight: bold;">Kundli/</span>
+├── <span style="color: #0099cc; font-weight: bold;">client/</span>                <span style="color: #86868b;"># React 18 + Vite Frontend</span>
+│   ├── src/pages/customer/    <span style="color: #86868b;"># Seeker Portal & Kundli charts</span>
+│   ├── src/pages/admin/       <span style="color: #86868b;"># CRM & Live Astrologer console</span>
+│   └── src/utils/api.ts       <span style="color: #86868b;"># RSA-encrypted API client</span>
+└── <span style="color: #248a3d; font-weight: bold;">server/</span>                <span style="color: #86868b;"># Express + TypeScript Backend</span>
+    ├── src/controllers/       <span style="color: #86868b;"># Auth, Chat, Payment, Trial</span>
+    ├── src/services/          <span style="color: #86868b;"># Gemini AI, Subscriptions, Security</span>
+    ├── src/db/database.ts     <span style="color: #86868b;"># Postgres & SQLite schema manager</span>
+    └── src/index.ts           <span style="color: #86868b;"># Express app + Socket.IO server</span>
+          </div>
+        </div>
+
+        <!-- MODULE EXPLANATIONS -->
+        <div style="display: flex; flex-direction: column; gap: 12px; justify-content: space-between;">
+          <div class="bento-card" style="padding: 16px 24px;">
+            <div style="font-size: 15px; font-weight: 700; color: var(--apple-blue); margin-bottom: 2px;">server/src/controllers/</div>
+            <div style="font-size: 14px; color: var(--text-secondary);">Handles HTTP routes: authController, chatController, paymentController, birthProfileController, and adminController.</div>
+          </div>
+
+          <div class="bento-card" style="padding: 16px 24px;">
+            <div style="font-size: 15px; font-weight: 700; color: var(--apple-saffron); margin-bottom: 2px;">server/src/services/geminiService.ts</div>
+            <div style="font-size: 14px; color: var(--text-secondary);">Encapsulates Google Gemini AI SDK, handling Parashari astrological prompt engineering and bilingual Hindi/English synthesis.</div>
+          </div>
+
+          <div class="bento-card" style="padding: 16px 24px;">
+            <div style="font-size: 15px; font-weight: 700; color: var(--apple-green); margin-bottom: 2px;">server/src/db/database.ts</div>
+            <div style="font-size: 14px; color: var(--text-secondary);">Enterprise database layer supporting both Render PostgreSQL pool and local SQLite3 with automatic migrations.</div>
+          </div>
+
+          <div class="bento-card" style="padding: 16px 24px;">
+            <div style="font-size: 15px; font-weight: 700; color: var(--apple-purple); margin-bottom: 2px;">client/src/pages/customer/</div>
+            <div style="font-size: 14px; color: var(--text-secondary);">Seeker dashboard: North/South Indian Kundli SVG canvas, Mahadasha timeline, Panchang, and real-time live chat.</div>
+          </div>
+
+          <div class="bento-card" style="padding: 16px 24px;">
+            <div style="font-size: 15px; font-weight: 700; color: var(--apple-cyan); margin-bottom: 2px;">client/src/pages/admin/</div>
+            <div style="font-size: 14px; color: var(--text-secondary);">Comprehensive CRM: real-time consultation desk, customer lifecycle, 5-minute trial grants, Family 360 badges, and revenue analytics.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         SLIDE 11: EPHEMERIS & KUNDLI ENGINE
+         ===================================================================== -->
+    <div class="slide" data-index="11">
+      <div class="slide-header">
+        <div class="pill-tag"><span class="dot"></span> Core Engine · Part 1</div>
+        <h2 class="slide-title">Working Project: Ephemeris & Kundli Engine</h2>
+        <p class="slide-subtitle">Precision sidereal calculations, Lahiri Ayanamsha calibration, and dynamic vector chart generation.</p>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 28px; height: calc(100% - 170px);">
+        <!-- TERMINAL LOG -->
+        <div class="terminal-window">
+          <div class="terminal-bar">
+            <span class="traffic-dot traffic-red"></span>
+            <span class="traffic-dot traffic-yellow"></span>
+            <span class="traffic-dot traffic-green"></span>
+            <span class="terminal-title">zsh — npm run test:ephemeris</span>
+          </div>
+          <div class="terminal-body" style="font-size: 16px; padding: 18px 24px;">
+<span style="color: #0071e3;">[EPHEMERIS]</span> Ingesting Target: 19/01/2005 12:00 PM | Udaipur, Rajasthan (24.5854° N, 73.7125° E)
+<span style="color: #248a3d;">[COMPUTED]</span>  Lagna: Aries (Mesha) at 14°28' | Moon: Taurus (Rohini Nakshatra, Pada 2)
+<span style="color: #b45309;">[CHARTS]</span>    Generated D1 (Rashi), D9 (Navamsha), D10 (Dashamsha), Bhav Chalit in 18ms
+          </div>
+        </div>
+
+        <!-- 3 BIG METRICS -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;">
+          <div class="bento-card highlight-blue" style="text-align: center; padding: 28px;">
+            <div class="stat-number" style="color: var(--apple-blue);">16</div>
+            <div class="stat-label">Planets & Upagrahas</div>
+            <div style="font-size: 14px; color: var(--text-secondary); margin-top: 6px;">Sun, Moon, Mars, Rahu, Ketu, Gulika & Mandi</div>
+          </div>
+
+          <div class="bento-card highlight-green" style="text-align: center; padding: 28px;">
+            <div class="stat-number" style="color: var(--apple-green);">16+</div>
+            <div class="stat-label">Divisional Vargas</div>
+            <div style="font-size: 14px; color: var(--text-secondary); margin-top: 6px;">D1 Rashi, D9 Navamsha, D10 Career, D60 Shashtiamsha</div>
+          </div>
+
+          <div class="bento-card highlight-saffron" style="text-align: center; padding: 28px;">
+            <div class="stat-number" style="color: var(--apple-saffron);">&lt; 0.01°</div>
+            <div class="stat-label">Mathematical Precision</div>
+            <div style="font-size: 14px; color: var(--text-secondary); margin-top: 6px;">Verified against Chitra Paksha (Lahiri) Ayanamsha</div>
+          </div>
+        </div>
+
+        <!-- KEY TAKEAWAY -->
+        <div class="bento-card" style="padding: 18px 28px; display: flex; align-items: center; gap: 20px;">
+          <span style="font-size: 26px;">🪐</span>
+          <div style="font-size: 15px; color: var(--text-secondary); line-height: 1.5;">
+            Dynamic SVG charts adapt instantly to both <strong style="color: var(--text-primary);">North Indian Diamond</strong> and <strong style="color: var(--text-primary);">South Indian Box</strong> styles, dynamically rendering retrograde tags, combustion markers, and house lord indicators.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         SLIDE 12: DASHA ENGINE & GUN MILAN
+         ===================================================================== -->
+    <div class="slide" data-index="12">
+      <div class="slide-header">
+        <div class="pill-tag"><span class="dot"></span> Core Engine · Part 2</div>
+        <h2 class="slide-title">Working Project: Dasha Engine & Gun Milan</h2>
+        <p class="slide-subtitle">120-year Vimshottari dasha hierarchy, planetary transits (Gochar), and 36-point Ashtakoot matching.</p>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 28px; height: calc(100% - 170px);">
+        <!-- 3 GIANT METRICS -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;">
+          <div class="bento-card highlight-blue" style="text-align: center; padding: 30px;">
+            <div class="stat-number" style="color: var(--apple-blue);">120 Yrs</div>
+            <div class="stat-label">Vimshottari Lifecycle</div>
+            <div style="font-size: 14px; color: var(--text-secondary); margin-top: 6px;">Continuous calculation from birth Nakshatra balance</div>
+          </div>
+
+          <div class="bento-card highlight-green" style="text-align: center; padding: 30px;">
+            <div class="stat-number" style="color: var(--apple-green);">3 Tiers</div>
+            <div class="stat-label">Dasha Hierarchy</div>
+            <div style="font-size: 14px; color: var(--text-secondary); margin-top: 6px;">Mahadasha → Antardasha → Pratyantardasha</div>
+          </div>
+
+          <div class="bento-card highlight-saffron" style="text-align: center; padding: 30px;">
+            <div class="stat-number" style="color: var(--apple-saffron);">36 / 36</div>
+            <div class="stat-label">Gun Milan Matching</div>
+            <div style="font-size: 14px; color: var(--text-secondary); margin-top: 6px;">Varna, Vashya, Tara, Yoni, Maitri, Gana, Bhakoot, Nadi</div>
+          </div>
+        </div>
+
+        <!-- TRANSFORMATION WORKFLOW -->
+        <div class="bento-card" style="padding: 26px 36px; flex: 1; justify-content: center;">
+          <div style="font-size: 13px; font-weight: 700; color: var(--apple-blue); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 14px;">
+            Predictive Astrological Pipeline
+          </div>
+          
+          <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 24px; align-items: center;">
+            <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); padding: 18px; border-radius: var(--radius-md);">
+              <div style="font-size: 12px; color: var(--apple-saffron); font-weight: 700; margin-bottom: 4px;">BIRTH NAKSHATRA & LONGITUDE</div>
+              <code style="font-size: 14px; color: var(--text-primary); font-family: ui-monospace, monospace;">Moon: Rohini Nakshatra (46.8°) → Moon Dasha balance: 4y 2m 11d</code>
+            </div>
+
+            <div style="font-size: 26px; color: var(--apple-blue);">➔</div>
+
+            <div style="background: rgba(52, 199, 89, 0.08); border: 1px solid rgba(52, 199, 89, 0.25); padding: 18px; border-radius: var(--radius-md);">
+              <div style="font-size: 12px; color: #248a3d; font-weight: 700; margin-bottom: 4px;">HIERARCHICAL TIMELINE OBJECT</div>
+              <code style="font-size: 13px; color: var(--text-primary); font-family: ui-monospace, monospace;">
+                {{"mahadasha": "Mars", "start": "2009-03-30", "antardasha": "Jupiter", "sub": "Saturn"}}
+              </code>
+            </div>
+          </div>
+
+          <div style="font-size: 15px; color: var(--text-secondary); margin-top: 18px; text-align: center;">
+            Feeds active Gochar (planetary transits) over natal houses, identifying Sade Sati, Dhaiya, and planetary returns.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         SLIDE 13: AI VEDIC CONSULTATION ENGINE
+         ===================================================================== -->
+    <div class="slide" data-index="13">
+      <div class="slide-header">
+        <div class="pill-tag"><span class="dot"></span> AI Innovation</div>
+        <h2 class="slide-title">Working Project: AI Vedic Consultation Engine</h2>
+        <p class="slide-subtitle">Domain-grounded Google Gemini AI delivering personalized, bilingual (English & Hindi) Parashari readings.</p>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 28px; height: calc(100% - 170px);">
+        <!-- TWO COMPARISON TIERS -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 28px; flex: 1;">
+          <div class="bento-card highlight-saffron" style="padding: 30px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+              <span class="status-badge status-done">Vedic Grounding</span>
+              <span style="font-size: 13px; color: var(--text-secondary);">Classical Rules</span>
+            </div>
+            <h3 style="font-size: 23px; font-weight: 700; margin-bottom: 10px;">Parashari Shastra Knowledge</h3>
+            <p style="font-size: 15px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 18px;">
+              Prompts are grounded in classical texts (Brihat Parashara Hora Shastra, Phaladeepika):
+            </p>
+            <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); padding: 16px; border-radius: var(--radius-sm); font-family: ui-monospace, monospace; font-size: 13px; margin-bottom: 18px;">
+              • Gajakesari Yoga (Jupiter in Kendra from Moon)<br>
+              • Raj Yoga & Vipreet Raj Yoga configurations<br>
+              • Sade Sati 7.5-year Saturn transit phases
+            </div>
+            <div style="font-size: 14px; color: var(--text-secondary);">
+              📜 Eliminates generic AI hallucinations with strict astrological constraint rules.
+            </div>
+          </div>
+
+          <div class="bento-card highlight-blue" style="padding: 30px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+              <span class="status-badge status-done">Bilingual LLM</span>
+              <span style="font-size: 13px; color: var(--text-secondary);">Gemini 1.5/2.0</span>
+            </div>
+            <h3 style="font-size: 23px; font-weight: 700; margin-bottom: 10px;">Multilingual Synthesizer</h3>
+            <p style="font-size: 15px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 18px;">
+              Full dual-language output generation customized for modern seekers:
+            </p>
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="color: var(--apple-blue); font-weight: 700;">▸</span>
+                <span style="font-size: 15px; color: var(--text-primary);">Natural Devanagari Hindi (हिन्दी) & English generation</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="color: var(--apple-blue); font-weight: 700;">▸</span>
+                <span style="font-size: 15px; color: var(--text-primary);">Tailored practical remedies: Mantras, Gemstones & Fasting</span>
+              </div>
+            </div>
+            <div style="font-size: 14px; color: var(--text-secondary);">
+              ⚡ Empowers seekers with actionable life, career, and marriage clarity.
+            </div>
+          </div>
+        </div>
+
+        <!-- AI FLOW -->
+        <div class="bento-card" style="padding: 18px 28px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 14px;">
+            <div style="background: var(--bg-surface-elevated); padding: 10px 18px; border-radius: var(--radius-pill); font-size: 13px; font-weight: 600;">Planetary Coordinates</div>
+            <span style="color: var(--apple-blue);">➔</span>
+            <div style="background: var(--bg-surface-elevated); padding: 10px 18px; border-radius: var(--radius-pill); font-size: 13px; font-weight: 600;">Dasha & Yogas Extracted</div>
+            <span style="color: var(--apple-blue);">➔</span>
+            <div style="background: var(--bg-surface-elevated); padding: 10px 18px; border-radius: var(--radius-pill); font-size: 13px; font-weight: 600;">Parashari Prompt Injected</div>
+            <span style="color: var(--apple-blue);">➔</span>
+            <div style="background: var(--bg-surface-elevated); padding: 10px 18px; border-radius: var(--radius-pill); font-size: 13px; font-weight: 600;">Gemini LLM Inference</div>
+            <span style="color: var(--apple-blue);">➔</span>
+            <div style="background: rgba(52, 199, 89, 0.12); color: #248a3d; border: 1px solid rgba(52, 199, 89, 0.3); padding: 10px 18px; border-radius: var(--radius-pill); font-size: 13px; font-weight: 700;">Bilingual Astrological Report</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         SLIDE 14: SOCKET CHAT, PAYMENTS & CRM
+         ===================================================================== -->
+    <div class="slide" data-index="14">
+      <div class="slide-header">
+        <div class="pill-tag"><span class="dot"></span> Platform Integration</div>
+        <h2 class="slide-title">Working Project: Live Consultation, Billing & CRM</h2>
+        <p class="slide-subtitle">Unifying WebSocket real-time chat, Razorpay subscriptions, and high-efficiency administrative CRM.</p>
+      </div>
+
+      <div class="bento-grid" style="grid-template-columns: repeat(3, 1fr); height: calc(100% - 170px);">
+        <div class="bento-card">
+          <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 18px;">
+            <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(0, 113, 227, 0.08); display: flex; align-items: center; justify-content: center; font-size: 24px;">💬</div>
+            <div>
+              <span class="status-badge status-done" style="margin-bottom: 4px;">Live Socket</span>
+              <h3 style="font-size: 21px; font-weight: 700;">Socket.IO Chat</h3>
+            </div>
+          </div>
+          <p style="font-size: 15px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 18px;">
+            Full-duplex real-time consultation desk:
+          </p>
+          <div style="display: flex; flex-direction: column; gap: 10px; font-size: 14px; color: var(--text-primary);">
+            <div>• Real-time typing indicators & message read status</div>
+            <div>• Starred messages, reactions & message pinning</div>
+            <div>• Integrated birth-profile side drawer for the astrologer</div>
+            <div>• Automated 5-minute trial countdown locks</div>
+          </div>
+        </div>
+
+        <div class="bento-card highlight-blue">
+          <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 18px;">
+            <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(52, 199, 89, 0.08); display: flex; align-items: center; justify-content: center; font-size: 24px;">💳</div>
+            <div>
+              <span class="status-badge status-done" style="margin-bottom: 4px;">Payments</span>
+              <h3 style="font-size: 21px; font-weight: 700;">Razorpay & Plans</h3>
+            </div>
+          </div>
+          <p style="font-size: 15px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 18px;">
+            Tiered subscription monetization:
+          </p>
+          <div style="display: flex; flex-direction: column; gap: 10px; font-size: 14px; color: var(--text-primary);">
+            <div>• <strong style="color: var(--apple-blue);">Family 360 Plan:</strong> Up to 4 family birth charts</div>
+            <div>• <strong style="color: var(--apple-blue);">Pro & Lite:</strong> Single chart + priority consults</div>
+            <div>• Instant webhook verification via HMAC-SHA256</div>
+            <div>• Automated invoice generation and ledger entries</div>
+          </div>
+        </div>
+
+        <div class="bento-card">
+          <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 18px;">
+            <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(245, 158, 11, 0.08); display: flex; align-items: center; justify-content: center; font-size: 24px;">📊</div>
+            <div>
+              <span class="status-badge status-done" style="margin-bottom: 4px;">Admin CRM</span>
+              <h3 style="font-size: 21px; font-weight: 700;">Astrologer CRM</h3>
+            </div>
+          </div>
+          <p style="font-size: 15px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 18px;">
+            Enterprise administrative control:
+          </p>
+          <div style="display: flex; flex-direction: column; gap: 10px; font-size: 14px; color: var(--text-primary);">
+            <div>• Complete Seeker Directory (13+ live users)</div>
+            <div>• 1-Click Trial Grants & Family 360 manual overrides</div>
+            <div>• Astrologer private consultation notes & tags</div>
+            <div>• Real-time financial revenue metrics (₹5,897+)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         SLIDE 15: DEVELOPMENT PROGRESS
+         ===================================================================== -->
+    <div class="slide" data-index="15">
+      <div class="slide-header">
+        <div class="pill-tag"><span class="dot"></span> Milestone Tracker</div>
+        <h2 class="slide-title">Development Progress</h2>
+        <p class="slide-subtitle">Current execution status across project milestones deployed to Cloudflare Pages & Render cloud.</p>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 18px; height: calc(100% - 170px); justify-content: space-between;">
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+          <div class="bento-card highlight-green">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 28px; font-weight: 800; color: var(--apple-green);">01</span>
+              <span class="status-badge status-done">Done</span>
+            </div>
+            <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 4px;">Architecture & Dual DB</h3>
+            <p style="font-size: 13px; color: var(--text-secondary);">Postgres on Render + SQLite local, JWT session security.</p>
+          </div>
+
+          <div class="bento-card highlight-green">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 28px; font-weight: 800; color: var(--apple-green);">02</span>
+              <span class="status-badge status-done">Done</span>
+            </div>
+            <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 4px;">Ephemeris & Kundli Engine</h3>
+            <p style="font-size: 13px; color: var(--text-secondary);">16 planets, D1-D60 SVG charts, Lahiri Ayanamsha math.</p>
+          </div>
+
+          <div class="bento-card highlight-green">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 28px; font-weight: 800; color: var(--apple-green);">03</span>
+              <span class="status-badge status-done">Done</span>
+            </div>
+            <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 4px;">Dasha & Gun Milan</h3>
+            <p style="font-size: 13px; color: var(--text-secondary);">120-year Vimshottari hierarchy + 36-point compatibility.</p>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+          <div class="bento-card highlight-green">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 28px; font-weight: 800; color: var(--apple-green);">04</span>
+              <span class="status-badge status-done">Done</span>
+            </div>
+            <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 4px;">Gemini AI Vedic Engine</h3>
+            <p style="font-size: 13px; color: var(--text-secondary);">Parashari-grounded bilingual (Hindi/English) interpretations.</p>
+          </div>
+
+          <div class="bento-card highlight-green">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 28px; font-weight: 800; color: var(--apple-green);">05</span>
+              <span class="status-badge status-done">Done</span>
+            </div>
+            <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 4px;">Socket.IO Live Chat</h3>
+            <p style="font-size: 13px; color: var(--text-secondary);">Real-time bidirectional consultations with 5-min trial locks.</p>
+          </div>
+
+          <div class="bento-card highlight-green">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 28px; font-weight: 800; color: var(--apple-green);">06</span>
+              <span class="status-badge status-done">Done</span>
+            </div>
+            <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 4px;">Billing, CRM & Deploy</h3>
+            <p style="font-size: 13px; color: var(--text-secondary);">Razorpay Family 360, admin controls & live cloud release.</p>
+          </div>
+        </div>
+
+        <!-- FOOTER INFO -->
+        <div class="bento-card" style="padding: 18px 32px; display: flex; justify-content: space-between; align-items: center;">
+          <div style="font-size: 15px; color: var(--text-primary);">
+            🎯 <strong style="color: var(--apple-blue);">Live Production App:</strong> <a href="https://amitastro.pages.dev" target="_blank" style="color: var(--apple-blue); text-decoration: none;">amitastro.pages.dev</a>
+          </div>
+          <div style="font-size: 15px; color: var(--text-secondary);">
+            💻 Code repository: <strong style="color: var(--text-primary);">github.com/mahanshstarktech/amitastro</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         SLIDE 16: CHALLENGES & SOLUTIONS
+         ===================================================================== -->
+    <div class="slide" data-index="16">
+      <div class="slide-header">
+        <div class="pill-tag"><span class="dot"></span> Technical Problem Solving</div>
+        <h2 class="slide-title">Engineering Challenges & Solutions</h2>
+        <p class="slide-subtitle">Key obstacles encountered during the project implementation and the robust architectural solutions applied.</p>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 14px; height: calc(100% - 170px); justify-content: space-between;">
+        <div class="bento-card" style="padding: 16px 28px; display: grid; grid-template-columns: 1fr 1.3fr; gap: 24px; align-items: center;">
+          <div style="font-size: 16px; font-weight: 700; color: var(--apple-saffron);">PostgreSQL vs SQLite Identifier Variance</div>
+          <div style="font-size: 14px; color: var(--text-secondary);">Postgres treated double quotes as column identifiers causing runtime crashes; resolved by parameterizing all SQL literals.</div>
+        </div>
+
+        <div class="bento-card" style="padding: 16px 28px; display: grid; grid-template-columns: 1fr 1.3fr; gap: 24px; align-items: center;">
+          <div style="font-size: 16px; font-weight: 700; color: var(--apple-blue);">Astronomical Ephemeris Coordinate Drift</div>
+          <div style="font-size: 14px; color: var(--text-secondary);">Standard algorithms drifted over leap years; calibrated against Chitra Paksha Lahiri Ayanamsha for sub-0.01° precision.</div>
+        </div>
+
+        <div class="bento-card" style="padding: 16px 28px; display: grid; grid-template-columns: 1fr 1.3fr; gap: 24px; align-items: center;">
+          <div style="font-size: 16px; font-weight: 700; color: var(--apple-purple);">WebSocket Mobile Drop-off Reconnection</div>
+          <div style="font-size: 14px; color: var(--text-secondary);">Mobile browser tab suspensions terminated chats; implemented heartbeat keep-alives and state rehydration on reconnect.</div>
+        </div>
+
+        <div class="bento-card" style="padding: 16px 28px; display: grid; grid-template-columns: 1fr 1.3fr; gap: 24px; align-items: center;">
+          <div style="font-size: 16px; font-weight: 700; color: #5856d6;">Payment Webhook Integrity & Tampering</div>
+          <div style="font-size: 14px; color: var(--text-secondary);">Prevented subscription spoofing using cryptographically signed HMAC-SHA256 signature verification on Razorpay events.</div>
+        </div>
+
+        <div class="bento-card highlight-green" style="padding: 16px 28px; display: grid; grid-template-columns: 1fr 1.3fr; gap: 24px; align-items: center;">
+          <div style="font-size: 16px; font-weight: 700; color: #248a3d;">AI Hallucinations in Astrological Readings</div>
+          <div style="font-size: 14px; color: var(--text-secondary);">Grounded LLM prompts with Parashari shastra rulebooks and structured JSON schemas to ensure canonical remedies.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         SLIDE 17: FUTURE SCOPE
+         ===================================================================== -->
+    <div class="slide" data-index="17">
+      <div class="slide-header">
+        <div class="pill-tag"><span class="dot"></span> Vision & Scalability</div>
+        <h2 class="slide-title">Future Scope & Commercial Roadmap</h2>
+        <p class="slide-subtitle">Strategic features to expand Amit Astro into an international enterprise astrology ecosystem.</p>
+      </div>
+
+      <div class="bento-grid" style="grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr; height: calc(100% - 170px);">
+        <div class="bento-card">
+          <div style="font-size: 32px; margin-bottom: 10px;">📱</div>
+          <h3 style="font-size: 19px; font-weight: 700; margin-bottom: 6px;">Native iOS & Android Mobile Apps</h3>
+          <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.45;">
+            Build high-performance native apps via React Native with push notifications for Gochar planetary transits and daily Panchang.
+          </p>
+        </div>
+
+        <div class="bento-card highlight-blue">
+          <div style="font-size: 32px; margin-bottom: 10px;">📹</div>
+          <h3 style="font-size: 19px; font-weight: 700; margin-bottom: 6px;">1-on-1 WebRTC Video Consultations</h3>
+          <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.45;">
+            End-to-end encrypted audio/video consultation rooms with live screen-sharing of birth charts between astrologer and client.
+          </p>
+        </div>
+
+        <div class="bento-card">
+          <div style="font-size: 32px; margin-bottom: 10px;">📖</div>
+          <h3 style="font-size: 19px; font-weight: 700; margin-bottom: 6px;">Automated 50-Page Kundli Book</h3>
+          <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.45;">
+            Server-side headless Chromium PDF generation compiling full D1-D60 charts, 120-year Dasha tables, and gemstone remedies into a keepsake book.
+          </p>
+        </div>
+
+        <div class="bento-card">
+          <div style="font-size: 32px; margin-bottom: 10px;">🎙️</div>
+          <h3 style="font-size: 19px; font-weight: 700; margin-bottom: 6px;">Voice-Interactive AI Astrologer</h3>
+          <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.45;">
+            Real-time conversational speech-to-speech AI consultation answering queries in Hindi, Sanskrit, and English.
+          </p>
+        </div>
+
+        <div class="bento-card highlight-green" style="grid-column: span 2;">
+          <div style="font-size: 32px; margin-bottom: 10px;">🌍</div>
+          <h3 style="font-size: 19px; font-weight: 700; margin-bottom: 6px;">Global Multi-Currency Stripe Billing</h3>
+          <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.45;">
+            International gateway integration (Stripe, PayPal) supporting multi-currency pricing (USD, EUR, GBP, AED) for global diaspora seekers seeking Vedic consultation.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         SLIDE 18: Q & A
+         ===================================================================== -->
+    <div class="slide" data-index="18">
+      <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
+        <div class="pill-tag saffron"><span class="dot"></span> Technical Defense</div>
+        <h2 style="font-size: 78px; font-weight: 800; letter-spacing: -0.04em; margin-bottom: 20px; color: var(--text-primary);">
+          Questions & Discussion
+        </h2>
+        <p style="font-size: 23px; color: var(--text-secondary); max-width: 800px; line-height: 1.4; margin-bottom: 45px;">
+          Floor open for architectural inquiry, computational review, and faculty evaluation.
+        </p>
+
+        <div style="display: flex; gap: 20px;">
+          <div class="bento-card" style="padding: 16px 28px;">
+            <span style="font-size: 15px; font-weight: 700; color: var(--apple-blue);">Ephemeris Mathematical Accuracy</span>
+          </div>
+          <div class="bento-card" style="padding: 16px 28px;">
+            <span style="font-size: 15px; font-weight: 700; color: #248a3d;">Socket.IO Latency & Concurrency</span>
+          </div>
+          <div class="bento-card" style="padding: 16px 28px;">
+            <span style="font-size: 15px; font-weight: 700; color: var(--apple-saffron);">Gemini AI Shastra Grounding</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         SLIDE 19: THANK YOU
+         ===================================================================== -->
+    <div class="slide" data-index="19">
+      <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
+        <div class="pill-tag saffron"><span class="dot"></span> Conclusion</div>
+        <h2 style="font-size: 92px; font-weight: 800; letter-spacing: -0.04em; margin-bottom: 20px; color: var(--text-primary);">
+          Thank You
+        </h2>
+        <p style="font-size: 28px; color: var(--text-primary); font-weight: 700; margin-bottom: 8px;">
+          Mahansh Gaur
+        </p>
+        <p style="font-size: 19px; color: var(--apple-blue); margin-bottom: 35px; font-weight: 600;">
+          github.com/mahanshstarktech/amitastro
+        </p>
+
+        <div class="bento-card" style="padding: 22px 48px; background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle);">
+          <div style="font-size: 16px; color: var(--text-secondary);">
+            Amit Astro — Intelligent Vedic Astrology & Real-Time Consultation Platform
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- =====================================================================
+     BOTTOM DOCKED CONTROLS (APPLE LIGHT MODE)
+     ===================================================================== -->
+<div id="dock">
+  <button class="dock-btn" id="prevBtn" title="Previous Slide (Left Arrow)">◀</button>
+  <span class="dock-counter" id="slideCounter">01 / 19</span>
+  <button class="dock-btn" id="nextBtn" title="Next Slide (Right Arrow / Spacebar)">▶</button>
+  <div class="dock-divider"></div>
+  <button class="dock-btn" id="drawerBtn" title="Overview Thumbnails (T)">▦ Grid</button>
+  <button class="dock-btn" id="editBtn" title="Toggle In-Browser Editing (E)">✎ Edit</button>
+  <button class="dock-btn" id="fullscreenBtn" title="Fullscreen (F)">⛶ Fullscreen</button>
+  <button class="dock-btn" id="printBtn" title="Export PDF / Print (P)">🖨 Print</button>
+</div>
+
+<!-- =====================================================================
+     THUMBNAIL DRAWER MODAL
+     ===================================================================== -->
+<div id="drawer">
+  <div class="drawer-header">
+    <div class="drawer-title">Slide Overview</div>
+    <button class="dock-btn" id="closeDrawerBtn" style="font-size: 20px;">✕ Close</button>
+  </div>
+  <div class="drawer-grid" id="drawerGrid"></div>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const totalSlides = slides.length;
+  let currentIndex = 0;
+  let isEditing = false;
+
+  const stage = document.getElementById('stage');
+  const slideCounter = document.getElementById('slideCounter');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const drawerBtn = document.getElementById('drawerBtn');
+  const closeDrawerBtn = document.getElementById('closeDrawerBtn');
+  const drawer = document.getElementById('drawer');
+  const drawerGrid = document.getElementById('drawerGrid');
+  const editBtn = document.getElementById('editBtn');
+  const fullscreenBtn = document.getElementById('fullscreenBtn');
+  const printBtn = document.getElementById('printBtn');
+
+  function resizeStage() {
+    const stageWidth = 1920;
+    const stageHeight = 1080;
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    const scale = Math.min(windowWidth / stageWidth, windowHeight / stageHeight);
+    stage.style.transform = `scale(${scale})`;
+  }
+  window.addEventListener('resize', resizeStage);
+  window.addEventListener('load', resizeStage);
+
+  function showSlide(index) {
+    if (index < 0) index = 0;
+    if (index >= totalSlides) index = totalSlides - 1;
+    currentIndex = index;
+
+    slides.forEach((slide, i) => {
+      if (i === currentIndex) {
+        slide.classList.add('active');
+      } else {
+        slide.classList.remove('active');
+      }
+    });
+
+    const displayNum = String(currentIndex + 1).padStart(2, '0');
+    const totalNum = String(totalSlides).padStart(2, '0');
+    slideCounter.textContent = `${displayNum} / ${totalNum}`;
+
+    updateDrawerActive();
+  }
+
+  function nextSlide() {
+    if (currentIndex < totalSlides - 1) {
+      showSlide(currentIndex + 1);
+    }
+  }
+
+  function prevSlide() {
+    if (currentIndex > 0) {
+      showSlide(currentIndex - 1);
+    }
+  }
+
+  const slideTitles = [
+    "Title Slide · Amit Astro",
+    "Table of Contents",
+    "Company Introduction",
+    "Certificate of Training",
+    "Technology Stack Used",
+    "Goal of Industrial Training",
+    "Project Overview & Vision",
+    "Problem Statement & Solution",
+    "System Architecture & Flow",
+    "Working Project: Code Structure",
+    "Working Project: Ephemeris & Kundli",
+    "Working Project: Dasha & Gun Milan",
+    "Working Project: AI Vedic Engine",
+    "Working Project: Live Sockets & CRM",
+    "Development Progress",
+    "Challenges & Solutions",
+    "Future Scope & Roadmap",
+    "Questions & Discussion",
+    "Thank You"
+  ];
+
+  slideTitles.forEach((title, idx) => {
+    const card = document.createElement('div');
+    card.className = 'thumb-card';
+    card.innerHTML = `
+      <div class="thumb-num">SLIDE ${String(idx + 1).padStart(2, '0')}</div>
+      <div class="thumb-name">${title}</div>
+    `;
+    card.addEventListener('click', () => {
+      showSlide(idx);
+      drawer.classList.remove('open');
+    });
+    drawerGrid.appendChild(card);
+  });
+
+  function updateDrawerActive() {
+    const cards = drawerGrid.querySelectorAll('.thumb-card');
+    cards.forEach((card, idx) => {
+      if (idx === currentIndex) {
+        card.classList.add('active');
+      } else {
+        card.classList.remove('active');
+      }
+    });
+  }
+
+  prevBtn.addEventListener('click', prevSlide);
+  nextBtn.addEventListener('click', nextSlide);
+
+  drawerBtn.addEventListener('click', () => {
+    drawer.classList.add('open');
+  });
+
+  closeDrawerBtn.addEventListener('click', () => {
+    drawer.classList.remove('open');
+  });
+
+  fullscreenBtn.addEventListener('click', () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  });
+
+  printBtn.addEventListener('click', () => {
+    window.print();
+  });
+
+  editBtn.addEventListener('click', () => {
+    isEditing = !isEditing;
+    const editableElements = document.querySelectorAll('[contenteditable]');
+    editableElements.forEach(el => {
+      el.setAttribute('contenteditable', isEditing ? 'true' : 'false');
+    });
+    editBtn.textContent = isEditing ? '✓ Done Editing' : '✎ Edit';
+    editBtn.style.color = isEditing ? 'var(--apple-green)' : 'var(--text-secondary)';
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if (e.target.isContentEditable) return;
+
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+      e.preventDefault();
+      nextSlide();
+    } else if (e.key === 'ArrowLeft' || e.key === 'PageUp' || e.key === 'Backspace') {
+      e.preventDefault();
+      prevSlide();
+    } else if (e.key.toLowerCase() === 't') {
+      drawer.classList.toggle('open');
+    } else if (e.key.toLowerCase() === 'f') {
+      fullscreenBtn.click();
+    } else if (e.key.toLowerCase() === 'e') {
+      editBtn.click();
+    } else if (e.key.toLowerCase() === 'p') {
+      window.print();
+    } else if (e.key === 'Escape') {
+      drawer.classList.remove('open');
+    } else if (e.key === 'Home') {
+      showSlide(0);
+    } else if (e.key === 'End') {
+      showSlide(totalSlides - 1);
+    }
+  });
+</script>
+</body>
+</html>

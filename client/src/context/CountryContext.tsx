@@ -39,9 +39,14 @@ export const CountryProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, []);
 
   const setCountry = (code: string) => {
+    // Advanced tamper resistance: if user is detected in an international region,
+    // lock pricing against client-side downgrades to domestic INR rates.
+    const detected = detectRealCountry();
+    if (detected !== 'IN' && code === 'IN') {
+      return;
+    }
     if (COUNTRIES[code]) {
       setCountryState(code);
-      localStorage.setItem('amit_country_override', code);
     }
   };
 

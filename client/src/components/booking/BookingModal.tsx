@@ -5,6 +5,7 @@ import { apiRequest } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import { useCountry } from '../../context/CountryContext';
+import { CityAutocompleteInput } from '../common/CityAutocompleteInput';
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -465,9 +466,14 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                         <input type="time" value={newProfile.tob} onChange={e => setNewProfile(p => ({ ...p, tob: e.target.value }))} className="apple-input" style={{ fontSize: 13, padding: '7px 10px' }} />
                       </div>
                     </div>
-                    <div>
-                      <label style={{ fontSize: 11, color: '#86868B', display: 'block', marginBottom: 3 }}>Place of Birth *</label>
-                      <input required type="text" value={newProfile.pob} onChange={e => setNewProfile(p => ({ ...p, pob: e.target.value }))} className="apple-input" style={{ fontSize: 13, padding: '7px 10px' }} placeholder="City, State, Country" />
+                    <div style={{ marginTop: 2 }}>
+                      <CityAutocompleteInput
+                        required
+                        value={newProfile.pob}
+                        onChange={(val) => setNewProfile((p) => ({ ...p, pob: val }))}
+                        label="Place of Birth (City / Town / Country)"
+                        placeholder="e.g. Jaipur, Rajasthan, India"
+                      />
                     </div>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button type="submit" disabled={addingProfile} className="apple-btn-primary" style={{ fontSize: 12.5, padding: '8px 14px', flex: 1 }}>

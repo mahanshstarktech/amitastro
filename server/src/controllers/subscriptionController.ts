@@ -101,8 +101,25 @@ export const subscribeFamily = async (req: AuthRequest, res: Response) => {
     const userId = req.user!.id;
     const { countryCode, utrReference, paymentMethod, screenshotUrl } = req.body;
 
-    const pricing = subscriptionService.getPricingForCountry(countryCode);
     const user = await getOne<any>('SELECT * FROM users WHERE id = ?', [userId]);
+
+    // Advanced Security: Prevent malicious client pricing tampering
+    let resolvedCountry = (countryCode || 'IN').toUpperCase();
+    const cfCountry = (req.headers['cf-ipcountry'] as string)?.toUpperCase();
+    const userPhone = user?.phone || '';
+
+    // If user's verified phone has international prefix or Cloudflare detected foreign IP, enforce authentic international tier
+    if (userPhone.startsWith('+1')) resolvedCountry = 'US';
+    else if (userPhone.startsWith('+44')) resolvedCountry = 'GB';
+    else if (userPhone.startsWith('+49')) resolvedCountry = 'DE';
+    else if (userPhone.startsWith('+971')) resolvedCountry = 'AE';
+    else if (userPhone.startsWith('+61')) resolvedCountry = 'AU';
+    else if (userPhone.startsWith('+7')) resolvedCountry = 'RU';
+    else if (cfCountry && cfCountry !== 'IN' && cfCountry !== 'XX' && cfCountry !== 'T1') {
+      if (SUBSCRIPTION_COUNTRY_PRICING[cfCountry]) resolvedCountry = cfCountry;
+    }
+
+    const pricing = subscriptionService.getPricingForCountry(resolvedCountry);
 
     // Check if user is already an active subscriber
     const currentSub = await subscriptionService.isUserFamilySubscribed(userId);
