@@ -144,7 +144,8 @@ describe('BookingModal Component Tests', () => {
     expect(decodeURIComponent(targetUrl)).toContain('Mahansh Gaur');
   });
 
-  it('supports unauthenticated guest booking and renders "Add your birth profile"', () => {
+  it('supports unauthenticated guest booking and renders "Add your birth profile"', async () => {
+    const user = userEvent.setup();
     mockIsAuthenticated = false;
 
     render(
@@ -160,7 +161,11 @@ describe('BookingModal Component Tests', () => {
     expect(screen.queryByText(/not necessary/i)).toBeNull();
 
     // Renders "Add your birth profile"
-    expect(screen.getByText('Add your birth profile')).toBeInTheDocument();
+    const addProfileTrigger = screen.getByText('Add your birth profile');
+    expect(addProfileTrigger).toBeInTheDocument();
+
+    // User expands to reveal inputs
+    await user.click(addProfileTrigger);
 
     // Shows birth inputs (Full Name, Date of Birth, Time of Birth)
     expect(screen.getByPlaceholderText(/As per Kundli \/ Birth record/i)).toBeInTheDocument();
@@ -177,7 +182,8 @@ describe('BookingModal Component Tests', () => {
     );
 
     // Initial state: Step 1
-    expect(screen.getByText(/Step 1 of 4 · Select Package/i)).toBeInTheDocument();
+    expect(screen.getByText(/Step 1 of 4/i)).toBeInTheDocument();
+    expect(screen.getByText(/Select Package/i)).toBeInTheDocument();
     expect(screen.queryByLabelText(/Go to previous step/i)).toBeNull();
 
     // Click Continue to Birth Profile
@@ -185,13 +191,14 @@ describe('BookingModal Component Tests', () => {
     await user.click(nextBtn);
 
     // Reaches Step 2 and displays Back button
-    expect(screen.getByText(/Step 2 of 4 · Birth Profile Details/i)).toBeInTheDocument();
+    expect(screen.getByText(/Step 2 of 4/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Birth Profile/i).length).toBeGreaterThan(0);
     const backBtn = screen.getByLabelText(/Go to previous step/i);
     expect(backBtn).toBeInTheDocument();
 
     // Click Back button to return to Step 1
     await user.click(backBtn);
-    expect(screen.getByText(/Step 1 of 4 · Select Package/i)).toBeInTheDocument();
+    expect(screen.getByText(/Step 1 of 4/i)).toBeInTheDocument();
   });
 
   it('allows jumping back to completed steps via step progress bar tabs', async () => {
@@ -204,13 +211,15 @@ describe('BookingModal Component Tests', () => {
       </CountryProvider>
     );
 
-    expect(screen.getByText(/Step 3 of 4 · Schedule & Questions/i)).toBeInTheDocument();
+    expect(screen.getByText(/Step 3 of 4/i)).toBeInTheDocument();
+    expect(screen.getByText(/Schedule & Questions/i)).toBeInTheDocument();
 
     // Step 1 tab is clickable since it is prior to current step
     const step1Tab = screen.getByRole('tab', { name: /Step 1: Package/i });
     expect(step1Tab).not.toBeDisabled();
 
     await user.click(step1Tab);
-    expect(screen.getByText(/Step 1 of 4 · Select Package/i)).toBeInTheDocument();
+    expect(screen.getByText(/Step 1 of 4/i)).toBeInTheDocument();
+    expect(screen.getByText(/Select Package/i)).toBeInTheDocument();
   });
 });

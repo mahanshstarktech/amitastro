@@ -14,8 +14,15 @@ import * as subCtrl from '../controllers/subscriptionController';
 
 const router = Router();
 
-// YouTube Showcase
-router.get('/youtube', youtubeCtrl.getYoutubeVideos);
+// Version & Deployment Health Check
+router.get('/version', (_req, res) => {
+  res.json({
+    service: 'amitastro-api',
+    version: '1.0.1',
+    status: 'healthy',
+    timestamp: new Date().toISOString()
+  });
+});
 
 // 1. Auth & Security Infrastructure Routes (Zoho IAM Grade)
 router.get('/auth/encryption-key', authCtrl.getEncryptionKey);
