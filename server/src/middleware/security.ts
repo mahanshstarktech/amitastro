@@ -78,7 +78,8 @@ export const csrfProtection = (req: Request, res: Response, next: NextFunction) 
     '/api/auth/google',
     '/api/auth/encryption-key',
     '/api/admin/analytics/track',
-    '/api/trial/claim'
+    '/api/trial/claim',
+    '/api/whatsapp/webhook'
   ];
 
   if (exemptPaths.some((p) => req.originalUrl.startsWith(p))) {

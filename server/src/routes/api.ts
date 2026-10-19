@@ -11,6 +11,7 @@ import * as blogCtrl from '../controllers/blogController';
 import * as adminCtrl from '../controllers/adminController';
 import * as youtubeCtrl from '../controllers/youtubeController';
 import * as subCtrl from '../controllers/subscriptionController';
+import * as whatsappCtrl from '../controllers/whatsappController';
 
 const router = Router();
 
@@ -127,5 +128,9 @@ router.post('/admin/broadcast', authenticateToken, requireAdmin, adminCtrl.sendB
 router.get('/admin/analytics', authenticateToken, requireAdmin, adminCtrl.getAnalytics);
 router.get('/admin/analytics/realtime', authenticateToken, requireAdmin, adminCtrl.getRealtimeAnalytics);
 router.post('/analytics/track', adminCtrl.trackAnalyticsEvent);
+
+// 10. WhatsApp Cloud API Webhooks
+router.get('/whatsapp/webhook', whatsappCtrl.verifyWebhook);
+router.post('/whatsapp/webhook', whatsappCtrl.handleIncomingMessage);
 
 export default router;
