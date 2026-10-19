@@ -139,7 +139,7 @@ describe('BookingModal Component Tests', () => {
 
     expect(windowOpenSpy).toHaveBeenCalled();
     const targetUrl = windowOpenSpy.mock.calls[0][0] as string;
-    expect(targetUrl).toContain('https://wa.me/919983353633');
+    expect(targetUrl).toContain('https://api.whatsapp.com/send?phone=919983353633');
     expect(decodeURIComponent(targetUrl)).toContain('Namaste Amit Ji');
     expect(decodeURIComponent(targetUrl)).toContain('Mahansh Gaur');
   });

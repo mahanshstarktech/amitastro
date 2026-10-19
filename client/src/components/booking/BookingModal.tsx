@@ -303,7 +303,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       message = lines.join('\n');
     }
 
-    const waUrl = `https://wa.me/919983353633?text=${encodeURIComponent(message)}`;
+    // Use api.whatsapp.com/send directly to avoid wa.me 302 redirect which corrupts 4-byte UTF-8 emojis (like 🙏 and 📋)
+    const waUrl = `https://api.whatsapp.com/send?phone=919983353633&text=${encodeURIComponent(message)}`;
     window.open(waUrl, '_blank', 'noopener,noreferrer');
   };
 
