@@ -57,3 +57,37 @@ input, select, textarea {
   pointer-events: none !important;
 }
 
+/* Google-style Subscription Avatar Rings */
+.subscription-avatar-ring {
+  cursor: pointer;
+}
+
+.subscription-avatar-ring:hover {
+  transform: scale(1.05);
+}
+
+.subscription-avatar-ring:active {
+  transform: scale(0.97);
+}
+
+.subscription-ring-free-trial:hover {
+  box-shadow: 0 0 0 1px #10B981, 0 3px 12px rgba(16, 185, 129, 0.5) !important;
+}
+
+.subscription-ring-plus:hover {
+  box-shadow: 0 0 0 1px #2563EB, 0 3px 12px rgba(37, 99, 235, 0.5) !important;
+}
+
+.subscription-ring-pro:hover {
+  box-shadow: 0 0 0 1px #D97706, 0 3px 12px rgba(217, 119, 6, 0.5) !important;
+}
+
+.subscription-ring-family:hover {
+  box-shadow: 0 0 0 1px #7928CA, 0 4px 14px rgba(255, 0, 128, 0.5) !important;
+}
+
+.subscription-ring-admin:hover {
+  box-shadow: 0 0 0 1px #C9A24B, 0 4px 14px rgba(201, 162, 75, 0.6) !important;
+}
+
+

@@ -11,7 +11,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useHeaderActions } from '../../context/HeaderActionsContext';
 import { apiRequest } from '../../utils/api';
 import { AppleCustomerChat } from '../../components/chat/AppleCustomerChat';
-import { PlanBadge } from '../../components/common/PlanBadge';
+import { PlanBadge, SubscriptionAvatar } from '../../components/common/PlanBadge';
 import { FamilyUpgradeModal } from '../../components/subscription/FamilyUpgradeModal';
 import { SubscriptionManagementView } from '../../components/subscription/SubscriptionManagementView';
 import { CityAutocompleteInput } from '../../components/common/CityAutocompleteInput';
@@ -680,30 +680,13 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                   }}
                   title={user?.name || 'Customer Account'}
                 >
-                  {user?.photoURL ? (
-                    <img
-                      src={user.photoURL}
-                      alt={user.name || 'User'}
-                      style={{ width: '100%', height: '100%', borderRadius: 12, objectFit: 'cover' }}
-                    />
-                  ) : (
-                    <div
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        borderRadius: 12,
-                        backgroundColor: '#3A3A6E',
-                        color: '#FFFFFF',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 700,
-                        fontSize: 14
-                      }}
-                    >
-                      {(user?.name || 'S').charAt(0).toUpperCase()}
-                    </div>
-                  )}
+                  <SubscriptionAvatar
+                    photoURL={user?.photoURL}
+                    name={user?.name}
+                    planBadge={user?.role === 'admin' ? 'Admin' : (user?.planBadge || 'Free(Trial)')}
+                    isAdmin={user?.role === 'admin'}
+                    size={38}
+                  />
                 </button>
               </div>
             ) : (
@@ -720,30 +703,13 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
                   <div style={{ position: 'relative', flexShrink: 0 }}>
-                    {user?.photoURL ? (
-                      <img
-                        src={user.photoURL}
-                        alt={user.name || 'User'}
-                        style={{ width: 36, height: 36, borderRadius: 10, objectFit: 'cover' }}
-                      />
-                    ) : (
-                      <div
-                        style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: 10,
-                          backgroundColor: '#3A3A6E',
-                          color: '#FFFFFF',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontWeight: 700,
-                          fontSize: 14
-                        }}
-                      >
-                        {(user?.name || 'S').charAt(0).toUpperCase()}
-                      </div>
-                    )}
+                    <SubscriptionAvatar
+                      photoURL={user?.photoURL}
+                      name={user?.name}
+                      planBadge={user?.role === 'admin' ? 'Admin' : (user?.planBadge || 'Free(Trial)')}
+                      isAdmin={user?.role === 'admin'}
+                      size={36}
+                    />
                   </div>
 
                   <div style={{ minWidth: 0, flex: 1 }}>

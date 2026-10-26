@@ -27,6 +27,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useCountry } from '../../context/CountryContext';
 import { useHeaderActions } from '../../context/HeaderActionsContext';
 import { PlanBadge } from './PlanBadge';
+import { SubscriptionAvatar } from './SubscriptionAvatar';
 
 interface AppleHeaderProps {
   onOpenAuth: (mode?: 'login' | 'signup') => void;
@@ -661,38 +662,44 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
                 width: 38,
                 height: 38,
                 borderRadius: '50%',
-                backgroundColor: accountDropdownOpen ? '#E5E5EA' : (isAuthenticated ? '#3A3A6E' : '#F5F5F7'),
-                border: isAuthenticated ? '1px solid #3A3A6E' : '1px solid #E5E5EA',
+                backgroundColor: 'transparent',
+                border: 'none',
+                padding: 0,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
                 color: isAuthenticated ? '#FFFFFF' : '#515154',
-                transition: 'all 0.15s ease',
+                transition: 'transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s ease',
                 position: 'relative'
               }}
-              title="Account & Portal"
+              title={`Account & Portal${isAuthenticated ? ` (${isAdmin ? 'Admin' : (user?.planBadge || 'Free Trial')})` : ''}`}
               aria-label="Account"
             >
-              {isAuthenticated && user?.photoURL ? (
-                <img
-                  src={user.photoURL}
-                  alt={user.name || 'User'}
-                  style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }}
+              {isAuthenticated ? (
+                <SubscriptionAvatar
+                  photoURL={user?.photoURL}
+                  name={user?.name}
+                  planBadge={isAdmin ? 'Admin' : (user?.planBadge || 'Free(Trial)')}
+                  isAdmin={isAdmin}
+                  size={38}
                 />
-              ) : isAuthenticated ? (
-                <div style={{ width: 36, height: 36, borderRadius: '50%', backgroundColor: '#3A3A6E', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: 14 }}>
-                  {user?.name?.charAt(0).toUpperCase() || 'A'}
-                </div>
               ) : (
-                <UserIcon size={18} />
-              )}
-              {isAuthenticated && (
-                <PlanBadge
-                  badge={isAdmin ? 'Admin' : (user?.planBadge || 'Free(Trial)')}
-                  size="micro"
-                  isAvatarOverlay
-                />
+                <div
+                  style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: '50%',
+                    backgroundColor: accountDropdownOpen ? '#E5E5EA' : '#F5F5F7',
+                    border: '1px solid #E5E5EA',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#515154'
+                  }}
+                >
+                  <UserIcon size={18} />
+                </div>
               )}
             </button>
 
@@ -717,40 +724,15 @@ export const AppleHeader: React.FC<AppleHeaderProps> = ({
               >
                 {isAuthenticated && user ? (
                   <>
-                    {/* Signed-in User Info Header */}
+                    {/* Signed-in User Info Header (Overview Panel) */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingBottom: 10, borderBottom: '1px solid #E5E5EA' }}>
-                      {user.photoURL ? (
-                        <img
-                          src={user.photoURL}
-                          alt={user.name}
-                          style={{
-                            width: 42,
-                            height: 42,
-                            borderRadius: '50%',
-                            objectFit: 'cover',
-                            border: '1.5px solid #E5E5EA',
-                            flexShrink: 0
-                          }}
-                        />
-                      ) : (
-                        <div
-                          style={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: '50%',
-                            backgroundColor: '#3A3A6E',
-                            color: '#FFFFFF',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontWeight: 700,
-                            fontSize: 16,
-                            flexShrink: 0
-                          }}
-                        >
-                          {user.name ? user.name.charAt(0).toUpperCase() : <UserIcon size={20} />}
-                        </div>
-                      )}
+                      <SubscriptionAvatar
+                        photoURL={user.photoURL}
+                        name={user.name}
+                        planBadge={isAdmin ? 'Admin' : (user.planBadge || 'Free(Trial)')}
+                        isAdmin={isAdmin}
+                        size={44}
+                      />
                       <div style={{ overflow: 'hidden' }}>
                         <div style={{ fontWeight: 700, fontSize: 14.5, color: '#1D1D1F', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {user.name}

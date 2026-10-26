@@ -132,3 +132,6 @@ export const PlanBadge: React.FC<PlanBadgeProps> = ({
     </span>
   );
 };
+
+export { SubscriptionAvatar, getSubscriptionRingConfig } from './SubscriptionAvatar';
+
