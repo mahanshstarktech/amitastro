@@ -1,6 +1,6 @@
 import React from 'react';
 import { User as UserIcon, ShieldCheck } from 'lucide-react';
-import { PlanBadgeType } from './PlanBadge';
+import type { PlanBadgeType } from './PlanBadge';
 
 export interface SubscriptionAvatarProps {
   photoURL?: string | null;
