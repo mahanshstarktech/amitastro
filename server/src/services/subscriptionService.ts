@@ -294,8 +294,8 @@ export class SubscriptionService {
 
     // Count family members (relation != 'self')
     const familyCountRes = await getOne<any>(
-      "SELECT COUNT(*) as cnt FROM birth_profiles WHERE user_id = ? AND relation != 'self'",
-      [userId]
+      "SELECT COUNT(*) as cnt FROM birth_profiles WHERE user_id = ? AND (relation != ? OR relation IS NULL)",
+      [userId, 'self']
     );
     const familySlotsUsed = familyCountRes ? familyCountRes.cnt : 0;
     const familySlotsTotal = 4;

@@ -44,6 +44,14 @@ export function formatSqlForEngine(sql: string, forceEngine?: 'postgres' | 'sqli
       formatted = formatted.trim().replace(/;?$/, ' ON CONFLICT DO NOTHING');
     }
   }
+  // Safeguard against PostgreSQL evaluating "self" or bare identifier as a column name
+  formatted = formatted.replace(/(relation\s*=\s*)"self"/gi, "$1'self'");
+  formatted = formatted.replace(/(relation\s*!=\s*)"self"/gi, "$1'self'");
+  formatted = formatted.replace(/(relation\s*=\s*)self(?!\w)/gi, "$1'self'");
+  formatted = formatted.replace(/(relation\s*!=\s*)self(?!\w)/gi, "$1'self'");
+  formatted = formatted.replace(/,\s*"self"\s*,/gi, ", 'self', ");
+  formatted = formatted.replace(/\(\s*"self"\s*,/gi, "('self', ");
+  formatted = formatted.replace(/,\s*"self"\s*\)/gi, ", 'self')");
   return formatted;
 }
 
@@ -141,6 +149,8 @@ export async function initDatabase() {
       await pgPool.query('ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS title_hi TEXT;');
       await pgPool.query('ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS excerpt_hi TEXT;');
       await pgPool.query('ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS content_markdown_hi TEXT;');
+      await pgPool.query("ALTER TABLE birth_profiles ADD COLUMN IF NOT EXISTS relation VARCHAR(32) DEFAULT 'self';");
+      await pgPool.query("UPDATE birth_profiles SET relation = 'self' WHERE relation IS NULL OR relation = '';");
     } catch (_) {}
     const pgMigrations = [
       'ALTER TABLE users ADD COLUMN IF NOT EXISTS photo_url TEXT;',
@@ -157,6 +167,8 @@ export async function initDatabase() {
       'ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS title_hi TEXT;',
       'ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS excerpt_hi TEXT;',
       'ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS content_markdown_hi TEXT;',
+      'ALTER TABLE birth_profiles ADD COLUMN IF NOT EXISTS relation VARCHAR(32) DEFAULT \'self\';',
+      'UPDATE birth_profiles SET relation = \'self\' WHERE relation IS NULL OR relation = \'\';',
       'ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS reply_to_id VARCHAR(64);',
       'ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS reply_to_text TEXT;',
       'ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS reply_to_sender VARCHAR(64);',
@@ -185,6 +197,8 @@ export async function initDatabase() {
       'ALTER TABLE blog_posts ADD COLUMN title_hi TEXT;',
       'ALTER TABLE blog_posts ADD COLUMN excerpt_hi TEXT;',
       'ALTER TABLE blog_posts ADD COLUMN content_markdown_hi TEXT;',
+      'ALTER TABLE birth_profiles ADD COLUMN relation TEXT DEFAULT "self";',
+      'UPDATE birth_profiles SET relation = "self" WHERE relation IS NULL OR relation = "";',
       'ALTER TABLE chat_messages ADD COLUMN reply_to_id TEXT;',
       'ALTER TABLE chat_messages ADD COLUMN reply_to_text TEXT;',
       'ALTER TABLE chat_messages ADD COLUMN reply_to_sender TEXT;',
@@ -1122,8 +1136,8 @@ async function seedPlatformDemoCustomers() {
       const bpId = `bp-${c.id}`;
       await runQuery(`
         INSERT OR IGNORE INTO birth_profiles (id, user_id, relation, full_name, dob, tob, tob_uncertain, pob, pob_lat, pob_lng, pob_timezone, created_at)
-        VALUES (?, ?, 'self', ?, '1995-05-12', '10:30', 0, ?, 26.9124, 75.7873, 'Asia/Kolkata', ?)
-      `, [bpId, c.id, c.name, `${c.city}, India`, createdAt]);
+        VALUES (?, ?, ?, ?, '1995-05-12', '10:30', 0, ?, 26.9124, 75.7873, 'Asia/Kolkata', ?)
+      `, [bpId, c.id, 'self', c.name, `${c.city}, India`, createdAt]);
 
       const apptId = `appt-${c.id}`;
       await runQuery(`

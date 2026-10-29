@@ -99,7 +99,7 @@ export const createAppointment = async (req: AuthRequest, res: Response) => {
       const profileId = `bp-${uuidv4().substring(0, 8)}`;
       await runQuery(`
         INSERT INTO birth_profiles (id, user_id, full_name, dob, tob, pob, relation, tob_uncertain)
-        VALUES (?, ?, ?, ?, ?, ?, 'self', ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         profileId,
         customerId,
@@ -107,6 +107,7 @@ export const createAppointment = async (req: AuthRequest, res: Response) => {
         guestProfile.dob,
         guestProfile.tob || '12:00',
         guestProfile.pob || 'India',
+        'self',
         guestProfile.tobUncertain ? 1 : 0
       ]);
       effectiveProfileId = profileId;

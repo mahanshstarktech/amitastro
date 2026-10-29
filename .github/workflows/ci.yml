@@ -74,7 +74,7 @@ jobs:
           cd server
           npm run test:unit
 
-      - name: Run Database Tests (Dual-Engine: ${{ matrix.engine }})
+      - name: "Run Database Tests (Dual-Engine: ${{ matrix.engine }})"
         env:
           TEST_USE_POSTGRES: ${{ matrix.engine == 'postgresql' && 'true' || 'false' }}
           DATABASE_URL: postgres://amitastro_user:amitastro_test_password@localhost:5432/amitastro_test

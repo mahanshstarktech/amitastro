@@ -443,8 +443,8 @@ export const completeManualRegistration = async (req: Request, res: Response) =>
         const profileId = `bp-${uuidv4().substring(0, 8)}`;
         await runQuery(`
           INSERT INTO birth_profiles (id, user_id, relation, full_name, dob, tob, tob_uncertain, pob)
-          VALUES (?, ?, 'self', ?, ?, ?, ?, ?)
-        `, [profileId, userId, name.trim(), dob.trim(), tob || '12:00', tobUncertain ? 1 : 0, pob || 'India']);
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `, [profileId, userId, 'self', name.trim(), dob.trim(), tob || '12:00', tobUncertain ? 1 : 0, pob || 'India']);
       }
     }
 
@@ -521,8 +521,8 @@ export const googleAuth = async (req: Request, res: Response) => {
           const profileId = `bp-${uuidv4().substring(0, 8)}`;
           await runQuery(`
             INSERT INTO birth_profiles (id, user_id, relation, full_name, dob, tob, tob_uncertain, pob)
-            VALUES (?, ?, 'self', ?, ?, ?, ?, ?)
-          `, [profileId, user.id, userName, dob.trim(), tob || '12:00', tobUncertain ? 1 : 0, pob || 'India']);
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          `, [profileId, user.id, 'self', userName, dob.trim(), tob || '12:00', tobUncertain ? 1 : 0, pob || 'India']);
         }
       }
 

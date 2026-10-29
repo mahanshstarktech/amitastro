@@ -43,6 +43,20 @@ describe('Unit: SQL Dialect Transpiler (formatSqlForEngine)', () => {
     expect(result).toBe(query);
   });
 
+  it('sanitizes double-quoted "self" and bare self to string literal for PostgreSQL to prevent column does not exist errors', () => {
+    const q1 = 'SELECT * FROM birth_profiles WHERE user_id = ? AND relation = "self"';
+    expect(formatSqlForEngine(q1, 'postgres')).toBe("SELECT * FROM birth_profiles WHERE user_id = $1 AND relation = 'self'");
+
+    const q2 = 'SELECT * FROM birth_profiles WHERE user_id = ? AND relation = self';
+    expect(formatSqlForEngine(q2, 'postgres')).toBe("SELECT * FROM birth_profiles WHERE user_id = $1 AND relation = 'self'");
+
+    const q3 = 'SELECT * FROM birth_profiles WHERE user_id = ? AND relation != "self"';
+    expect(formatSqlForEngine(q3, 'postgres')).toBe("SELECT * FROM birth_profiles WHERE user_id = $1 AND relation != 'self'");
+
+    const q4 = 'INSERT INTO birth_profiles (id, user_id, relation) VALUES (?, ?, "self")';
+    expect(formatSqlForEngine(q4, 'postgres')).toBe("INSERT INTO birth_profiles (id, user_id, relation) VALUES ($1, $2, 'self')");
+  });
+
   it('documents dialect limitation: question marks inside string literals are currently converted', () => {
     // This tests the current regex behavior (? inside quotes) and proves real code execution
     const queryWithLiteral = "SELECT * FROM notes WHERE text = 'Is this a question?' AND id = ?";

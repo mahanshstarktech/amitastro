@@ -62,8 +62,8 @@ export const getMySubscription = async (req: AuthRequest, res: Response) => {
     );
 
     const familyProfiles = await getAll<any>(
-      "SELECT id, full_name, relation, dob, pob FROM birth_profiles WHERE user_id = ? AND relation != 'self' ORDER BY created_at ASC",
-      [userId]
+      "SELECT id, full_name, relation, dob, pob FROM birth_profiles WHERE user_id = ? AND (relation != ? OR relation IS NULL) ORDER BY created_at ASC",
+      [userId, 'self']
     );
 
     return res.json({
@@ -251,7 +251,7 @@ export const adminGetSubscriptions = async (req: AuthRequest, res: Response) => 
         s.current_period_start,
         s.current_period_end,
         s.mandate_reference,
-        (SELECT COUNT(*) FROM birth_profiles bp WHERE bp.user_id = u.id AND bp.relation != 'self') as family_members_count
+        (SELECT COUNT(*) FROM birth_profiles bp WHERE bp.user_id = u.id AND (bp.relation != 'self' OR bp.relation IS NULL)) as family_members_count
       FROM users u
       LEFT JOIN subscriptions s ON u.id = s.user_id
       WHERE u.subscription_status = 'active' OR u.plan = 'family'
