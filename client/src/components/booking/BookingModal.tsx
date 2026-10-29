@@ -600,9 +600,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             )}
           </div>
 
-          <span className="apple-badge-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-            <Sparkles size={12} /> Vedic Consultation Booking
-          </span>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: '#3A3A6E', letterSpacing: '0.2px' }}>
+            <Sparkles size={13} color="#C9A24B" />
+            <span>Vedic Consultation Booking</span>
+          </div>
 
           <div style={{ width: 34, display: 'flex', justifyContent: 'flex-end' }}>
             <button
@@ -712,28 +713,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </span>
               </div>
 
-              {/* Show selected package badge on steps when not on the package selection step itself */}
-              {currentPkg && currentStepNumber !== 3 && (
-                <div
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    backgroundColor: 'rgba(58, 58, 110, 0.06)',
-                    border: '1px solid rgba(58, 58, 110, 0.12)',
-                    padding: '3px 10px',
-                    borderRadius: 9999,
-                    fontSize: 11.5,
-                    color: '#3A3A6E'
-                  }}
-                >
-                  <span style={{ fontWeight: 600, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {currentPkg.name}
-                  </span>
-                  <span style={{ color: '#86868B' }}>•</span>
-                  <span style={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
-                    {getPackageFormattedPrice(currentPkg)}
-                  </span>
+              {/* Show selected package in plain Apple text only at Step 4 (Payment Verification) */}
+              {currentStepNumber === 4 && currentPkg && (
+                <div style={{ fontSize: 12.5, fontWeight: 600, color: '#3A3A6E', letterSpacing: '0.2px' }}>
+                  <span>{currentPkg.name}</span>
+                  <span style={{ margin: '0 6px', color: '#86868B' }}>•</span>
+                  <span>{getPackageFormattedPrice(currentPkg)}</span>
                 </div>
               )}
             </div>
@@ -761,46 +746,189 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 {/* Case A: User is Logged In */}
                 {isAuthenticated ? (
                   profiles && profiles.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      <select
-                        value={selectedProfileId}
-                        onChange={(e) => setSelectedProfileId(e.target.value)}
-                        className="apple-input"
-                        style={{ fontSize: 13.5 }}
-                      >
-                        {profiles.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.full_name} ({p.relation.toUpperCase()}) — Born {p.dob} in {p.pob}
-                          </option>
-                        ))}
-                      </select>
-
-                      <button
-                        type="button"
-                        onClick={handleAddFamilyMemberClick}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      <div
                         style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#3A3A6E',
-                          fontSize: 12.5,
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          textAlign: 'left',
                           display: 'flex',
-                          alignItems: 'center',
-                          gap: 5,
-                          padding: '2px 0'
+                          flexDirection: 'column',
+                          gap: 8,
+                          maxHeight: 280,
+                          overflowY: profiles.length > 2 ? 'auto' : 'visible',
+                          paddingRight: profiles.length > 2 ? 4 : 0
                         }}
                       >
-                        <Plus size={14} /> + Add another family member
-                      </button>
+                        {profiles.map((p) => {
+                          const isSelected = p.id === (selectedProfileId || profiles[0].id);
+                          const initials = p.full_name
+                            ? p.full_name
+                                .trim()
+                                .split(/\s+/)
+                                .map((n: string) => n[0])
+                                .slice(0, 2)
+                                .join('')
+                                .toUpperCase()
+                            : 'VP';
+                          const relationLabel = p.relation ? p.relation.toUpperCase() : 'SELF';
 
-                      {/* Warning notice if on non-family pack and trying to view family profiles */}
-                      {selectedPkgId !== 'pkg-family-360' && !user?.isFamilySubscriber && (
-                        <div style={{ fontSize: 11.5, color: '#86868B', marginTop: 2 }}>
-                          Note: Adding or analyzing additional family members switches to the Family 360 Plan.
-                        </div>
-                      )}
+                          return (
+                            <div
+                              key={p.id}
+                              role="button"
+                              tabIndex={0}
+                              aria-pressed={isSelected}
+                              onClick={() => setSelectedProfileId(p.id)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  setSelectedProfileId(p.id);
+                                }
+                              }}
+                              style={{
+                                border: isSelected ? '1.5px solid #3A3A6E' : '1px solid #E5E5EA',
+                                backgroundColor: isSelected ? '#FFFFFF' : '#FAFAFC',
+                                borderRadius: 16,
+                                padding: '12px 14px',
+                                cursor: 'pointer',
+                                boxShadow: isSelected ? '0 4px 14px rgba(58, 58, 110, 0.08)' : 'none',
+                                transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: 12
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                                <div
+                                  style={{
+                                    width: 40,
+                                    height: 40,
+                                    borderRadius: '50%',
+                                    background: isSelected
+                                      ? 'linear-gradient(135deg, #3A3A6E 0%, #4E4E80 100%)'
+                                      : '#EAEAEF',
+                                    color: isSelected ? '#FFFFFF' : '#6E6E73',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontWeight: 700,
+                                    fontSize: 13.5,
+                                    letterSpacing: 0.5,
+                                    flexShrink: 0
+                                  }}
+                                >
+                                  {initials}
+                                </div>
+
+                                <div style={{ minWidth: 0, flex: 1 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                    <span style={{ fontSize: 14.5, fontWeight: 600, color: '#1D1D1F' }}>
+                                      {p.full_name}
+                                    </span>
+                                    <span
+                                      style={{
+                                        fontSize: 11,
+                                        fontWeight: 700,
+                                        color: isSelected ? '#C9A24B' : '#86868B',
+                                        letterSpacing: 0.4
+                                      }}
+                                    >
+                                      {relationLabel}
+                                    </span>
+                                  </div>
+
+                                  <div
+                                    style={{
+                                      fontSize: 12,
+                                      color: '#6E6E73',
+                                      marginTop: 3,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: 6,
+                                      flexWrap: 'wrap'
+                                    }}
+                                  >
+                                    <span>Born: {p.dob}</span>
+                                    {p.tob && (
+                                      <>
+                                        <span style={{ color: '#C7C7CC' }}>•</span>
+                                        <span>{p.tob_uncertain ? 'Time: Approx' : p.tob}</span>
+                                      </>
+                                    )}
+                                    {p.pob && (
+                                      <>
+                                        <span style={{ color: '#C7C7CC' }}>•</span>
+                                        <span style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                          {p.pob}
+                                        </span>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+                                {isSelected ? (
+                                  <div
+                                    style={{
+                                      width: 22,
+                                      height: 22,
+                                      borderRadius: '50%',
+                                      backgroundColor: '#3A3A6E',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      color: '#FFFFFF'
+                                    }}
+                                  >
+                                    <CheckCircle2 size={16} />
+                                  </div>
+                                ) : (
+                                  <div
+                                    style={{
+                                      width: 22,
+                                      height: 22,
+                                      borderRadius: '50%',
+                                      border: '1.5px solid #D1D1D6'
+                                    }}
+                                  />
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4, flexWrap: 'wrap', gap: 8 }}>
+                        <button
+                          type="button"
+                          onClick={handleAddFamilyMemberClick}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#3A3A6E',
+                            fontSize: 13,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            padding: '4px 0',
+                            transition: 'opacity 0.15s ease'
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.7')}
+                          onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+                        >
+                          <Plus size={15} />
+                          <span>Add another family member</span>
+                        </button>
+
+                        {/* Warning notice if on non-family pack and trying to view family profiles */}
+                        {selectedPkgId !== 'pkg-family-360' && !user?.isFamilySubscriber && (
+                          <div style={{ fontSize: 11.5, color: '#86868B' }}>
+                            Adding family members switches to Family 360 Plan
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ) : (
                     <div>
@@ -1304,35 +1432,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 />
               </div>
 
-              {/* Selected package preview strip */}
-              {currentPkg && (
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '12px 16px',
-                    backgroundColor: 'rgba(58, 58, 110, 0.04)',
-                    borderRadius: 14,
-                    border: '1px solid rgba(58, 58, 110, 0.12)',
-                    gap: 12
-                  }}
-                >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, fontSize: 14, color: '#1D1D1F', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {currentPkg.name}
-                    </div>
-                    <div style={{ fontSize: 12, color: '#6E6E73', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {currentPkg.id === 'pkg-family-360' ? '1-Year Unlimited' : `${currentPkg.duration_minutes} min`}
-                      {currentPkg.followupDays > 0 ? ` · ${currentPkg.followupDays === 365 ? '365-day' : `${currentPkg.followupDays}-day`} follow-up chat included` : ''}
-                    </div>
-                  </div>
-                  <div style={{ fontWeight: 700, fontSize: 18, color: '#3A3A6E', flexShrink: 0, whiteSpace: 'nowrap', textAlign: 'right' }}>
-                    {getPackageFormattedPrice(currentPkg)}
-                  </div>
-                </div>
-              )}
-
               {/* Step 2 Action Buttons */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
                 <button
@@ -1434,72 +1533,84 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                       return (
                         <div
                           key={pkg.id}
+                          role="button"
+                          tabIndex={0}
+                          aria-pressed={isSelected}
                           onClick={() => setSelectedPkgId(pkg.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              setSelectedPkgId(pkg.id);
+                            }
+                          }}
                           style={{
                             border: isSelected ? '2px solid #3A3A6E' : '1px solid #E5E5EA',
-                            borderRadius: 14,
-                            padding: '12px 10px',
+                            borderRadius: 16,
+                            padding: '14px 12px',
                             cursor: 'pointer',
-                            backgroundColor: isSelected ? 'rgba(58, 58, 110, 0.05)' : '#FFFFFF',
-                            transition: 'all 0.15s ease',
-                            position: 'relative',
+                            backgroundColor: isSelected ? '#FFFFFF' : '#FAFAFC',
+                            boxShadow: isSelected ? '0 4px 14px rgba(58, 58, 110, 0.08)' : 'none',
+                            transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
                             display: 'flex',
                             flexDirection: 'column',
                             justifyContent: 'space-between',
-                            minHeight: 108
+                            minHeight: 118
                           }}
                         >
-                          {pkg.is_popular ? (
-                            <div
-                              style={{
-                                position: 'absolute',
-                                top: -8,
-                                right: 6,
-                                backgroundColor: '#C9A24B',
-                                color: '#FFFFFF',
-                                fontSize: 8.5,
-                                fontWeight: 700,
-                                padding: '2px 6px',
-                                borderRadius: 9999,
-                                textTransform: 'uppercase',
-                                letterSpacing: 0.3
-                              }}
-                            >
-                              Most Popular
-                            </div>
-                          ) : isFamily ? (
-                            <div
-                              style={{
-                                position: 'absolute',
-                                top: -8,
-                                right: 6,
-                                backgroundColor: '#1D1D1F',
-                                color: '#C9A24B',
-                                fontSize: 8.5,
-                                fontWeight: 700,
-                                padding: '2px 6px',
-                                borderRadius: 9999,
-                                textTransform: 'uppercase',
-                                letterSpacing: 0.3,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 3
-                              }}
-                            >
-                              <Crown size={9} /> VIP Annual
-                            </div>
-                          ) : null}
-
                           <div>
-                            <div style={{ fontWeight: 600, fontSize: 12.5, color: '#1D1D1F', lineHeight: 1.25 }}>
+                            {pkg.is_popular ? (
+                              <div
+                                style={{
+                                  fontSize: 10.5,
+                                  fontWeight: 700,
+                                  color: '#C9A24B',
+                                  textTransform: 'uppercase',
+                                  letterSpacing: 0.4,
+                                  marginBottom: 3
+                                }}
+                              >
+                                Most Popular
+                              </div>
+                            ) : isFamily ? (
+                              <div
+                                style={{
+                                  fontSize: 10.5,
+                                  fontWeight: 700,
+                                  color: '#C9A24B',
+                                  textTransform: 'uppercase',
+                                  letterSpacing: 0.4,
+                                  marginBottom: 3,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 3
+                                }}
+                              >
+                                <Crown size={11} /> VIP Annual
+                              </div>
+                            ) : (
+                              <div
+                                style={{
+                                  fontSize: 10.5,
+                                  fontWeight: 600,
+                                  color: '#86868B',
+                                  textTransform: 'uppercase',
+                                  letterSpacing: 0.4,
+                                  marginBottom: 3
+                                }}
+                              >
+                                {pkg.id === 'pkg-quick' ? '15-Min Quick' : '30-Min Session'}
+                              </div>
+                            )}
+
+                            <div style={{ fontWeight: 600, fontSize: 13, color: '#1D1D1F', lineHeight: 1.25 }}>
                               {pkg.name}
                             </div>
-                            <div style={{ fontSize: 15, fontWeight: 700, color: '#3A3A6E', margin: '4px 0 2px', whiteSpace: 'nowrap' }}>
+                            <div style={{ fontSize: 16, fontWeight: 700, color: '#3A3A6E', margin: '4px 0 2px', whiteSpace: 'nowrap' }}>
                               {getPackageFormattedPrice(pkg)}
                             </div>
                           </div>
 
-                          <div>
+                          <div style={{ marginTop: 8 }}>
                             <div style={{ fontSize: 11, color: '#6E6E73' }}>
                               {isFamily ? '1-Year Unlimited' : `${pkg.duration_minutes} Min`}
                             </div>
@@ -1547,11 +1658,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         {step === 'payment' && currentPkg && (
           <div className="fade-in">
             <div style={{ textAlign: 'center', marginBottom: 20 }}>
-              <span className="apple-badge-gold">Step 4 of 4: Manual UPI Verification</span>
-              <h2 className="text-h2" style={{ fontSize: 22, marginTop: 6, marginBottom: 4 }}>
+              <h2 className="text-h2" style={{ fontSize: 22, marginTop: 0, marginBottom: 4 }}>
                 Complete Consultation Payment
               </h2>
-              <p className="text-body" style={{ fontSize: 13.5 }}>
+              <p className="text-body" style={{ fontSize: 13.5, color: '#6E6E73' }}>
                 Scan the QR with any UPI app (GPay, PhonePe, Paytm) or transfer to the account below.
               </p>
             </div>

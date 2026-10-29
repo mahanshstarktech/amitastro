@@ -195,32 +195,33 @@ body {
   transform: scale(0.97);
 }
 
-/* Badges */
+/* Badges & Apple Eyebrow Text (Replaces ugly ovals with authentic Apple plain text) */
 .apple-badge-gold {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  background-color: var(--accent-warm-subtle);
-  color: #8E6A1C;
-  font-size: 12px;
+  gap: 6px;
+  background-color: transparent;
+  color: #B25E00;
+  font-size: 13px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 4px 10px;
-  border-radius: var(--radius-pill);
-  border: 1px solid rgba(201, 162, 75, 0.3);
+  letter-spacing: 0.02em;
+  padding: 0;
+  border: none;
+  border-radius: 0;
 }
 
 .apple-badge-primary {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  background-color: var(--accent-primary-subtle);
+  gap: 6px;
+  background-color: transparent;
   color: var(--accent-primary);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  padding: 4px 10px;
-  border-radius: var(--radius-pill);
+  letter-spacing: 0.02em;
+  padding: 0;
+  border: none;
+  border-radius: 0;
 }
 
 .apple-badge-success {
@@ -229,10 +230,11 @@ body {
   gap: 5px;
   background-color: var(--success-subtle);
   color: var(--success);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
-  padding: 4px 10px;
-  border-radius: var(--radius-pill);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(47, 168, 79, 0.2);
 }
 
 /* Inputs & Form Elements */

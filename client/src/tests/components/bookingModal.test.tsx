@@ -100,7 +100,7 @@ describe('BookingModal Component Tests', () => {
       </CountryProvider>
     );
 
-    const addFamilyBtn = screen.getByText(/\+ Add another family member/i);
+    const addFamilyBtn = screen.getByText(/Add another family member/i);
     expect(addFamilyBtn).toBeInTheDocument();
 
     await user.click(addFamilyBtn);
