@@ -275,22 +275,15 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     window.open(waUrl, '_blank', 'noopener,noreferrer');
   };
 
+  // Step 1 (Birth Profile) -> Step 2 (Schedule & Questions)
   const handleNextToStep2 = () => {
-    if (!currentPkg) {
-      showToast('Please select a consultation package to proceed', 'warning');
-      return;
-    }
-    setWizardStep(2);
-  };
-
-  const handleNextToStep3 = () => {
     if (isAuthenticated) {
       if (!selectedProfileId && (!profiles || profiles.length === 0)) {
         showToast('Please add or select a birth profile for chart analysis', 'warning');
         setShowAddProfile(true);
         return;
       }
-      setWizardStep(3);
+      setWizardStep(2);
       return;
     }
 
@@ -303,6 +296,19 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       } else {
         showToast('Please enter your place of birth (city, state, country)', 'warning');
       }
+      return;
+    }
+    setWizardStep(2);
+  };
+
+  // Step 2 (Schedule & Questions) -> Step 3 (Package Selection - right before payment)
+  const handleNextToStep3 = () => {
+    if (!selectedDate) {
+      showToast('Please select your preferred consultation date', 'warning');
+      return;
+    }
+    if (blackoutDates.includes(selectedDate)) {
+      showToast('Amit is unavailable on this selected date. Please choose another date.', 'warning');
       return;
     }
     setWizardStep(3);
@@ -385,6 +391,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
     if (blackoutDates.includes(selectedDate)) {
       showToast('Amit is unavailable on this selected date. Please choose another date.', 'warning');
+      setWizardStep(2);
       return;
     }
 
@@ -400,7 +407,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     if (isAuthenticated) {
       if (!selectedProfileId) {
         showToast('Please add or select a birth profile for chart analysis', 'error');
-        setWizardStep(2);
+        setWizardStep(1);
         setShowAddProfile(true);
         return;
       }
@@ -408,7 +415,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     } else {
       // Guest booking validation
       if (!guestProfile.fullName.trim() || !guestProfile.dob) {
-        setWizardStep(2);
+        setWizardStep(1);
         setIsGuestProfileExpanded(true);
         showToast('Please fill in your name and date of birth in your birth profile', 'error');
         return;
@@ -632,9 +639,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 10 }}
             >
               {[
-                { step: 1, label: 'Package' },
-                { step: 2, label: 'Profile' },
-                { step: 3, label: 'Schedule' },
+                { step: 1, label: 'Profile' },
+                { step: 2, label: 'Schedule' },
+                { step: 3, label: 'Package' },
                 { step: 4, label: 'Payment' }
               ].map((s) => {
                 const isDone = currentStepNumber > s.step;
@@ -698,15 +705,15 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </span>
                 <span style={{ color: '#C7C7CC', fontSize: 12 }}>•</span>
                 <span style={{ fontSize: 13, fontWeight: 600, color: '#1D1D1F', whiteSpace: 'nowrap' }}>
-                  {currentStepNumber === 1 && 'Select Package'}
-                  {currentStepNumber === 2 && 'Birth Profile'}
-                  {currentStepNumber === 3 && 'Schedule & Questions'}
+                  {currentStepNumber === 1 && 'Birth Profile'}
+                  {currentStepNumber === 2 && 'Schedule & Questions'}
+                  {currentStepNumber === 3 && 'Select Package'}
                   {currentStepNumber === 4 && 'Payment Verification'}
                 </span>
               </div>
 
-              {/* Only show selected package badge on subsequent steps (2 & 3) */}
-              {currentPkg && currentStepNumber > 1 && currentStepNumber < 4 && (
+              {/* Show selected package badge on steps when not on the package selection step itself */}
+              {currentPkg && currentStepNumber !== 3 && (
                 <div
                   style={{
                     display: 'inline-flex',
@@ -733,199 +740,17 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           </div>
         )}
 
-        {/* STEP 1: SELECT CONSULTATION PACKAGE */}
+        {/* STEP 1: BIRTH PROFILE DETAILS */}
         {step === 'details' && wizardStep === 1 && (
           <div className="fade-in">
             <div style={{ marginBottom: 16 }}>
               <h2 className="text-h2" style={{ fontSize: 22, marginTop: 0, marginBottom: 4 }}>
-                Select Consultation Package
+                Birth Profile Details
               </h2>
               <p className="text-body" style={{ fontSize: 13, color: '#6E6E73' }}>
-                Detected timezone: <strong>{userTimezone}</strong> (Internal schedule managed in IST).
+                Provide exact birth details for Vedic planetary calculation and horoscope analysis.
               </p>
             </div>
-
-            {user?.isFamilySubscriber && (
-              <div
-                style={{
-                  background: 'linear-gradient(135deg, rgba(201, 162, 75, 0.14), rgba(201, 162, 75, 0.04))',
-                  border: '1.5px solid rgba(201, 162, 75, 0.4)',
-                  borderRadius: 14,
-                  padding: '12px 16px',
-                  marginBottom: 16,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12
-                }}
-              >
-                <div
-                  style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: 10,
-                    backgroundColor: '#C9A24B',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#FFF',
-                    flexShrink: 0
-                  }}
-                >
-                  <Crown size={18} />
-                </div>
-                <div style={{ fontSize: 13, color: '#1D1D1F' }}>
-                  <strong>Family 360 Plan Active:</strong> Consultations for you and your family are <strong>100% complimentary ($0 / ₹0)</strong> with instant auto-confirmation under your annual subscription.
-                </div>
-              </div>
-            )}
-
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <label style={{ fontSize: 13, fontWeight: 600, color: '#1D1D1F' }}>
-                  Choose a Consultation Package
-                </label>
-                <span style={{ fontSize: 11.5, color: '#86868B' }}>4 consultation options</span>
-              </div>
-
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(125px, 1fr))',
-                    gap: 10
-                  }}
-                >
-                  {packages
-                    .filter((pkg) => !pkg.is_trial)
-                    .map((pkg) => {
-                      const isSelected = selectedPkgId === pkg.id;
-                      const isFamily = pkg.id === 'pkg-family-360';
-                      return (
-                        <div
-                          key={pkg.id}
-                          onClick={() => setSelectedPkgId(pkg.id)}
-                          style={{
-                            border: isSelected ? '2px solid #3A3A6E' : '1px solid #E5E5EA',
-                            borderRadius: 14,
-                            padding: '12px 10px',
-                            cursor: 'pointer',
-                            backgroundColor: isSelected ? 'rgba(58, 58, 110, 0.05)' : '#FFFFFF',
-                            transition: 'all 0.15s ease',
-                            position: 'relative',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            justifyContent: 'space-between',
-                            minHeight: 108
-                          }}
-                        >
-                          {pkg.is_popular ? (
-                            <div
-                              style={{
-                                position: 'absolute',
-                                top: -8,
-                                right: 6,
-                                backgroundColor: '#C9A24B',
-                                color: '#FFFFFF',
-                                fontSize: 8.5,
-                                fontWeight: 700,
-                                padding: '2px 6px',
-                                borderRadius: 9999,
-                                textTransform: 'uppercase',
-                                letterSpacing: 0.3
-                              }}
-                            >
-                              Most Popular
-                            </div>
-                          ) : isFamily ? (
-                            <div
-                              style={{
-                                position: 'absolute',
-                                top: -8,
-                                right: 6,
-                                backgroundColor: '#1D1D1F',
-                                color: '#C9A24B',
-                                fontSize: 8.5,
-                                fontWeight: 700,
-                                padding: '2px 6px',
-                                borderRadius: 9999,
-                                textTransform: 'uppercase',
-                                letterSpacing: 0.3,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 3
-                              }}
-                            >
-                              <Crown size={9} /> VIP Annual
-                            </div>
-                          ) : null}
-
-                          <div>
-                            <div style={{ fontWeight: 600, fontSize: 12.5, color: '#1D1D1F', lineHeight: 1.25 }}>
-                              {pkg.name}
-                            </div>
-                            <div style={{ fontSize: 15, fontWeight: 700, color: '#3A3A6E', margin: '4px 0 2px', whiteSpace: 'nowrap' }}>
-                              {getPackageFormattedPrice(pkg)}
-                            </div>
-                          </div>
-
-                          <div>
-                            <div style={{ fontSize: 11, color: '#6E6E73' }}>
-                              {isFamily ? '1-Year Unlimited' : `${pkg.duration_minutes} Min`}
-                            </div>
-                            {pkg.followupDays > 0 && (
-                              <div style={{ fontSize: 9.5, color: '#2FA84F', marginTop: 2, fontWeight: 500 }}>
-                                + {pkg.followupDays === 365 ? '365-day' : `${pkg.followupDays}-day`} follow-up chat
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                </div>
-              </div>
-
-              {/* Step 1 Action Buttons */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 22 }}>
-                <button
-                  type="button"
-                  onClick={handleNextToStep2}
-                  className="apple-btn-primary"
-                  style={{
-                    padding: '14px',
-                    fontSize: 15,
-                    width: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 8,
-                    borderRadius: 14
-                  }}
-                >
-                  <span>Continue to Birth Profile</span>
-                  <ChevronRight size={18} />
-                </button>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '2px 0' }}>
-                  <div style={{ flex: 1, height: 1, backgroundColor: '#E5E5EA' }} />
-                  <span style={{ fontSize: 11.5, color: '#86868B', textTransform: 'uppercase', letterSpacing: 0.5 }}>or</span>
-                  <div style={{ flex: 1, height: 1, backgroundColor: '#E5E5EA' }} />
-                </div>
-
-                {renderWhatsAppButton()}
-              </div>
-            </div>
-          )}
-
-          {/* STEP 2: BIRTH PROFILE DETAILS */}
-          {step === 'details' && wizardStep === 2 && (
-            <div className="fade-in">
-              <div style={{ marginBottom: 16 }}>
-                <h2 className="text-h2" style={{ fontSize: 22, marginTop: 0, marginBottom: 4 }}>
-                  Birth Profile Details
-                </h2>
-                <p className="text-body" style={{ fontSize: 13, color: '#6E6E73' }}>
-                  Provide exact birth details for Vedic planetary calculation and horoscope analysis.
-                </p>
-              </div>
 
               {/* BIRTH PROFILE SELECTION / ENTRY */}
               <div>
@@ -1378,11 +1203,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 )}
               </div>
 
-              {/* Step 2 Action Buttons */}
+              {/* Step 1 Action Buttons */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 22 }}>
                 <button
                   type="button"
-                  onClick={handleNextToStep3}
+                  onClick={handleNextToStep2}
                   className="apple-btn-primary"
                   style={{
                     padding: '14px',
@@ -1410,9 +1235,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             </div>
           )}
 
-          {/* STEP 3: SCHEDULE & QUESTIONS */}
-          {step === 'details' && wizardStep === 3 && (
-            <form onSubmit={handleSubmitRequest} className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          {/* STEP 2: SCHEDULE & QUESTIONS */}
+          {step === 'details' && wizardStep === 2 && (
+            <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
               <div>
                 <h2 className="text-h2" style={{ fontSize: 22, marginTop: 0, marginBottom: 4 }}>
                   Choose Date & Time Window
@@ -1422,11 +1247,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </p>
               </div>
 
-              {/* 3. DATE & PREFERRED TIME WINDOW */}
+              {/* DATE & PREFERRED TIME WINDOW */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#1D1D1F', marginBottom: 6 }}>
-                    3. Date (Next 6 Weeks)
+                    Preferred Date (Next 6 Weeks)
                   </label>
                   <input
                     type="date"
@@ -1464,10 +1289,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </div>
               </div>
 
-              {/* 4. TOPICS OR QUESTIONS FOR DISCUSSION (Renumbered after consultation mode removal) */}
+              {/* TOPICS OR QUESTIONS FOR DISCUSSION */}
               <div>
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#1D1D1F', marginBottom: 6 }}>
-                  4. Topics or Questions for Discussion
+                  Topics or Questions for Discussion
                 </label>
                 <textarea
                   rows={3}
@@ -1479,7 +1304,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 />
               </div>
 
-              {/* Selected package summary strip */}
+              {/* Selected package preview strip */}
               {currentPkg && (
                 <div
                   style={{
@@ -1508,13 +1333,195 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </div>
               )}
 
-              {/* Action Buttons: Proceed to Payment + Consult on WhatsApp */}
+              {/* Step 2 Action Buttons */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
+                <button
+                  type="button"
+                  onClick={handleNextToStep3}
+                  className="apple-btn-primary"
+                  style={{
+                    padding: '14px',
+                    fontSize: 15,
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    borderRadius: 14
+                  }}
+                >
+                  <span>Continue to Select Package</span>
+                  <ChevronRight size={18} />
+                </button>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '2px 0' }}>
+                  <div style={{ flex: 1, height: 1, backgroundColor: '#E5E5EA' }} />
+                  <span style={{ fontSize: 11.5, color: '#86868B', textTransform: 'uppercase', letterSpacing: 0.5 }}>or</span>
+                  <div style={{ flex: 1, height: 1, backgroundColor: '#E5E5EA' }} />
+                </div>
+
+                {renderWhatsAppButton()}
+              </div>
+            </div>
+          )}
+
+          {/* STEP 3: SELECT CONSULTATION PACKAGE (Shifted right before payment step) */}
+          {step === 'details' && wizardStep === 3 && (
+            <div className="fade-in">
+              <div style={{ marginBottom: 16 }}>
+                <h2 className="text-h2" style={{ fontSize: 22, marginTop: 0, marginBottom: 4 }}>
+                  Select Consultation Package
+                </h2>
+                <p className="text-body" style={{ fontSize: 13, color: '#6E6E73' }}>
+                  Detected timezone: <strong>{userTimezone}</strong> (Internal schedule managed in IST).
+                </p>
+              </div>
+
+              {user?.isFamilySubscriber && (
+                <div
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(201, 162, 75, 0.14), rgba(201, 162, 75, 0.04))',
+                    border: '1.5px solid rgba(201, 162, 75, 0.4)',
+                    borderRadius: 14,
+                    padding: '12px 16px',
+                    marginBottom: 16,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: 10,
+                      backgroundColor: '#C9A24B',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#FFF',
+                      flexShrink: 0
+                    }}
+                  >
+                    <Crown size={18} />
+                  </div>
+                  <div style={{ fontSize: 13, color: '#1D1D1F' }}>
+                    <strong>Family 360 Plan Active:</strong> Consultations for you and your family are <strong>100% complimentary ($0 / ₹0)</strong> with instant auto-confirmation under your annual subscription.
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: '#1D1D1F' }}>
+                    Choose a Consultation Package
+                  </label>
+                  <span style={{ fontSize: 11.5, color: '#86868B' }}>4 consultation options</span>
+                </div>
+
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(125px, 1fr))',
+                    gap: 10
+                  }}
+                >
+                  {packages
+                    .filter((pkg) => !pkg.is_trial)
+                    .map((pkg) => {
+                      const isSelected = selectedPkgId === pkg.id;
+                      const isFamily = pkg.id === 'pkg-family-360';
+                      return (
+                        <div
+                          key={pkg.id}
+                          onClick={() => setSelectedPkgId(pkg.id)}
+                          style={{
+                            border: isSelected ? '2px solid #3A3A6E' : '1px solid #E5E5EA',
+                            borderRadius: 14,
+                            padding: '12px 10px',
+                            cursor: 'pointer',
+                            backgroundColor: isSelected ? 'rgba(58, 58, 110, 0.05)' : '#FFFFFF',
+                            transition: 'all 0.15s ease',
+                            position: 'relative',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between',
+                            minHeight: 108
+                          }}
+                        >
+                          {pkg.is_popular ? (
+                            <div
+                              style={{
+                                position: 'absolute',
+                                top: -8,
+                                right: 6,
+                                backgroundColor: '#C9A24B',
+                                color: '#FFFFFF',
+                                fontSize: 8.5,
+                                fontWeight: 700,
+                                padding: '2px 6px',
+                                borderRadius: 9999,
+                                textTransform: 'uppercase',
+                                letterSpacing: 0.3
+                              }}
+                            >
+                              Most Popular
+                            </div>
+                          ) : isFamily ? (
+                            <div
+                              style={{
+                                position: 'absolute',
+                                top: -8,
+                                right: 6,
+                                backgroundColor: '#1D1D1F',
+                                color: '#C9A24B',
+                                fontSize: 8.5,
+                                fontWeight: 700,
+                                padding: '2px 6px',
+                                borderRadius: 9999,
+                                textTransform: 'uppercase',
+                                letterSpacing: 0.3,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 3
+                              }}
+                            >
+                              <Crown size={9} /> VIP Annual
+                            </div>
+                          ) : null}
+
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: 12.5, color: '#1D1D1F', lineHeight: 1.25 }}>
+                              {pkg.name}
+                            </div>
+                            <div style={{ fontSize: 15, fontWeight: 700, color: '#3A3A6E', margin: '4px 0 2px', whiteSpace: 'nowrap' }}>
+                              {getPackageFormattedPrice(pkg)}
+                            </div>
+                          </div>
+
+                          <div>
+                            <div style={{ fontSize: 11, color: '#6E6E73' }}>
+                              {isFamily ? '1-Year Unlimited' : `${pkg.duration_minutes} Min`}
+                            </div>
+                            {pkg.followupDays > 0 && (
+                              <div style={{ fontSize: 9.5, color: '#2FA84F', marginTop: 2, fontWeight: 500 }}>
+                                + {pkg.followupDays === 365 ? '365-day' : `${pkg.followupDays}-day`} follow-up chat
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+
+              {/* Action Buttons: Proceed to Payment / Confirm Complimentary + WhatsApp */}
+              <form onSubmit={handleSubmitRequest} style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 22 }}>
                 <button
                   type="submit"
                   disabled={isLoading || !currentPkg}
                   className="apple-btn-primary"
-                  style={{ padding: '14px', fontSize: 15, width: '100%' }}
+                  style={{ padding: '14px', fontSize: 15, width: '100%', borderRadius: 14 }}
                 >
                   {isLoading
                     ? 'Scheduling...'
@@ -1532,8 +1539,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </div>
 
                 {renderWhatsAppButton()}
-              </div>
-            </form>
+              </form>
+            </div>
           )}
 
         {/* STEP 4: MANUAL UPI PAYMENT */}

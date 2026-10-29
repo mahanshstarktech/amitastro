@@ -63,7 +63,7 @@ describe('BookingModal Component Tests', () => {
     render(
       <CountryProvider>
         <NotificationProvider>
-          <BookingModal isOpen={true} onClose={vi.fn()} />
+          <BookingModal isOpen={true} onClose={vi.fn()} initialStep={3} />
         </NotificationProvider>
       </CountryProvider>
     );
@@ -78,7 +78,7 @@ describe('BookingModal Component Tests', () => {
     render(
       <CountryProvider>
         <NotificationProvider>
-          <BookingModal isOpen={true} onClose={vi.fn()} initialStep={3} />
+          <BookingModal isOpen={true} onClose={vi.fn()} initialStep={2} />
         </NotificationProvider>
       </CountryProvider>
     );
@@ -87,7 +87,7 @@ describe('BookingModal Component Tests', () => {
     expect(screen.queryByText('Phone Call')).toBeNull();
     expect(screen.queryByText('In-App Chat')).toBeNull();
     // Verify point 4 is now Topics or Questions for Discussion
-    expect(screen.getByText(/4\. Topics or Questions for Discussion/i)).toBeInTheDocument();
+    expect(screen.getByText(/Topics or Questions for Discussion/i)).toBeInTheDocument();
   });
 
   it('automatically switches package to Family 360 when clicking "+ Add another family member"', async () => {
@@ -95,7 +95,7 @@ describe('BookingModal Component Tests', () => {
     render(
       <CountryProvider>
         <NotificationProvider>
-          <BookingModal isOpen={true} onClose={vi.fn()} preselectedPackageId="pkg-quick" initialStep={2} />
+          <BookingModal isOpen={true} onClose={vi.fn()} preselectedPackageId="pkg-quick" initialStep={1} />
         </NotificationProvider>
       </CountryProvider>
     );
@@ -142,20 +142,22 @@ describe('BookingModal Component Tests', () => {
     expect(targetUrl).toContain('https://api.whatsapp.com/send?phone=919983353533');
     expect(decodeURIComponent(targetUrl)).toContain('Namaste Amit Ji');
     expect(decodeURIComponent(targetUrl)).toContain('Mahansh Gaur');
-    // At Step 1, unreached step 2 & 3 fields are omitted
-    expect(decodeURIComponent(targetUrl)).toContain('Step 1 - Package Selection');
+    // Forwards birth chart coordinates & package details
+    expect(decodeURIComponent(targetUrl)).toContain('Birth Chart Coordinates');
+    expect(decodeURIComponent(targetUrl)).toContain('Consultation Package');
+    // At Step 1, unreached step 2 schedule fields are omitted
     expect(decodeURIComponent(targetUrl)).not.toContain('Preferred Date');
-    expect(decodeURIComponent(targetUrl)).not.toContain('Questions / Topics');
+    expect(decodeURIComponent(targetUrl)).not.toContain('Topics / Questions for Discussion');
   });
 
-  it('Step 3: omits "Questions / Topics" line when customer notes are left blank', async () => {
+  it('Step 2: omits "Questions / Topics" line when customer notes are left blank', async () => {
     const user = userEvent.setup();
     const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
 
     render(
       <CountryProvider>
         <NotificationProvider>
-          <BookingModal isOpen={true} onClose={vi.fn()} initialStep={3} />
+          <BookingModal isOpen={true} onClose={vi.fn()} initialStep={2} />
         </NotificationProvider>
       </CountryProvider>
     );
@@ -166,24 +168,23 @@ describe('BookingModal Component Tests', () => {
     expect(windowOpenSpy).toHaveBeenCalled();
     const targetUrl = windowOpenSpy.mock.calls[0][0] as string;
     const decoded = decodeURIComponent(targetUrl);
-    expect(decoded).toContain('Step 3 - Schedule & Questions');
     expect(decoded).toContain('Preferred Date');
-    expect(decoded).not.toContain('Questions / Topics');
+    expect(decoded).not.toContain('Topics / Questions for Discussion');
   });
 
-  it('Step 3: includes "Questions / Topics" line when customer notes are provided', async () => {
+  it('Step 2: includes "Questions / Topics" line when customer notes are provided', async () => {
     const user = userEvent.setup();
     const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
 
     render(
       <CountryProvider>
         <NotificationProvider>
-          <BookingModal isOpen={true} onClose={vi.fn()} initialStep={3} />
+          <BookingModal isOpen={true} onClose={vi.fn()} initialStep={2} />
         </NotificationProvider>
       </CountryProvider>
     );
 
-    // Enter notes in Step 3 textarea
+    // Enter notes in Step 2 textarea
     const notesInput = screen.getByPlaceholderText(/Seeking clarity on career growth/i);
     await user.type(notesInput, 'Career promotion and overseas travel timeline');
 
@@ -193,7 +194,7 @@ describe('BookingModal Component Tests', () => {
     expect(windowOpenSpy).toHaveBeenCalled();
     const targetUrl = windowOpenSpy.mock.calls[0][0] as string;
     const decoded = decodeURIComponent(targetUrl);
-    expect(decoded).toContain('Step 3 - Schedule & Questions');
+    expect(decoded).toContain('Preferred Date');
     expect(decoded).toContain('Career promotion and overseas travel timeline');
   });
 
@@ -204,7 +205,7 @@ describe('BookingModal Component Tests', () => {
     render(
       <CountryProvider>
         <NotificationProvider>
-          <BookingModal isOpen={true} onClose={vi.fn()} onOpenAuth={vi.fn()} initialStep={2} />
+          <BookingModal isOpen={true} onClose={vi.fn()} onOpenAuth={vi.fn()} initialStep={1} />
         </NotificationProvider>
       </CountryProvider>
     );
@@ -234,24 +235,25 @@ describe('BookingModal Component Tests', () => {
       </CountryProvider>
     );
 
-    // Initial state: Step 1
+    // Initial state: Step 1 (Birth Profile)
     expect(screen.getByText(/Step 1 of 4/i)).toBeInTheDocument();
-    expect(screen.getByText(/Select Package/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Birth Profile/i).length).toBeGreaterThan(0);
     expect(screen.queryByLabelText(/Go to previous step/i)).toBeNull();
 
-    // Click Continue to Birth Profile
-    const nextBtn = screen.getByRole('button', { name: /Continue to Birth Profile/i });
+    // Click Continue to Schedule & Questions
+    const nextBtn = screen.getByRole('button', { name: /Continue to Schedule & Questions/i });
     await user.click(nextBtn);
 
     // Reaches Step 2 and displays Back button
     expect(screen.getByText(/Step 2 of 4/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/Birth Profile/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Schedule & Questions/i)).toBeInTheDocument();
     const backBtn = screen.getByLabelText(/Go to previous step/i);
     expect(backBtn).toBeInTheDocument();
 
     // Click Back button to return to Step 1
     await user.click(backBtn);
     expect(screen.getByText(/Step 1 of 4/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Birth Profile/i).length).toBeGreaterThan(0);
   });
 
   it('allows jumping back to completed steps via step progress bar tabs', async () => {
@@ -265,14 +267,14 @@ describe('BookingModal Component Tests', () => {
     );
 
     expect(screen.getByText(/Step 3 of 4/i)).toBeInTheDocument();
-    expect(screen.getByText(/Schedule & Questions/i)).toBeInTheDocument();
+    expect(screen.getByText(/Select Package/i)).toBeInTheDocument();
 
     // Step 1 tab is clickable since it is prior to current step
-    const step1Tab = screen.getByRole('tab', { name: /Step 1: Package/i });
+    const step1Tab = screen.getByRole('tab', { name: /Step 1: Profile/i });
     expect(step1Tab).not.toBeDisabled();
 
     await user.click(step1Tab);
     expect(screen.getByText(/Step 1 of 4/i)).toBeInTheDocument();
-    expect(screen.getByText(/Select Package/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Birth Profile/i).length).toBeGreaterThan(0);
   });
 });

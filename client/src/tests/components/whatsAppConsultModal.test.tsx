@@ -66,7 +66,7 @@ describe('WhatsApp Consult Utility & Modal Tests', () => {
     });
   });
 
-  describe('Step-Aware Booking WhatsApp Message Builder (Dynamic Last-Edited Info)', () => {
+  describe('Step-Aware Booking WhatsApp Message Builder (Forwarding Maximum Info & Dynamic Append)', () => {
     const samplePackage = {
       id: 'pkg-premium',
       name: 'Premium Deep Consult',
@@ -74,56 +74,64 @@ describe('WhatsApp Consult Utility & Modal Tests', () => {
       durationMinutes: 60
     };
 
-    it('Step 1: includes selected package and price, but omits unreached birth & schedule details', () => {
+    it('Step 1 (Logged-in): carries forward all available account details, birth coordinates, and package', () => {
       const msg = buildBookingWhatsAppMessage({
         step: 'details',
         wizardStep: 1,
         currentPkg: samplePackage,
         formattedPrice: '₹5,100',
-        user: { id: 'u1', name: 'Aarav Gupta', phone: '9876500000', email: 'aarav@example.com' } as any
+        user: { id: 'u1', name: 'Aarav Gupta', phone: '9876500000', email: 'aarav@example.com' } as any,
+        profile: {
+          id: 'p1',
+          full_name: 'Aarav Gupta',
+          dob: '1990-05-12',
+          tob: '08:30 AM',
+          pob: 'Jaipur, Rajasthan, India'
+        } as any
       });
 
       expect(msg).toContain('Namaste Amit Ji');
-      expect(msg).toContain('Step 1 - Package Selection');
-      expect(msg).toContain('• *Selected Package:* Premium Deep Consult (₹5,100)');
+      // Forwards Account Details
       expect(msg).toContain('• *Name:* Aarav Gupta');
       expect(msg).toContain('• *Phone:* +91 9876500000');
-      // Must NOT contain unreached step 2 or step 3 fields
-      expect(msg).not.toContain('Date of Birth');
+      expect(msg).toContain('• *Email:* aarav@example.com');
+      // Forwards Birth Chart Coordinates
+      expect(msg).toContain('• *Date of Birth:* 1990-05-12');
+      expect(msg).toContain('• *Time of Birth:* 08:30 AM');
+      expect(msg).toContain('• *Place of Birth:* Jaipur, Rajasthan, India');
+      // Forwards Package
+      expect(msg).toContain('• *Selected Package:* Premium Deep Consult (₹5,100)');
+      // Schedule not yet selected at Step 1
       expect(msg).not.toContain('Preferred Date');
-      expect(msg).not.toContain('Questions / Topics');
+      expect(msg).not.toContain('Topics / Questions');
     });
 
-    it('Step 2: includes package and only filled birth coordinates, omitting schedule & discussion', () => {
+    it('Step 1 (Guest): forwards whatever guest birth details entered so far + package', () => {
       const msg = buildBookingWhatsAppMessage({
         step: 'details',
-        wizardStep: 2,
+        wizardStep: 1,
         currentPkg: samplePackage,
         formattedPrice: '₹5,100',
         guestProfile: {
           fullName: 'Kavita Roy',
           dob: '1996-08-20',
           pob: 'Varanasi, UP, India'
-          // note: tob and phone left unfilled
         }
       });
 
-      expect(msg).toContain('Step 2 - Birth Profile');
       expect(msg).toContain('• *Selected Package:* Premium Deep Consult (₹5,100)');
-      expect(msg).toContain('• *Name:* Kavita Roy');
+      expect(msg).toContain('• *Full Name:* Kavita Roy');
       expect(msg).toContain('• *Date of Birth:* 1996-08-20');
       expect(msg).toContain('• *Place of Birth:* Varanasi, UP, India');
       // Unfilled coordinates should not appear
       expect(msg).not.toContain('Time of Birth');
-      // Step 3 schedule & discussion must NOT appear
       expect(msg).not.toContain('Preferred Date');
-      expect(msg).not.toContain('Questions / Topics');
     });
 
-    it('Step 3: includes schedule and DOES NOT add "Topics or Questions" if user left it blank', () => {
+    it('Step 2 (Schedule): appends schedule and DOES NOT add "Topics or Questions" if user left it blank', () => {
       const msg = buildBookingWhatsAppMessage({
         step: 'details',
-        wizardStep: 3,
+        wizardStep: 2,
         currentPkg: samplePackage,
         formattedPrice: '₹5,100',
         profile: {
@@ -138,20 +146,19 @@ describe('WhatsApp Consult Utility & Modal Tests', () => {
         customerNotes: '' // User did not fill discussion topics
       });
 
-      expect(msg).toContain('Step 3 - Schedule & Questions');
       expect(msg).toContain('• *Selected Package:* Premium Deep Consult (₹5,100)');
-      expect(msg).toContain('• *Name:* Harsh Tenguriya');
+      expect(msg).toContain('• *Full Name:* Harsh Tenguriya');
       expect(msg).toContain('• *Date of Birth:* 1995-10-15');
       expect(msg).toContain('• *Preferred Date:* 2026-11-02');
       expect(msg).toContain('• *Preferred Time:* 02:00 PM - 04:00 PM');
       // Crucial requirement: omitted when empty!
-      expect(msg).not.toContain('Questions / Topics');
+      expect(msg).not.toContain('Topics / Questions for Discussion');
     });
 
-    it('Step 3: includes "Topics or Questions" when user entered questions', () => {
+    it('Step 2 (Schedule): appends "Topics / Questions" when user entered questions', () => {
       const msg = buildBookingWhatsAppMessage({
         step: 'details',
-        wizardStep: 3,
+        wizardStep: 2,
         currentPkg: samplePackage,
         formattedPrice: '₹5,100',
         profile: {
@@ -166,8 +173,32 @@ describe('WhatsApp Consult Utility & Modal Tests', () => {
         customerNotes: 'Query regarding career switch and Rahu Mahadasha remedies.'
       });
 
-      expect(msg).toContain('Step 3 - Schedule & Questions');
-      expect(msg).toContain('• *Questions / Topics:* Query regarding career switch and Rahu Mahadasha remedies.');
+      expect(msg).toContain('• *Preferred Date:* 2026-11-02');
+      expect(msg).toContain('💬 *Topics / Questions for Discussion:*');
+      expect(msg).toContain('Query regarding career switch and Rahu Mahadasha remedies.');
+    });
+
+    it('Step 3 (Package right before payment): forwards all previous details plus selected package', () => {
+      const msg = buildBookingWhatsAppMessage({
+        step: 'details',
+        wizardStep: 3,
+        currentPkg: samplePackage,
+        formattedPrice: '₹5,100',
+        user: { name: 'Harsh', phone: '9988776655' } as any,
+        profile: {
+          full_name: 'Harsh',
+          dob: '1995-10-15'
+        } as any,
+        selectedDate: '2026-11-02',
+        selectedWindow: '02:00 PM - 04:00 PM',
+        customerNotes: 'Career questions'
+      });
+
+      expect(msg).toContain('• *Selected Package:* Premium Deep Consult (₹5,100)');
+      expect(msg).toContain('• *Name:* Harsh');
+      expect(msg).toContain('• *Date of Birth:* 1995-10-15');
+      expect(msg).toContain('• *Preferred Date:* 2026-11-02');
+      expect(msg).toContain('Career questions');
     });
 
     it('Step 4: includes payment reference / UTR when entered at payment step', () => {
@@ -182,8 +213,8 @@ describe('WhatsApp Consult Utility & Modal Tests', () => {
         utr: 'UTR492817290192'
       });
 
-      expect(msg).toContain('Step 4 - Payment');
-      expect(msg).toContain('• *Payment Ref / UTR:* UTR492817290192');
+      expect(msg).toContain('💳 *Payment Reference:*');
+      expect(msg).toContain('• *UTR / Ref No:* UTR492817290192');
     });
   });
 

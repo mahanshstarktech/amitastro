@@ -47,6 +47,8 @@ export interface BookingWhatsAppOptions {
 /**
  * Builds a step-aware WhatsApp consultation message based on exactly what details
  * the user has entered up to their current booking step.
+ * Forwards maximum available details (account coordinates, birth chart, package, schedule)
+ * and appends new details as seeker progresses through the booking steps.
  */
 export function buildBookingWhatsAppMessage(options: BookingWhatsAppOptions): string {
   const {
@@ -66,11 +68,20 @@ export function buildBookingWhatsAppMessage(options: BookingWhatsAppOptions): st
     createdApptId
   } = options;
 
+  // New step sequence:
+  // Step 1: Birth Profile Details
+  // Step 2: Schedule & Questions
+  // Step 3: Package Selection (shifted right before payment)
+  // Step 4: Payment Verification
+  // Step 5: Success
   const currentStepNumber = step === 'payment' ? 4 : step === 'success' ? 5 : wizardStep;
 
-  // Resolve contact & birth details based on authenticated profile or guest input
+  // Resolve contact details
   let name = '';
   let phone = '';
+  let email = user?.email || '';
+
+  // Resolve birth details
   let dob = '';
   let tob = '';
   let pob = '';
@@ -99,170 +110,98 @@ export function buildBookingWhatsAppMessage(options: BookingWhatsAppOptions): st
     pob = (guestProfile.pob || '').trim();
   }
 
-  // Fallbacks from user object if authenticated
+  // Account fallbacks for authenticated seeker
   if (!name && user?.name) name = user.name;
   if (!phone && user?.phone) phone = user.phone;
 
   const pkgPriceDisplay = formattedPrice || (currentPkg ? (currentPkg.price === 0 ? 'Complimentary' : `₹${currentPkg.price}`) : '');
 
-  const lines: string[] = ['Namaste Amit Ji 🙏'];
-
-  // STEP 1: Package Selection
-  if (currentStepNumber === 1) {
-    lines.push(
-      'I was booking a consultation on your website (amitastro.com) and would like to continue over WhatsApp.',
-      '',
-      '📋 *My Consultation Details (Step 1 - Package Selection):*'
-    );
-
-    if (currentPkg) {
-      lines.push(`• *Selected Package:* ${currentPkg.name}${pkgPriceDisplay ? ` (${pkgPriceDisplay})` : ''}`);
-    }
-    if (name) {
-      lines.push(`• *Name:* ${name}`);
-    }
-    if (phone) {
-      lines.push(`• *Phone:* ${phone.startsWith('+') ? phone : `+91 ${phone}`}`);
-    }
-    if (user?.email) {
-      lines.push(`• *Email:* ${user.email}`);
-    }
-
-    lines.push('', 'Kindly guide me on the next steps to proceed. Pranam!');
-    return lines.join('\n');
-  }
-
-  // STEP 2: Birth Profile Details
-  if (currentStepNumber === 2) {
-    lines.push(
-      'I was booking a consultation on your website (amitastro.com) and would like to continue over WhatsApp.',
-      '',
-      '📋 *My Consultation Details (Step 2 - Birth Profile):*'
-    );
-
-    if (currentPkg) {
-      lines.push(`• *Selected Package:* ${currentPkg.name}${pkgPriceDisplay ? ` (${pkgPriceDisplay})` : ''}`);
-    }
-    if (name) {
-      lines.push(`• *Name:* ${name}`);
-    }
-    if (phone) {
-      lines.push(`• *Phone:* ${phone.startsWith('+') ? phone : `+91 ${phone}`}`);
-    }
-    if (dob) {
-      lines.push(`• *Date of Birth:* ${dob}`);
-    }
-    if (tob) {
-      lines.push(`• *Time of Birth:* ${tob}`);
-    }
-    if (pob) {
-      lines.push(`• *Place of Birth:* ${pob}`);
-    }
-
-    lines.push('', 'Kindly guide me on available consultation slots for this chart. Pranam!');
-    return lines.join('\n');
-  }
-
-  // STEP 3: Schedule & Discussion Topics
-  if (currentStepNumber === 3) {
-    lines.push(
-      'I was booking a consultation on your website (amitastro.com) and would like to continue over WhatsApp.',
-      '',
-      '📋 *My Consultation Details (Step 3 - Schedule & Questions):*'
-    );
-
-    if (currentPkg) {
-      lines.push(`• *Selected Package:* ${currentPkg.name}${pkgPriceDisplay ? ` (${pkgPriceDisplay})` : ''}`);
-    }
-    if (name) {
-      lines.push(`• *Name:* ${name}`);
-    }
-    if (phone) {
-      lines.push(`• *Phone:* ${phone.startsWith('+') ? phone : `+91 ${phone}`}`);
-    }
-    if (dob) {
-      lines.push(`• *Date of Birth:* ${dob}`);
-    }
-    if (tob) {
-      lines.push(`• *Time of Birth:* ${tob}`);
-    }
-    if (pob) {
-      lines.push(`• *Place of Birth:* ${pob}`);
-    }
-    if (selectedDate) {
-      lines.push(`• *Preferred Date:* ${selectedDate}`);
-    }
-    if (selectedWindow) {
-      lines.push(`• *Preferred Time:* ${selectedWindow}`);
-    }
-    // Only add topics if user actually filled them
-    if (customerNotes && customerNotes.trim()) {
-      lines.push(`• *Questions / Topics:* ${customerNotes.trim()}`);
-    }
-
-    lines.push('', 'Kindly confirm your availability for this slot. Pranam!');
-    return lines.join('\n');
-  }
-
-  // STEP 4: Payment Verification
-  if (currentStepNumber === 4) {
-    lines.push(
-      'I was booking a consultation on your website (amitastro.com) and reached the payment step.',
-      '',
-      '📋 *My Consultation Details (Step 4 - Payment):*'
-    );
-
-    if (currentPkg) {
-      lines.push(`• *Selected Package:* ${currentPkg.name}${pkgPriceDisplay ? ` (${pkgPriceDisplay})` : ''}`);
-    }
-    if (name) {
-      lines.push(`• *Name:* ${name}`);
-    }
-    if (phone) {
-      lines.push(`• *Phone:* ${phone.startsWith('+') ? phone : `+91 ${phone}`}`);
-    }
-    if (dob) {
-      lines.push(`• *Date of Birth:* ${dob}`);
-    }
-    if (selectedDate) {
-      lines.push(`• *Preferred Date:* ${selectedDate}`);
-    }
-    if (selectedWindow) {
-      lines.push(`• *Preferred Time:* ${selectedWindow}`);
-    }
-    if (customerNotes && customerNotes.trim()) {
-      lines.push(`• *Questions / Topics:* ${customerNotes.trim()}`);
-    }
-    if (utr && utr.trim()) {
-      lines.push(`• *Payment Ref / UTR:* ${utr.trim()}`);
-    }
-
-    lines.push('', 'Kindly confirm your payment verification or receipt. Pranam!');
-    return lines.join('\n');
-  }
-
-  // STEP 5: Success
-  lines.push(
-    'I have placed my consultation booking request on amitastro.com and would like to coordinate over WhatsApp.',
+  const lines: string[] = [
+    '🕉️ *Namaste Amit Ji!* 🙏',
     '',
-    '📋 *Confirmed Consultation Details:*'
-  );
-  if (createdApptId) {
-    lines.push(`• *Booking Reference:* #${createdApptId}`);
+    'I am reaching out via your website (*amitastro.com*) to consult with you and request astrological guidance.',
+    ''
+  ];
+
+  // 1. CONTACT DETAILS (Include whenever known)
+  const contactLines: string[] = [];
+  if (name) contactLines.push(`• *Name:* ${name}`);
+  if (phone) contactLines.push(`• *Phone:* ${phone.startsWith('+') ? phone : `+91 ${phone}`}`);
+  if (email) contactLines.push(`• *Email:* ${email}`);
+
+  if (contactLines.length > 0) {
+    lines.push('📋 *My Contact Details:*', ...contactLines, '');
   }
+
+  // 2. BIRTH CHART COORDINATES
+  // Always forward account/profile birth coordinates if available, or whatever guest details entered
+  const birthLines: string[] = [];
+  if (name && (dob || pob)) birthLines.push(`• *Full Name:* ${name}`);
+  if (dob) birthLines.push(`• *Date of Birth:* ${dob}`);
+  if (tob) birthLines.push(`• *Time of Birth:* ${tob}`);
+  if (pob) birthLines.push(`• *Place of Birth:* ${pob}`);
+
+  if (birthLines.length > 0) {
+    lines.push('🌟 *Birth Chart Coordinates:*', ...birthLines, '');
+  }
+
+  // 3. CONSULTATION PACKAGE
+  // Always include selected package if available
   if (currentPkg) {
-    lines.push(`• *Selected Package:* ${currentPkg.name}`);
+    lines.push(
+      '📦 *Consultation Package:*',
+      `• *Selected Package:* ${currentPkg.name}${pkgPriceDisplay ? ` (${pkgPriceDisplay})` : ''}`
+    );
+    const duration = currentPkg.durationMinutes || currentPkg.duration_minutes;
+    if (duration) {
+      lines.push(`• *Duration:* ${duration} Minutes`);
+    }
+    lines.push('');
   }
-  if (name) {
-    lines.push(`• *Name:* ${name}`);
+
+  // 4. PREFERRED SCHEDULE
+  // Include if reached Step 2 (Schedule) or beyond, and date is selected
+  if (currentStepNumber >= 2 && selectedDate) {
+    lines.push(
+      '🗓️ *Preferred Schedule:*',
+      `• *Preferred Date:* ${selectedDate}`
+    );
+    if (selectedWindow) {
+      lines.push(`• *Preferred Time:* ${selectedWindow}`);
+    }
+    lines.push('');
   }
-  if (selectedDate) {
-    lines.push(`• *Date:* ${selectedDate}`);
+
+  // 5. DISCUSSION TOPICS / QUESTIONS (Step 2 and beyond)
+  // Only add if user actually filled them!
+  if (currentStepNumber >= 2 && customerNotes && customerNotes.trim()) {
+    lines.push(
+      '💬 *Topics / Questions for Discussion:*',
+      `• ${customerNotes.trim()}`,
+      ''
+    );
   }
-  if (selectedWindow) {
-    lines.push(`• *Time Window:* ${selectedWindow}`);
+
+  // 6. PAYMENT / UTR REFERENCE (Step 4)
+  if (currentStepNumber >= 4 && utr && utr.trim()) {
+    lines.push(
+      '💳 *Payment Reference:*',
+      `• *UTR / Ref No:* ${utr.trim()}`,
+      ''
+    );
   }
-  lines.push('', 'Looking forward to our consultation session. Pranam!');
+
+  // 7. CONFIRMED APPOINTMENT ID (Step 5)
+  if (currentStepNumber >= 5 && createdApptId) {
+    lines.push(
+      '🔖 *Booking Reference:*',
+      `• *Appointment ID:* #${createdApptId}`,
+      ''
+    );
+  }
+
+  lines.push('Looking forward to your esteemed guidance. Pranam! 🙏');
+
   return lines.join('\n');
 }
 
