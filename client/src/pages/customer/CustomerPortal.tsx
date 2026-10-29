@@ -958,7 +958,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                     WhatsApp Consultation & Quote
                   </h3>
                   <p style={{ fontSize: 13.5, color: '#6E6E73', lineHeight: 1.5 }}>
-                    Connect directly with Astrologer Amit on WhatsApp (+91 9983353633). Your account profile coordinates will be automatically included in your consultation message.
+                    Connect directly with Astrologer Amit on WhatsApp (+91 9983353533). Your account profile coordinates will be automatically included in your consultation message.
                   </p>
                 </div>
 

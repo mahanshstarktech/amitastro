@@ -121,7 +121,7 @@ export const handleIncomingMessage = async (req: Request, res: Response) => {
     if (selectedButtonId === 'btn_direct_contact' || incomingText.toLowerCase().includes('talk to amit') || incomingText.toLowerCase().includes('contact')) {
       await whatsappService.sendTextMessage(
         fromPhone,
-        `🕉️ *Amit Astro Direct Contact*\n\nAstrologer Amit Soni conducts consultations directly via phone or WhatsApp audio/video.\n\n📍 *Office:* Jaipur, Rajasthan\n📞 *Direct WhatsApp:* +91 9983353633\n🌐 *Website:* https://amitastro.com\n\nReply with *BOOK* to view available slots or packages.`
+        `🕉️ *Amit Astro Direct Contact*\n\nAstrologer Amit Soni conducts consultations directly via phone or WhatsApp audio/video.\n\n📍 *Office:* Jaipur, Rajasthan\n📞 *Direct WhatsApp:* +91 9983353533\n🌐 *Website:* https://amitastro.com\n\nReply with *BOOK* to view available slots or packages.`
       );
       return;
     }

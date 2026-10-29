@@ -58,7 +58,7 @@ describe('WhatsApp Consult Utility & Modal Tests', () => {
       expect(msg).toContain('• *Place of Birth:* Jaipur, Rajasthan, India');
     });
 
-    it('generates the direct api.whatsapp.com URL with phone 919983353633', () => {
+    it('generates the direct api.whatsapp.com URL with phone 919983353533', () => {
       const url = getWhatsAppSendUrl({ user: null });
       expect(url).toContain(`https://api.whatsapp.com/send?phone=${WHATSAPP_PHONE_NUMBER}`);
       expect(url).toContain('Namaste');
@@ -136,7 +136,7 @@ describe('WhatsApp Consult Utility & Modal Tests', () => {
       await user.click(continueBtn);
 
       expect(window.open).toHaveBeenCalledWith(
-        expect.stringContaining('https://api.whatsapp.com/send?phone=919983353633'),
+        expect.stringContaining('https://api.whatsapp.com/send?phone=919983353533'),
         '_blank',
         'noopener,noreferrer'
       );

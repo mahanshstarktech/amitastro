@@ -1,7 +1,7 @@
 import type { User, BirthProfile } from '../context/AuthContext';
 
-export const WHATSAPP_PHONE_NUMBER = '919983353633';
-export const WHATSAPP_DISPLAY_PHONE = '+91 9983353633';
+export const WHATSAPP_PHONE_NUMBER = '919983353533';
+export const WHATSAPP_DISPLAY_PHONE = '+91 9983353533';
 
 export interface WhatsAppMessageOptions {
   user?: User | null;

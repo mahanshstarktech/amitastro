@@ -109,7 +109,7 @@ describe('BookingModal Component Tests', () => {
     expect(screen.getByText(/Add Family Member Profile \(Family 360\)/i)).toBeInTheDocument();
   });
 
-  it('renders "Consult on WhatsApp (+91 9983353633)" button', () => {
+  it('renders "Consult on WhatsApp (+91 9983353533)" button', () => {
     render(
       <CountryProvider>
         <NotificationProvider>
@@ -118,11 +118,11 @@ describe('BookingModal Component Tests', () => {
       </CountryProvider>
     );
 
-    const waBtn = screen.getByRole('button', { name: /Consult on WhatsApp \(\+91 9983353633\)/i });
+    const waBtn = screen.getByRole('button', { name: /Consult on WhatsApp \(\+91 9983353533\)/i });
     expect(waBtn).toBeInTheDocument();
   });
 
-  it('redirects to WhatsApp on +91 9983353633 with curated details when clicked', async () => {
+  it('redirects to WhatsApp on +91 9983353533 with curated details when clicked', async () => {
     const user = userEvent.setup();
     const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
 
@@ -134,12 +134,12 @@ describe('BookingModal Component Tests', () => {
       </CountryProvider>
     );
 
-    const waBtn = screen.getByRole('button', { name: /Consult on WhatsApp \(\+91 9983353633\)/i });
+    const waBtn = screen.getByRole('button', { name: /Consult on WhatsApp \(\+91 9983353533\)/i });
     await user.click(waBtn);
 
     expect(windowOpenSpy).toHaveBeenCalled();
     const targetUrl = windowOpenSpy.mock.calls[0][0] as string;
-    expect(targetUrl).toContain('https://api.whatsapp.com/send?phone=919983353633');
+    expect(targetUrl).toContain('https://api.whatsapp.com/send?phone=919983353533');
     expect(decodeURIComponent(targetUrl)).toContain('Namaste Amit Ji');
     expect(decodeURIComponent(targetUrl)).toContain('Mahansh Gaur');
   });

@@ -187,7 +187,7 @@ export const HomePage: React.FC<HomePageProps> = ({
     },
     {
       q: 'Can I consult or get an instant quote on WhatsApp?',
-      a: 'Yes! You can connect with Amit directly on WhatsApp (+91 9983353633) for instant quotes, package guidance, or pre-booking consultations. You can chat directly as a guest or sign in to automatically attach your birth details for tailored guidance.'
+      a: 'Yes! You can connect with Amit directly on WhatsApp (+91 9983353533) for instant quotes, package guidance, or pre-booking consultations. You can chat directly as a guest or sign in to automatically attach your birth details for tailored guidance.'
     },
     {
       q: 'What if I am unsure about my exact time of birth?',

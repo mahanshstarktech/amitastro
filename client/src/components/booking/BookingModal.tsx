@@ -304,7 +304,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     }
 
     // Use api.whatsapp.com/send directly to avoid wa.me 302 redirect which corrupts 4-byte UTF-8 emojis (like 🙏 and 📋)
-    const waUrl = `https://api.whatsapp.com/send?phone=919983353633&text=${encodeURIComponent(message)}`;
+    const waUrl = `https://api.whatsapp.com/send?phone=919983353533&text=${encodeURIComponent(message)}`;
     window.open(waUrl, '_blank', 'noopener,noreferrer');
   };
 
@@ -353,7 +353,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const renderWhatsAppButton = () => (
     <button
       type="button"
-      aria-label="Consult on WhatsApp (+91 9983353633)"
+      aria-label="Consult on WhatsApp (+91 9983353533)"
       onClick={handleConsultOnWhatsApp}
       style={{
         padding: '13px 18px',
@@ -403,7 +403,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       }}
     >
       <span style={{ whiteSpace: 'nowrap' }}>Consult on WhatsApp</span>
-      <span style={{ whiteSpace: 'nowrap' }}> (+91 9983353633)</span>
+      <span style={{ whiteSpace: 'nowrap' }}> (+91 9983353533)</span>
     </div>
   </button>
   );
@@ -1683,7 +1683,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   gap: 6
                 }}
               >
-                Need assistance? Chat on WhatsApp (+91 9983353633)
+                Need assistance? Chat on WhatsApp (+91 9983353533)
               </button>
             </form>
           </div>
@@ -1764,7 +1764,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     gap: 8
                   }}
                 >
-                  <span>Chat on WhatsApp (+91 9983353633)</span>
+                  <span>Chat on WhatsApp (+91 9983353533)</span>
                 </button>
               )}
 

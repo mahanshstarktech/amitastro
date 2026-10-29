@@ -148,7 +148,7 @@ const FAQ_DATABASE: FaqItem[] = [
     category: 'general',
     categoryLabel: 'Our Philosophy & Ethics',
     question: 'Can I consult or get an instant quote on WhatsApp?',
-    answer: 'Yes! You can connect with Amit directly on WhatsApp (+91 9983353633) for quick quotes, package guidance, or preliminary consultations. You can chat directly as a guest or sign in to auto-attach your birth details for tailored insights.'
+    answer: 'Yes! You can connect with Amit directly on WhatsApp (+91 9983353533) for quick quotes, package guidance, or preliminary consultations. You can chat directly as a guest or sign in to auto-attach your birth details for tailored insights.'
   }
 ];
 
