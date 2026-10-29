@@ -31,6 +31,7 @@ export const App: React.FC = () => {
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [bookingModalOpen, setBookingModalOpen] = useState<boolean>(false);
+  const [bookingInitialStep, setBookingInitialStep] = useState<number>(1);
   const [selectedPkgId, setSelectedPkgId] = useState<string>('pkg-premium');
   const [trialModalOpen, setTrialModalOpen] = useState<boolean>(false);
   const [whatsAppModalOpen, setWhatsAppModalOpen] = useState<boolean>(false);
@@ -63,10 +64,17 @@ export const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const handlePopState = () => {
+    const handlePopState = (event: PopStateEvent) => {
       setCurrentPath(window.location.pathname);
       setCurrentHash(window.location.hash);
       window.dispatchEvent(new HashChangeEvent('hashchange'));
+
+      const state = event.state || window.history.state;
+      if (state?.bookingModalOpen) {
+        if (state.pkgId) setSelectedPkgId(state.pkgId);
+        if (state.bookingStep) setBookingInitialStep(state.bookingStep);
+        setBookingModalOpen(true);
+      }
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -85,9 +93,28 @@ export const App: React.FC = () => {
     setAuthModalOpen(true);
   };
 
-  const handleOpenBooking = (pkgId?: string) => {
+  const handleOpenBooking = (pkgId?: string, step: number = 1) => {
     if (pkgId) setSelectedPkgId(pkgId);
+    setBookingInitialStep(step);
     setBookingModalOpen(true);
+  };
+
+  const handleCloseBooking = () => {
+    setBookingModalOpen(false);
+    if (window.history.state?.bookingModalOpen) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  };
+
+  const handleNavigateToPricingFromBooking = (returnStep: number = 3) => {
+    window.history.replaceState(
+      { bookingModalOpen: true, bookingStep: returnStep, pkgId: selectedPkgId },
+      '',
+      window.location.pathname
+    );
+    setBookingInitialStep(returnStep);
+    setBookingModalOpen(false);
+    navigateTo('/pricing');
   };
 
   const handleOpenWhatsAppConsult = () => {
@@ -182,7 +209,7 @@ export const App: React.FC = () => {
     if (currentPath === '/pricing') {
       return (
         <PricingPage
-          onOpenBooking={handleOpenBooking}
+          onOpenBooking={(pkgId) => handleOpenBooking(pkgId, 3)}
           onOpenTrial={handleOpenTrial}
           onOpenWhatsAppConsult={handleOpenWhatsAppConsult}
         />
@@ -330,9 +357,11 @@ export const App: React.FC = () => {
 
       <BookingModal
         isOpen={bookingModalOpen}
-        onClose={() => setBookingModalOpen(false)}
+        onClose={handleCloseBooking}
         preselectedPackageId={selectedPkgId}
+        initialStep={bookingInitialStep}
         onNavigateToApp={() => navigateTo('/app')}
+        onNavigateToPricing={handleNavigateToPricingFromBooking}
         onOpenAuth={() => handleOpenAuth('signup')}
       />
 

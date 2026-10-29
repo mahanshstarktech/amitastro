@@ -277,4 +277,59 @@ describe('BookingModal Component Tests', () => {
     expect(screen.getByText(/Step 1 of 4/i)).toBeInTheDocument();
     expect(screen.getAllByText(/Birth Profile/i).length).toBeGreaterThan(0);
   });
+
+  it('renders Step 2 with Apple-styled date & time tiles and quick suggestion chips', async () => {
+    const user = userEvent.setup();
+    render(
+      <CountryProvider>
+        <NotificationProvider>
+          <BookingModal isOpen={true} onClose={vi.fn()} initialStep={2} />
+        </NotificationProvider>
+      </CountryProvider>
+    );
+
+    // Verify Date & Time tiles
+    expect(screen.getByText('Preferred Date')).toBeInTheDocument();
+    expect(screen.getByText('Next 6 Weeks')).toBeInTheDocument();
+    expect(screen.getByText('Preferred Time Window')).toBeInTheDocument();
+    expect(screen.getByText('IST (GMT+5:30)')).toBeInTheDocument();
+
+    // Verify quick suggestion chips
+    const careerChip = screen.getByRole('button', { name: /\+ Career & Promotion/i });
+    expect(careerChip).toBeInTheDocument();
+
+    // Clicking chip inserts it into notes
+    await user.click(careerChip);
+    const notesInput = screen.getByPlaceholderText(/Seeking clarity on career growth/i) as HTMLTextAreaElement;
+    expect(notesInput.value).toContain('Career & Promotion');
+  });
+
+  it('renders Step 3 "Get more details regarding the packages" link and triggers pricing navigation', async () => {
+    const user = userEvent.setup();
+    const mockNavigateToPricing = vi.fn();
+
+    render(
+      <CountryProvider>
+        <NotificationProvider>
+          <BookingModal
+            isOpen={true}
+            onClose={vi.fn()}
+            initialStep={3}
+            onNavigateToPricing={mockNavigateToPricing}
+          />
+        </NotificationProvider>
+      </CountryProvider>
+    );
+
+    const detailsLink = screen.getByRole('button', { name: /Get more details regarding the packages/i });
+    expect(detailsLink).toBeInTheDocument();
+
+    await user.click(detailsLink);
+    expect(mockNavigateToPricing).toHaveBeenCalledWith(3);
+
+    // Verifies draft is persisted to sessionStorage
+    const saved = sessionStorage.getItem('amitastro_booking_draft');
+    expect(saved).toBeTruthy();
+    expect(JSON.parse(saved!).wizardStep).toBe(3);
+  });
 });

@@ -29,6 +29,7 @@ interface BookingModalProps {
   onClose: () => void;
   preselectedPackageId?: string;
   onNavigateToApp?: () => void;
+  onNavigateToPricing?: (returnStep?: number) => void;
   onOpenAuth?: () => void;
   initialStep?: number;
 }
@@ -45,6 +46,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   onClose,
   preselectedPackageId,
   onNavigateToApp,
+  onNavigateToPricing,
   onOpenAuth,
   initialStep = 1
 }) => {
@@ -77,6 +79,30 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     d.setDate(d.getDate() + 1);
     return d.toISOString().split('T')[0];
   })();
+
+  const formatSelectedDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    try {
+      const parts = dateStr.split('-');
+      if (parts.length === 3) {
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10) - 1;
+        const d = parseInt(parts[2], 10);
+        const dateObj = new Date(y, m, d);
+        if (!isNaN(dateObj.getTime())) {
+          return dateObj.toLocaleDateString('en-IN', {
+            weekday: 'short',
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric'
+          });
+        }
+      }
+      return dateStr;
+    } catch {
+      return dateStr;
+    }
+  };
 
   const [step, setStep] = useState<'details' | 'payment' | 'success'>('details');
   const [wizardStep, setWizardStep] = useState<number>(initialStep || 1);
@@ -143,6 +169,20 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       setCreatedAppt(null);
       setShowAddProfile(false);
 
+      // Restore saved booking draft if seeker previously entered details or navigated to pricing
+      try {
+        const savedDraft = sessionStorage.getItem('amitastro_booking_draft');
+        if (savedDraft) {
+          const parsed = JSON.parse(savedDraft);
+          if (parsed.selectedDate) setSelectedDate(parsed.selectedDate);
+          if (parsed.selectedWindow) setSelectedWindow(parsed.selectedWindow);
+          if (parsed.customerNotes !== undefined) setCustomerNotes(parsed.customerNotes);
+          if (parsed.selectedProfileId) setSelectedProfileId(parsed.selectedProfileId);
+          if (parsed.guestProfile) setGuestProfile(parsed.guestProfile);
+          if (parsed.selectedPkgId && !preselectedPackageId) setSelectedPkgId(parsed.selectedPkgId);
+        }
+      } catch {}
+
       // Detect browser timezone
       try {
         const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -177,7 +217,27 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         .then((res) => setPaymentConfig(res))
         .catch(() => {});
     }
-  }, [isOpen, preselectedPackageId]);
+  }, [isOpen, preselectedPackageId, initialStep]);
+
+  // Continuously sync draft to sessionStorage while modal is active
+  useEffect(() => {
+    if (isOpen && step !== 'success') {
+      try {
+        sessionStorage.setItem(
+          'amitastro_booking_draft',
+          JSON.stringify({
+            selectedDate,
+            selectedWindow,
+            customerNotes,
+            selectedProfileId,
+            selectedPkgId,
+            guestProfile,
+            wizardStep
+          })
+        );
+      } catch {}
+    }
+  }, [isOpen, selectedDate, selectedWindow, customerNotes, selectedProfileId, selectedPkgId, guestProfile, wizardStep, step]);
 
   // Auto-select first profile when profiles become available
   useEffect(() => {
@@ -320,6 +380,36 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       setWizardStep(3);
     } else if (wizardStep > 1) {
       setWizardStep((prev) => prev - 1);
+    }
+  };
+
+  const handleViewPricingDetails = () => {
+    try {
+      sessionStorage.setItem(
+        'amitastro_booking_draft',
+        JSON.stringify({
+          selectedDate,
+          selectedWindow,
+          customerNotes,
+          selectedProfileId,
+          selectedPkgId,
+          guestProfile,
+          wizardStep: 3
+        })
+      );
+    } catch {}
+
+    if (onNavigateToPricing) {
+      onNavigateToPricing(3);
+    } else {
+      window.history.replaceState(
+        { bookingModalOpen: true, bookingStep: 3, pkgId: selectedPkgId },
+        '',
+        window.location.pathname
+      );
+      onClose();
+      window.history.pushState({}, '', '/pricing');
+      window.dispatchEvent(new PopStateEvent('popstate'));
     }
   };
 
@@ -501,6 +591,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       if (currentPkg && currentPkg.price > 0 && !user?.isFamilySubscriber) {
         setStep('payment');
       } else {
+        try {
+          sessionStorage.removeItem('amitastro_booking_draft');
+        } catch {}
         setStep('success');
       }
     } catch (err: any) {
@@ -530,6 +623,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       });
 
       showToast('Payment proof submitted! Verification will take place shortly.', 'success');
+      try {
+        sessionStorage.removeItem('amitastro_booking_draft');
+      } catch {}
       setStep('success');
     } catch (err: any) {
       showToast(err.message, 'error');
@@ -1375,60 +1471,279 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </p>
               </div>
 
-              {/* DATE & PREFERRED TIME WINDOW */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#1D1D1F', marginBottom: 6 }}>
-                    Preferred Date (Next 6 Weeks)
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    min={todayStr}
-                    max={maxDateStr}
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                    className="apple-input"
-                    style={{ fontSize: 14 }}
-                  />
+              {/* DATE & PREFERRED TIME WINDOW TILES */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
+                {/* 1. Date Tile */}
+                <div
+                  style={{
+                    border: '1.5px solid #E5E5EA',
+                    borderRadius: 16,
+                    padding: '14px 16px',
+                    backgroundColor: '#FFFFFF',
+                    transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                      <div
+                        style={{
+                          width: 26,
+                          height: 26,
+                          borderRadius: 7,
+                          backgroundColor: 'rgba(58, 58, 110, 0.08)',
+                          color: '#3A3A6E',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0
+                        }}
+                      >
+                        <CalendarIcon size={14} />
+                      </div>
+                      <label
+                        htmlFor="bookingPreferredDate"
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: '#3A3A6E',
+                          textTransform: 'uppercase',
+                          letterSpacing: 0.5,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Preferred Date
+                      </label>
+                    </div>
+                    <span style={{ fontSize: 11, color: '#86868B', fontWeight: 500 }}>
+                      Next 6 Weeks
+                    </span>
+                  </div>
+
+                  <div>
+                    <input
+                      id="bookingPreferredDate"
+                      type="date"
+                      required
+                      min={todayStr}
+                      max={maxDateStr}
+                      value={selectedDate}
+                      onChange={(e) => setSelectedDate(e.target.value)}
+                      aria-label="Preferred Date (Next 6 Weeks)"
+                      className="apple-input"
+                      style={{
+                        fontSize: 13.5,
+                        fontWeight: 600,
+                        padding: '9px 12px',
+                        cursor: 'pointer'
+                      }}
+                    />
+                    {selectedDate && (
+                      <div style={{ fontSize: 11.5, color: '#6E6E73', marginTop: 5, fontWeight: 500 }}>
+                        🗓️ {formatSelectedDate(selectedDate)}
+                      </div>
+                    )}
+                  </div>
+
                   {blackoutDates.includes(selectedDate) && (
-                    <span style={{ fontSize: 11.5, color: '#D64545', marginTop: 4, display: 'block' }}>
-                      Amit is unavailable on this date.
+                    <span style={{ fontSize: 11.5, color: '#D64545', marginTop: 6, display: 'block', fontWeight: 500 }}>
+                      ⚠️ Amit is unavailable on this date. Please choose another.
                     </span>
                   )}
                 </div>
 
-                <div>
-                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#1D1D1F', marginBottom: 6 }}>
-                    Preferred Time Window
-                  </label>
-                  <select
-                    value={selectedWindow}
-                    onChange={(e) => setSelectedWindow(e.target.value)}
-                    className="apple-input"
-                    style={{ fontSize: 14 }}
-                  >
-                    {timeWindows.map((tw) => (
-                      <option key={tw.value} value={tw.value}>
-                        {tw.label}
-                      </option>
-                    ))}
-                  </select>
+                {/* 2. Time Window Tile */}
+                <div
+                  style={{
+                    border: '1.5px solid #E5E5EA',
+                    borderRadius: 16,
+                    padding: '14px 16px',
+                    backgroundColor: '#FFFFFF',
+                    transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                      <div
+                        style={{
+                          width: 26,
+                          height: 26,
+                          borderRadius: 7,
+                          backgroundColor: 'rgba(201, 162, 75, 0.12)',
+                          color: '#8E6A1C',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0
+                        }}
+                      >
+                        <Clock size={14} />
+                      </div>
+                      <label
+                        htmlFor="bookingTimeWindow"
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: '#8E6A1C',
+                          textTransform: 'uppercase',
+                          letterSpacing: 0.5,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Preferred Time Window
+                      </label>
+                    </div>
+                    <span style={{ fontSize: 11, color: '#86868B', fontWeight: 500 }}>
+                      IST (GMT+5:30)
+                    </span>
+                  </div>
+
+                  <div style={{ position: 'relative' }}>
+                    <select
+                      id="bookingTimeWindow"
+                      value={selectedWindow}
+                      onChange={(e) => setSelectedWindow(e.target.value)}
+                      aria-label="Preferred Time Window"
+                      className="apple-input"
+                      style={{
+                        fontSize: 13.5,
+                        fontWeight: 600,
+                        padding: '9px 32px 9px 12px',
+                        cursor: 'pointer',
+                        appearance: 'none',
+                        WebkitAppearance: 'none'
+                      }}
+                    >
+                      {timeWindows.map((tw) => (
+                        <option key={tw.value} value={tw.value}>
+                          {tw.label}
+                        </option>
+                      ))}
+                    </select>
+                    <div
+                      style={{
+                        position: 'absolute',
+                        right: 12,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        pointerEvents: 'none',
+                        color: '#6E6E73',
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <ChevronDown size={16} />
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize: 11.5, color: '#6E6E73', marginTop: 5, fontWeight: 500 }}>
+                    Amit connects during this window
+                  </div>
                 </div>
               </div>
 
-              {/* TOPICS OR QUESTIONS FOR DISCUSSION */}
-              <div>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#1D1D1F', marginBottom: 6 }}>
-                  Topics or Questions for Discussion
-                </label>
+              {/* TOPICS OR QUESTIONS FOR DISCUSSION CARD */}
+              <div
+                style={{
+                  border: '1.5px solid #E5E5EA',
+                  borderRadius: 16,
+                  padding: '16px',
+                  backgroundColor: '#FFFFFF',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 6 }}>
+                  <label
+                    htmlFor="bookingCustomerNotes"
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: '#1D1D1F',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6
+                    }}
+                  >
+                    <span>Topics or Questions for Discussion</span>
+                  </label>
+                  <span style={{ fontSize: 11.5, color: '#86868B' }}>
+                    Optional • Guides Amit's chart prep
+                  </span>
+                </div>
+
+                {/* Quick Topic Chips */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                  {[
+                    'Career & Promotion',
+                    'Marriage & Kundli Milan',
+                    'Financial Growth',
+                    'Upcoming Mahadasha',
+                    'Health & Energy'
+                  ].map((chip) => {
+                    const isIncluded = customerNotes.includes(chip);
+                    return (
+                      <button
+                        key={chip}
+                        type="button"
+                        onClick={() => {
+                          if (isIncluded) {
+                            const updated = customerNotes
+                              .split(',')
+                              .map((s) => s.trim())
+                              .filter((s) => s !== chip && s.length > 0)
+                              .join(', ');
+                            setCustomerNotes(updated);
+                          } else {
+                            const trimmed = customerNotes.trim();
+                            if (!trimmed) {
+                              setCustomerNotes(chip);
+                            } else {
+                              setCustomerNotes(`${trimmed}${trimmed.endsWith(',') ? ' ' : ', '}${chip}`);
+                            }
+                          }
+                        }}
+                        style={{
+                          background: isIncluded ? 'rgba(58, 58, 110, 0.08)' : '#F5F5F7',
+                          border: isIncluded ? '1px solid #3A3A6E' : '1px solid #E5E5EA',
+                          borderRadius: 20,
+                          padding: '4px 11px',
+                          fontSize: 11.5,
+                          fontWeight: isIncluded ? 600 : 500,
+                          color: isIncluded ? '#3A3A6E' : '#48484A',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                          userSelect: 'none'
+                        }}
+                      >
+                        {isIncluded ? `✓ ${chip}` : `+ ${chip}`}
+                      </button>
+                    );
+                  })}
+                </div>
+
                 <textarea
+                  id="bookingCustomerNotes"
                   rows={3}
                   value={customerNotes}
                   onChange={(e) => setCustomerNotes(e.target.value)}
                   placeholder="e.g. Seeking clarity on career growth, upcoming Mahadasha transit, and home bedroom Vastu alignment..."
                   className="apple-input"
-                  style={{ resize: 'vertical' }}
+                  style={{
+                    fontSize: 13.5,
+                    lineHeight: 1.5,
+                    padding: '10px 12px',
+                    resize: 'vertical',
+                    backgroundColor: '#FAFAFC',
+                    border: '1px solid #E5E5EA',
+                    borderRadius: 12
+                  }}
                 />
               </div>
 
@@ -1623,6 +1938,37 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                         </div>
                       );
                     })}
+                </div>
+
+                {/* Small professional Apple link for full package details & pricing */}
+                <div style={{ textAlign: 'center', marginTop: 14, marginBottom: 2 }}>
+                  <button
+                    type="button"
+                    onClick={handleViewPricingDetails}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#3A3A6E',
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      padding: '4px 8px',
+                      borderRadius: 8,
+                      transition: 'all 0.15s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = '#B25E00';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = '#3A3A6E';
+                    }}
+                  >
+                    <span>Get more details regarding the packages</span>
+                    <ChevronRight size={13} />
+                  </button>
                 </div>
               </div>
 
