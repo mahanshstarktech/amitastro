@@ -110,7 +110,7 @@ describe('API: Manual UPI Payment Verification Queue & State Transitions', () =>
       expect(updatedUser.plan_badge).toBe('Pro');
 
       // 4. Audit log entry written
-      const auditLog = await getOne<any>('SELECT * FROM audit_logs WHERE action = "PAYMENT_VERIFIED" AND target_id = ?', [paymentRecord.id]);
+      const auditLog = await getOne<any>('SELECT * FROM audit_logs WHERE action = ? AND target_id = ?', ['PAYMENT_VERIFIED', paymentRecord.id]);
       expect(auditLog).toBeDefined();
     });
 

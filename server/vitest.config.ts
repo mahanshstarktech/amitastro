@@ -8,6 +8,7 @@ export default defineConfig({
     include: ['tests/**/*.test.ts'],
     testTimeout: 20000,
     hookTimeout: 20000,
+    fileParallelism: false,
     reporters: ['default', 'junit'],
     outputFile: {
       junit: './test-results/junit.xml'
