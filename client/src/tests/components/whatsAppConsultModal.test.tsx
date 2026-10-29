@@ -5,6 +5,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { WhatsAppConsultModal } from '../../components/whatsapp/WhatsAppConsultModal';
 import {
   buildWhatsAppConsultMessage,
+  buildBookingWhatsAppMessage,
   getWhatsAppSendUrl,
   WHATSAPP_PHONE_NUMBER
 } from '../../utils/whatsapp';
@@ -62,6 +63,127 @@ describe('WhatsApp Consult Utility & Modal Tests', () => {
       const url = getWhatsAppSendUrl({ user: null });
       expect(url).toContain(`https://api.whatsapp.com/send?phone=${WHATSAPP_PHONE_NUMBER}`);
       expect(url).toContain('Namaste');
+    });
+  });
+
+  describe('Step-Aware Booking WhatsApp Message Builder (Dynamic Last-Edited Info)', () => {
+    const samplePackage = {
+      id: 'pkg-premium',
+      name: 'Premium Deep Consult',
+      price: 5100,
+      durationMinutes: 60
+    };
+
+    it('Step 1: includes selected package and price, but omits unreached birth & schedule details', () => {
+      const msg = buildBookingWhatsAppMessage({
+        step: 'details',
+        wizardStep: 1,
+        currentPkg: samplePackage,
+        formattedPrice: '₹5,100',
+        user: { id: 'u1', name: 'Aarav Gupta', phone: '9876500000', email: 'aarav@example.com' } as any
+      });
+
+      expect(msg).toContain('Namaste Amit Ji');
+      expect(msg).toContain('Step 1 - Package Selection');
+      expect(msg).toContain('• *Selected Package:* Premium Deep Consult (₹5,100)');
+      expect(msg).toContain('• *Name:* Aarav Gupta');
+      expect(msg).toContain('• *Phone:* +91 9876500000');
+      // Must NOT contain unreached step 2 or step 3 fields
+      expect(msg).not.toContain('Date of Birth');
+      expect(msg).not.toContain('Preferred Date');
+      expect(msg).not.toContain('Questions / Topics');
+    });
+
+    it('Step 2: includes package and only filled birth coordinates, omitting schedule & discussion', () => {
+      const msg = buildBookingWhatsAppMessage({
+        step: 'details',
+        wizardStep: 2,
+        currentPkg: samplePackage,
+        formattedPrice: '₹5,100',
+        guestProfile: {
+          fullName: 'Kavita Roy',
+          dob: '1996-08-20',
+          pob: 'Varanasi, UP, India'
+          // note: tob and phone left unfilled
+        }
+      });
+
+      expect(msg).toContain('Step 2 - Birth Profile');
+      expect(msg).toContain('• *Selected Package:* Premium Deep Consult (₹5,100)');
+      expect(msg).toContain('• *Name:* Kavita Roy');
+      expect(msg).toContain('• *Date of Birth:* 1996-08-20');
+      expect(msg).toContain('• *Place of Birth:* Varanasi, UP, India');
+      // Unfilled coordinates should not appear
+      expect(msg).not.toContain('Time of Birth');
+      // Step 3 schedule & discussion must NOT appear
+      expect(msg).not.toContain('Preferred Date');
+      expect(msg).not.toContain('Questions / Topics');
+    });
+
+    it('Step 3: includes schedule and DOES NOT add "Topics or Questions" if user left it blank', () => {
+      const msg = buildBookingWhatsAppMessage({
+        step: 'details',
+        wizardStep: 3,
+        currentPkg: samplePackage,
+        formattedPrice: '₹5,100',
+        profile: {
+          id: 'p1',
+          full_name: 'Harsh Tenguriya',
+          dob: '1995-10-15',
+          tob: '10:30 AM',
+          pob: 'Agra, UP, India'
+        } as any,
+        selectedDate: '2026-11-02',
+        selectedWindow: '02:00 PM - 04:00 PM',
+        customerNotes: '' // User did not fill discussion topics
+      });
+
+      expect(msg).toContain('Step 3 - Schedule & Questions');
+      expect(msg).toContain('• *Selected Package:* Premium Deep Consult (₹5,100)');
+      expect(msg).toContain('• *Name:* Harsh Tenguriya');
+      expect(msg).toContain('• *Date of Birth:* 1995-10-15');
+      expect(msg).toContain('• *Preferred Date:* 2026-11-02');
+      expect(msg).toContain('• *Preferred Time:* 02:00 PM - 04:00 PM');
+      // Crucial requirement: omitted when empty!
+      expect(msg).not.toContain('Questions / Topics');
+    });
+
+    it('Step 3: includes "Topics or Questions" when user entered questions', () => {
+      const msg = buildBookingWhatsAppMessage({
+        step: 'details',
+        wizardStep: 3,
+        currentPkg: samplePackage,
+        formattedPrice: '₹5,100',
+        profile: {
+          id: 'p1',
+          full_name: 'Harsh Tenguriya',
+          dob: '1995-10-15',
+          tob: '10:30 AM',
+          pob: 'Agra, UP, India'
+        } as any,
+        selectedDate: '2026-11-02',
+        selectedWindow: '02:00 PM - 04:00 PM',
+        customerNotes: 'Query regarding career switch and Rahu Mahadasha remedies.'
+      });
+
+      expect(msg).toContain('Step 3 - Schedule & Questions');
+      expect(msg).toContain('• *Questions / Topics:* Query regarding career switch and Rahu Mahadasha remedies.');
+    });
+
+    it('Step 4: includes payment reference / UTR when entered at payment step', () => {
+      const msg = buildBookingWhatsAppMessage({
+        step: 'payment',
+        wizardStep: 3,
+        currentPkg: samplePackage,
+        formattedPrice: '₹5,100',
+        user: { name: 'Harsh' } as any,
+        selectedDate: '2026-11-02',
+        selectedWindow: '02:00 PM - 04:00 PM',
+        utr: 'UTR492817290192'
+      });
+
+      expect(msg).toContain('Step 4 - Payment');
+      expect(msg).toContain('• *Payment Ref / UTR:* UTR492817290192');
     });
   });
 

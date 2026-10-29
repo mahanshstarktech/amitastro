@@ -298,13 +298,18 @@ export const App: React.FC = () => {
         isOpen={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
         initialMode={authMode}
-        onSuccess={() => {
+        onSuccess={(meta) => {
           if (autoOpenWhatsAppAfterLogin) {
             setAutoOpenWhatsAppAfterLogin(false);
             setTimeout(() => {
               showToast('Opening WhatsApp with your consultation details...', 'info');
               openWhatsAppConsult({ user, profile: primaryProfile });
             }, 300);
+          } else if (meta?.isNewRegistration && !window.location.pathname.startsWith('/admin')) {
+            // Automatically trigger the book consultation flow after completing registration
+            setTimeout(() => {
+              setBookingModalOpen(true);
+            }, 350);
           }
           if (window.location.pathname.startsWith('/admin')) {
             navigateTo('/admin');

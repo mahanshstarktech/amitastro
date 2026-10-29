@@ -22,6 +22,7 @@ import { useCountry } from '../../context/CountryContext';
 import { CityAutocompleteInput } from '../common/CityAutocompleteInput';
 import { CountryCodeSelector } from '../common/CountryCodeSelector';
 import { getCountryDialInfo } from '../../utils/countryCodes';
+import { buildBookingWhatsAppMessage, WHATSAPP_PHONE_NUMBER } from '../../utils/whatsapp';
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -244,67 +245,33 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     }
   };
 
-  // WhatsApp redirection with curated message logic
+  // WhatsApp redirection with step-aware dynamic details
   const handleConsultOnWhatsApp = () => {
     const profile = isAuthenticated ? profiles.find((p) => p.id === selectedProfileId) : null;
+    const formattedPrice = currentPkg ? getPackageFormattedPrice(currentPkg) : undefined;
 
-    const name = (profile?.full_name || guestProfile.fullName || '').trim();
-    const phone = guestProfile.phone?.trim()
-      ? `${guestPhoneCode} ${guestProfile.phone.trim()}`
-      : (user?.phone || '');
-    const dob = profile?.dob || guestProfile.dob || '';
-    const tob = profile?.tob || (guestProfile.tobUncertain ? 'Approximate / Uncertain' : (guestProfile.tob !== '12:00' ? guestProfile.tob : ''));
-    const pob = (profile?.pob || guestProfile.pob || '').trim();
-    const notes = customerNotes.trim();
-
-    // Check if user has filled in any details
-    const hasUserDetails = Boolean(name || dob || pob || notes || (guestProfile.phone && guestProfile.phone.trim()));
-
-    let message = '';
-    if (!hasUserDetails) {
-      message = 'Namaste Amit Ji 🙏 I would like to consult with you for my Kundli and Vedic astrology analysis.';
-    } else {
-      const lines: string[] = [
-        'Namaste Amit Ji 🙏',
-        'I would like to book a Vedic consultation with you.',
-        '',
-        '📋 *My Consultation Details:*'
-      ];
-
-      if (currentPkg) {
-        lines.push(`• *Package:* ${currentPkg.name} (${getPackageFormattedPrice(currentPkg)})`);
-      }
-      if (name) {
-        lines.push(`• *Name:* ${name}`);
-      }
-      if (phone) {
-        lines.push(`• *Phone:* ${phone}`);
-      }
-      if (dob) {
-        lines.push(`• *Date of Birth:* ${dob}`);
-      }
-      if (tob) {
-        lines.push(`• *Time of Birth:* ${tob}`);
-      }
-      if (pob) {
-        lines.push(`• *Place of Birth:* ${pob}`);
-      }
-      if (selectedDate) {
-        lines.push(`• *Preferred Date:* ${selectedDate}`);
-      }
-      if (selectedWindow) {
-        lines.push(`• *Preferred Time:* ${selectedWindow}`);
-      }
-      if (notes) {
-        lines.push(`• *Questions / Topics:* ${notes}`);
-      }
-
-      lines.push('', 'Kindly confirm your availability. Pranam!');
-      message = lines.join('\n');
-    }
+    const message = buildBookingWhatsAppMessage({
+      step,
+      wizardStep,
+      currentPkg,
+      formattedPrice,
+      user,
+      profile,
+      guestProfile: {
+        ...guestProfile,
+        phone: guestProfile.phone?.trim() ? `${guestPhoneCode} ${guestProfile.phone.trim()}` : ''
+      },
+      newProfile,
+      showAddProfile,
+      selectedDate,
+      selectedWindow,
+      customerNotes,
+      utr,
+      createdApptId: createdAppt?.id
+    });
 
     // Use api.whatsapp.com/send directly to avoid wa.me 302 redirect which corrupts 4-byte UTF-8 emojis (like 🙏 and 📋)
-    const waUrl = `https://api.whatsapp.com/send?phone=919983353533&text=${encodeURIComponent(message)}`;
+    const waUrl = `https://api.whatsapp.com/send?phone=${WHATSAPP_PHONE_NUMBER}&text=${encodeURIComponent(message)}`;
     window.open(waUrl, '_blank', 'noopener,noreferrer');
   };
 

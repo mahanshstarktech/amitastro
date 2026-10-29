@@ -142,6 +142,59 @@ describe('BookingModal Component Tests', () => {
     expect(targetUrl).toContain('https://api.whatsapp.com/send?phone=919983353533');
     expect(decodeURIComponent(targetUrl)).toContain('Namaste Amit Ji');
     expect(decodeURIComponent(targetUrl)).toContain('Mahansh Gaur');
+    // At Step 1, unreached step 2 & 3 fields are omitted
+    expect(decodeURIComponent(targetUrl)).toContain('Step 1 - Package Selection');
+    expect(decodeURIComponent(targetUrl)).not.toContain('Preferred Date');
+    expect(decodeURIComponent(targetUrl)).not.toContain('Questions / Topics');
+  });
+
+  it('Step 3: omits "Questions / Topics" line when customer notes are left blank', async () => {
+    const user = userEvent.setup();
+    const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+
+    render(
+      <CountryProvider>
+        <NotificationProvider>
+          <BookingModal isOpen={true} onClose={vi.fn()} initialStep={3} />
+        </NotificationProvider>
+      </CountryProvider>
+    );
+
+    const waBtn = screen.getByRole('button', { name: /Consult on WhatsApp \(\+91 9983353533\)/i });
+    await user.click(waBtn);
+
+    expect(windowOpenSpy).toHaveBeenCalled();
+    const targetUrl = windowOpenSpy.mock.calls[0][0] as string;
+    const decoded = decodeURIComponent(targetUrl);
+    expect(decoded).toContain('Step 3 - Schedule & Questions');
+    expect(decoded).toContain('Preferred Date');
+    expect(decoded).not.toContain('Questions / Topics');
+  });
+
+  it('Step 3: includes "Questions / Topics" line when customer notes are provided', async () => {
+    const user = userEvent.setup();
+    const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+
+    render(
+      <CountryProvider>
+        <NotificationProvider>
+          <BookingModal isOpen={true} onClose={vi.fn()} initialStep={3} />
+        </NotificationProvider>
+      </CountryProvider>
+    );
+
+    // Enter notes in Step 3 textarea
+    const notesInput = screen.getByPlaceholderText(/Seeking clarity on career growth/i);
+    await user.type(notesInput, 'Career promotion and overseas travel timeline');
+
+    const waBtn = screen.getByRole('button', { name: /Consult on WhatsApp \(\+91 9983353533\)/i });
+    await user.click(waBtn);
+
+    expect(windowOpenSpy).toHaveBeenCalled();
+    const targetUrl = windowOpenSpy.mock.calls[0][0] as string;
+    const decoded = decodeURIComponent(targetUrl);
+    expect(decoded).toContain('Step 3 - Schedule & Questions');
+    expect(decoded).toContain('Career promotion and overseas travel timeline');
   });
 
   it('supports unauthenticated guest booking and renders "Add your birth profile"', async () => {

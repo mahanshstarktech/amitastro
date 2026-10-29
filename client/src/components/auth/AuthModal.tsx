@@ -22,11 +22,15 @@ import { CountryCodeSelector } from '../common/CountryCodeSelector';
 import { CityAutocompleteInput } from '../common/CityAutocompleteInput';
 import { isFirebaseConfigured, signInWithFirebaseGoogle } from '../../services/firebase';
 
+export interface AuthSuccessMeta {
+  isNewRegistration?: boolean;
+}
+
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialMode?: 'login' | 'signup';
-  onSuccess?: () => void;
+  onSuccess?: (meta?: AuthSuccessMeta) => void;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({
@@ -161,7 +165,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           setMode('profile');
         } else {
           onClose();
-          if (onSuccess) onSuccess();
+          if (onSuccess) onSuccess({ isNewRegistration: !!res.user?.isNewCustomer });
         }
       } catch (fbErr: any) {
         if (fbErr.code === 'auth/unauthorized-domain') {
@@ -237,7 +241,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
       showToast(`Welcome to Amit Astro, ${res.user.name}! Your account is active.`, 'success');
       onClose();
-      if (onSuccess) onSuccess();
+      if (onSuccess) onSuccess({ isNewRegistration: true });
     } catch (err: any) {
       showToast(err.message || 'Registration failed. Please try again.', 'error');
     } finally {
@@ -333,7 +337,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
       showToast(`Registration complete! Welcome ${res.user.name}.`, 'success');
       onClose();
-      if (onSuccess) onSuccess();
+      if (onSuccess) onSuccess({ isNewRegistration: true });
     } catch (err: any) {
       showToast(err.message || 'Registration failed', 'error');
     } finally {
@@ -351,7 +355,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       await login(email.trim().toLowerCase(), password);
       showToast('Welcome back to Amit Astro', 'success');
       onClose();
-      if (onSuccess) onSuccess();
+      if (onSuccess) onSuccess({ isNewRegistration: false });
     } catch (err: any) {
       showToast(err.message || 'Login failed', 'error');
     } finally {
@@ -382,7 +386,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       });
       showToast('Birth profile saved for chart calculations', 'success');
       onClose();
-      if (onSuccess) onSuccess();
+      if (onSuccess) onSuccess({ isNewRegistration: true });
     } catch (err: any) {
       showToast(err.message, 'error');
     } finally {
