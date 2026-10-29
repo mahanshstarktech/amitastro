@@ -10,10 +10,12 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useCountry } from '../../context/CountryContext';
 import { YouTubeShowcase } from '../../components/home/YouTubeShowcase';
 import { CustomerReviewsShowcase } from '../../components/home/CustomerReviewsShowcase';
+import { WhatsAppIcon } from '../../components/common/WhatsAppIcon';
 
 interface HomePageProps {
   onOpenBooking: (pkgId?: string) => void;
   onOpenTrial: () => void;
+  onOpenWhatsAppConsult?: () => void;
   onNavigate: (path: string) => void;
 }
 
@@ -50,13 +52,12 @@ const DEFAULT_FEATURED_POSTS = [
 export const HomePage: React.FC<HomePageProps> = ({
   onOpenBooking,
   onOpenTrial,
+  onOpenWhatsAppConsult,
   onNavigate
 }) => {
   const { isAuthenticated, user } = useAuth();
   const { t } = useLanguage();
   const { countryInfo } = useCountry();
-  const showTrialCTA = !isAuthenticated || (!!user?.isNewCustomer && !user?.trialUsed);
-
   const [featuredPosts, setFeaturedPosts] = useState<any[]>(DEFAULT_FEATURED_POSTS);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const shelfRef = useRef<HTMLDivElement>(null);
@@ -185,8 +186,8 @@ export const HomePage: React.FC<HomePageProps> = ({
       a: 'Consultations are conducted directly over a personal phone call or through our high-definition real-time in-app chat. When your slot is confirmed, Amit connects with you at the agreed time. You also have access to follow-up chat support depending on your package.'
     },
     {
-      q: 'How does the 5-minute complimentary trial session work?',
-      a: 'Every first-time client with a verified mobile number is eligible for one 5-minute trial discovery session. A visible countdown timer is shown, with a 1-minute alert, and automatically concludes at 5:00 so you can experience Amit’s serene consultation style completely risk-free.'
+      q: 'Can I consult or get an instant quote on WhatsApp?',
+      a: 'Yes! You can connect with Amit directly on WhatsApp (+91 9983353633) for instant quotes, package guidance, or pre-booking consultations. You can chat directly as a guest or sign in to automatically attach your birth details for tailored guidance.'
     },
     {
       q: 'What if I am unsure about my exact time of birth?',
@@ -259,15 +260,30 @@ export const HomePage: React.FC<HomePageProps> = ({
               <Calendar size={17} /> {t('hero.cta_primary', 'Book a Consultation')}
             </button>
 
-            {showTrialCTA && (
-              <button
-                onClick={onOpenTrial}
-                className="apple-btn-secondary"
-                style={{ padding: '13px 24px', fontSize: 16 }}
-              >
-                <Phone size={17} /> {t('hero.cta_trial', '5-Min Free Trial')}
-              </button>
-            )}
+            <button
+              onClick={onOpenWhatsAppConsult || onOpenTrial}
+              className="apple-btn-secondary"
+              style={{
+                padding: '13px 24px',
+                fontSize: 16,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                backgroundColor: 'rgba(37, 211, 102, 0.08)',
+                color: '#128C7E',
+                borderColor: 'rgba(37, 211, 102, 0.35)',
+                fontWeight: 600
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(37, 211, 102, 0.16)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(37, 211, 102, 0.08)';
+              }}
+            >
+              <WhatsAppIcon size={18} color="#25D366" />
+              <span>{t('hero.cta_whatsapp', 'Consult on WhatsApp')}</span>
+            </button>
 
             <button
               onClick={() => onNavigate('/blog')}

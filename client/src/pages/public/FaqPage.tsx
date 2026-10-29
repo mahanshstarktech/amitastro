@@ -144,11 +144,11 @@ const FAQ_DATABASE: FaqItem[] = [
     answer: 'Three core principles set Amit apart: 1) Absolute Zero Fear-Mongering: We never frighten seekers with Manglik doshas or Sade Sati to sell expensive pujas; 2) No Commercial Superstition: We prioritize self-effort (Purushartha), meditation, and ethical lifestyle remedies; 3) Unhurried Personal Mastery: You speak directly with Astrologer Amit, not an untrained junior apprentice or automated chat bot.'
   },
   {
-    id: 'free-discovery-call',
+    id: 'whatsapp-consultation',
     category: 'general',
     categoryLabel: 'Our Philosophy & Ethics',
-    question: 'How does the 5-Minute Free Discovery Call work?',
-    answer: 'If you are a first-time seeker uncertain about which package suits your needs, you can book a complimentary 5-minute introductory audio call with Amit. He will examine your primary birth chart coordinates and outline the key planetary areas that warrant deeper exploration.'
+    question: 'Can I consult or get an instant quote on WhatsApp?',
+    answer: 'Yes! You can connect with Amit directly on WhatsApp (+91 9983353633) for quick quotes, package guidance, or preliminary consultations. You can chat directly as a guest or sign in to auto-attach your birth details for tailored insights.'
   }
 ];
 

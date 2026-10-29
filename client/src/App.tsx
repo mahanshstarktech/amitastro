@@ -16,12 +16,16 @@ import { AdminPortal } from './pages/admin/AdminPortal';
 import { AuthModal } from './components/auth/AuthModal';
 import { BookingModal } from './components/booking/BookingModal';
 import { TrialCutoffModal } from './components/trial/TrialCutoffModal';
+import { WhatsAppConsultModal } from './components/whatsapp/WhatsAppConsultModal';
 import { MobileSettingsModal } from './components/common/MobileSettingsModal';
 import { useAuth } from './context/AuthContext';
+import { useNotification } from './context/NotificationContext';
 import { initAnalyticsHeartbeat, trackEvent } from './utils/analytics';
+import { openWhatsAppConsult } from './utils/whatsapp';
 
 export const App: React.FC = () => {
-  const { isAuthenticated, isAdmin, user } = useAuth();
+  const { isAuthenticated, isAdmin, user, profiles } = useAuth();
+  const { showToast } = useNotification();
 
   const [currentPath, setCurrentPath] = useState<string>(() => window.location.pathname || '/');
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
@@ -29,6 +33,10 @@ export const App: React.FC = () => {
   const [bookingModalOpen, setBookingModalOpen] = useState<boolean>(false);
   const [selectedPkgId, setSelectedPkgId] = useState<string>('pkg-premium');
   const [trialModalOpen, setTrialModalOpen] = useState<boolean>(false);
+  const [whatsAppModalOpen, setWhatsAppModalOpen] = useState<boolean>(false);
+  const [autoOpenWhatsAppAfterLogin, setAutoOpenWhatsAppAfterLogin] = useState<boolean>(false);
+
+  const primaryProfile = profiles && profiles.length > 0 ? profiles[0] : null;
 
   // Initialize Big-Tech Grade Live Analytics Tracking
   useEffect(() => {
@@ -82,21 +90,17 @@ export const App: React.FC = () => {
     setBookingModalOpen(true);
   };
 
+  const handleOpenWhatsAppConsult = () => {
+    if (isAuthenticated) {
+      showToast('Opening WhatsApp with your consultation details...', 'info');
+      openWhatsAppConsult({ user, profile: primaryProfile });
+    } else {
+      setWhatsAppModalOpen(true);
+    }
+  };
+
   const handleOpenTrial = () => {
-    if (!isAuthenticated) {
-      handleOpenAuth('signup');
-      return;
-    }
-    if (!user?.isNewCustomer) {
-      // Returning/old client — show toast and redirect to booking
-      setBookingModalOpen(true);
-      return;
-    }
-    if (user?.trialUsed) {
-      setBookingModalOpen(true);
-      return;
-    }
-    setTrialModalOpen(true);
+    handleOpenWhatsAppConsult();
   };
 
 
@@ -135,6 +139,7 @@ export const App: React.FC = () => {
         <CustomerPortal
           onOpenBooking={() => handleOpenBooking()}
           onOpenTrial={handleOpenTrial}
+          onOpenWhatsAppConsult={handleOpenWhatsAppConsult}
         />
       );
     }
@@ -179,6 +184,7 @@ export const App: React.FC = () => {
         <PricingPage
           onOpenBooking={handleOpenBooking}
           onOpenTrial={handleOpenTrial}
+          onOpenWhatsAppConsult={handleOpenWhatsAppConsult}
         />
       );
     }
@@ -231,6 +237,7 @@ export const App: React.FC = () => {
         <HomePage
           onOpenBooking={handleOpenBooking}
           onOpenTrial={handleOpenTrial}
+          onOpenWhatsAppConsult={handleOpenWhatsAppConsult}
           onNavigate={navigateTo}
         />
       );
@@ -292,10 +299,28 @@ export const App: React.FC = () => {
         onClose={() => setAuthModalOpen(false)}
         initialMode={authMode}
         onSuccess={() => {
+          if (autoOpenWhatsAppAfterLogin) {
+            setAutoOpenWhatsAppAfterLogin(false);
+            setTimeout(() => {
+              showToast('Opening WhatsApp with your consultation details...', 'info');
+              openWhatsAppConsult({ user, profile: primaryProfile });
+            }, 300);
+          }
           if (window.location.pathname.startsWith('/admin')) {
             navigateTo('/admin');
           }
         }}
+      />
+
+      <WhatsAppConsultModal
+        isOpen={whatsAppModalOpen}
+        onClose={() => setWhatsAppModalOpen(false)}
+        onOpenAuth={(mode) => {
+          setAutoOpenWhatsAppAfterLogin(true);
+          handleOpenAuth(mode || 'login');
+        }}
+        user={user}
+        profile={primaryProfile}
       />
 
       <BookingModal

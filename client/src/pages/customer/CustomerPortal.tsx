@@ -15,17 +15,20 @@ import { PlanBadge, SubscriptionAvatar } from '../../components/common/PlanBadge
 import { FamilyUpgradeModal } from '../../components/subscription/FamilyUpgradeModal';
 import { SubscriptionManagementView } from '../../components/subscription/SubscriptionManagementView';
 import { CityAutocompleteInput } from '../../components/common/CityAutocompleteInput';
+import { WhatsAppIcon } from '../../components/common/WhatsAppIcon';
 import { getSocket, authenticateSocket, playReceiveChime, notifyNewMessage, setTabUnreadBadge, requestNotificationPermission } from '../../utils/socket';
 
 interface CustomerPortalProps {
   onOpenBooking: () => void;
   onOpenTrial: () => void;
+  onOpenWhatsAppConsult?: () => void;
   initialTab?: 'dashboard' | 'appointments' | 'chat' | 'profile' | 'payments' | 'settings' | 'subscription';
 }
 
 export const CustomerPortal: React.FC<CustomerPortalProps> = ({
   onOpenBooking,
   onOpenTrial,
+  onOpenWhatsAppConsult,
   initialTab = 'dashboard'
 }) => {
   const { user, profiles, addProfile, deleteProfile, updateProfilePhoto, logout } = useAuth();
@@ -805,15 +808,23 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
               </div>
 
               <div style={{ display: 'flex', gap: 10 }}>
-                {user?.isNewCustomer && !user?.trialUsed && (
-                  <button
-                    onClick={onOpenTrial}
-                    className="apple-btn-secondary"
-                    style={{ padding: '9px 16px', fontSize: 13.5, color: '#3A3A6E', borderColor: '#3A3A6E' }}
-                  >
-                    <Clock size={15} /> 5-Min Free Trial
-                  </button>
-                )}
+                <button
+                  onClick={onOpenWhatsAppConsult || onOpenTrial}
+                  className="apple-btn-secondary"
+                  style={{
+                    padding: '9px 16px',
+                    fontSize: 13.5,
+                    color: '#128C7E',
+                    borderColor: 'rgba(37, 211, 102, 0.35)',
+                    backgroundColor: 'rgba(37, 211, 102, 0.08)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontWeight: 600
+                  }}
+                >
+                  <WhatsAppIcon size={15} color="#25D366" /> Consult on WhatsApp
+                </button>
                 <button
                   onClick={onOpenBooking}
                   className="apple-btn-primary"
@@ -925,12 +936,13 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
               </div>
 
               {/* Free Trial Banner Card */}
+              {/* WhatsApp Consultation & Quote */}
               <div
                 className="apple-card"
                 style={{
                   padding: '26px 24px',
-                  backgroundColor: user?.trialUsed ? '#FFFFFF' : 'linear-gradient(135deg, #FFFFFF, #F5F5F7)',
-                  border: user?.trialUsed ? '1px solid #E5E5EA' : '1px solid #C9A24B',
+                  backgroundColor: '#FFFFFF',
+                  border: '1px solid rgba(37, 211, 102, 0.35)',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between'
@@ -938,39 +950,43 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
               >
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                    <span className="apple-badge-gold">Complimentary Trial</span>
-                    <Clock size={18} color="#C9A24B" />
+                    <span className="apple-badge-gold" style={{ backgroundColor: 'rgba(37, 211, 102, 0.12)', color: '#1B8A43' }}>Direct WhatsApp</span>
+                    <WhatsAppIcon size={18} color="#25D366" />
                   </div>
 
                   <h3 style={{ fontSize: 18, fontWeight: 600, color: '#1D1D1F', marginBottom: 6 }}>
-                    {user?.trialUsed ? 'Trial Completed' : !user?.isNewCustomer ? 'Consultation Packages' : '5-Minute Discovery Call'}
+                    WhatsApp Consultation & Quote
                   </h3>
                   <p style={{ fontSize: 13.5, color: '#6E6E73', lineHeight: 1.5 }}>
-                    {user?.trialUsed
-                      ? 'You have already utilized your one-time trial. Upgrade to a consultation package for in-depth guidance.'
-                      : !user?.isNewCustomer
-                      ? 'Your account is configured for regular consultations. Book direct uninterrupted time with Amit.'
-                      : 'Experience Amit’s calm, authoritative consultation style with a live 5-minute phone session.'}
+                    Connect directly with Astrologer Amit on WhatsApp (+91 9983353633). Your account profile coordinates will be automatically included in your consultation message.
                   </p>
                 </div>
 
-                {(!user?.isNewCustomer || user?.trialUsed) ? (
-                  <button
-                    onClick={onOpenBooking}
-                    className="apple-btn-gold"
-                    style={{ width: '100%', marginTop: 20, fontSize: 13.5 }}
-                  >
-                    View Packages & Book
-                  </button>
-                ) : (
-                  <button
-                    onClick={onOpenTrial}
-                    className="apple-btn-primary"
-                    style={{ width: '100%', marginTop: 20, fontSize: 13.5 }}
-                  >
-                    Start 5-Min Trial Call
-                  </button>
-                )}
+                <button
+                  onClick={onOpenWhatsAppConsult || onOpenTrial}
+                  style={{
+                    width: '100%',
+                    marginTop: 20,
+                    fontSize: 13.5,
+                    padding: '11px 16px',
+                    backgroundColor: '#25D366',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: 12,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 7,
+                    boxShadow: '0 2px 8px rgba(37, 211, 102, 0.25)',
+                    transition: 'background-color 0.15s ease'
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#20BA5A')}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#25D366')}
+                >
+                  <WhatsAppIcon size={16} color="#FFFFFF" /> Consult on WhatsApp
+                </button>
               </div>
 
               {/* Saved Profiles Summary */}

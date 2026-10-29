@@ -154,7 +154,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onOpenBooking, onNavigate 
             Ready to know what the stars say?
           </h2>
           <p className="text-body-large" style={{ maxWidth: 540, margin: '0 auto 28px' }}>
-            Book a confidential 1-on-1 consultation slot or begin with our 5-minute trial session.
+            Book a confidential 1-on-1 consultation slot or connect instantly on WhatsApp for a quick consultation and quote.
           </p>
           <button
             onClick={onOpenBooking}

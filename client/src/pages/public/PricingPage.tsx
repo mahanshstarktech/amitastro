@@ -1,22 +1,23 @@
 import React, { useState } from 'react';
-import { Check, Star, Sparkles, Calendar, ShieldCheck, HelpCircle, Crown } from 'lucide-react';
+import { Check, Star, Sparkles, Calendar, ShieldCheck, HelpCircle, Crown, MessageCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useCountry } from '../../context/CountryContext';
 import { PlanBadge } from '../../components/common/PlanBadge';
 import { FamilyUpgradeModal } from '../../components/subscription/FamilyUpgradeModal';
+import { WhatsAppIcon } from '../../components/common/WhatsAppIcon';
 
 interface PricingPageProps {
   onOpenBooking: (pkgId?: string) => void;
   onOpenTrial: () => void;
+  onOpenWhatsAppConsult?: () => void;
 }
 
-export const PricingPage: React.FC<PricingPageProps> = ({ onOpenBooking, onOpenTrial }) => {
+export const PricingPage: React.FC<PricingPageProps> = ({ onOpenBooking, onOpenTrial, onOpenWhatsAppConsult }) => {
   const { isAuthenticated, user } = useAuth();
   const { t } = useLanguage();
   const { countryInfo } = useCountry();
   const [showFamilyModal, setShowFamilyModal] = useState(false);
-  const showTrialCTA = !isAuthenticated || (!!user?.isNewCustomer && !user?.trialUsed);
 
   return (
     <div style={{ minHeight: '100vh', paddingBottom: 96 }}>
@@ -45,57 +46,70 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onOpenBooking, onOpenT
             alignItems: 'stretch'
           }}
         >
-          {/* 1. Trial (Free) */}
-          <div className="apple-card" style={{ padding: '32px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          {/* 1. WhatsApp Consult & Quote */}
+          <div className="apple-card" style={{ padding: '32px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid rgba(37, 211, 102, 0.3)' }}>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <span className="apple-badge-primary">
-                  1-Time First Session
+                <span className="apple-badge-primary" style={{ backgroundColor: 'rgba(37, 211, 102, 0.12)', color: '#1B8A43' }}>
+                  Instant WhatsApp
                 </span>
-                <PlanBadge badge="Free(Trial)" size="sm" />
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#1B8A43', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <WhatsAppIcon size={14} color="#25D366" /> Active
+                </span>
               </div>
-              <h3 style={{ fontSize: 22, fontWeight: 700, margin: '8px 0 6px' }}>Trial Session</h3>
+              <h3 style={{ fontSize: 22, fontWeight: 700, margin: '8px 0 6px' }}>WhatsApp Consult</h3>
               <div style={{ fontSize: 32, fontWeight: 700, color: '#1D1D1F', marginBottom: 4 }}>
-                Free
+                Free Quote
               </div>
               <div style={{ fontSize: 13, color: '#6E6E73', marginBottom: 20 }}>
-                5-Minute Discovery Call
+                Direct chat & custom quotation
               </div>
 
               <div style={{ padding: '8px 12px', backgroundColor: '#F5F5F7', borderRadius: 8, fontSize: 12, color: '#6E6E73', marginBottom: 20 }}>
-                Cost/Min: <strong>Free</strong> (1 per verified phone)
+                Response: <strong>Typically within minutes</strong>
               </div>
 
               <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13.5 }}>
                 <li style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Check size={16} color="#2FA84F" /> 5-minute phone consultation
+                  <Check size={16} color="#2FA84F" /> Direct conversation with Astrologer Amit
                 </li>
                 <li style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Check size={16} color="#2FA84F" /> Shared trial chat budget
+                  <Check size={16} color="#2FA84F" /> Instant fee quote & slot availability
                 </li>
                 <li style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Check size={16} color="#2FA84F" /> High-level chart impressions
+                  <Check size={16} color="#2FA84F" /> Ask questions before booking
+                </li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Check size={16} color="#2FA84F" /> No login required — guest friendly
                 </li>
               </ul>
             </div>
 
-            {showTrialCTA ? (
-              <button
-                onClick={onOpenTrial}
-                className="apple-btn-secondary"
-                style={{ width: '100%', marginTop: 28, padding: 12 }}
-              >
-                Start Free Trial
-              </button>
-            ) : (
-              <button
-                onClick={() => onOpenBooking('pkg-quick')}
-                className="apple-btn-secondary"
-                style={{ width: '100%', marginTop: 28, padding: 12, opacity: 0.85 }}
-              >
-                Book Focused Session
-              </button>
-            )}
+            <button
+              onClick={onOpenWhatsAppConsult || onOpenTrial}
+              style={{
+                width: '100%',
+                marginTop: 28,
+                padding: '12px 16px',
+                fontSize: 14.5,
+                fontWeight: 600,
+                backgroundColor: '#25D366',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: 12,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                boxShadow: '0 4px 12px rgba(37, 211, 102, 0.28)',
+                transition: 'background-color 0.15s ease'
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#20BA5A')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#25D366')}
+            >
+              <WhatsAppIcon size={17} color="#FFFFFF" /> Consult on WhatsApp
+            </button>
           </div>
 
           {/* 2. Quick Consult */}
